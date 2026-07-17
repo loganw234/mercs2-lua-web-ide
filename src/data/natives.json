@@ -1,0 +1,4688 @@
+{
+ "source": "C:\\Users\\logan\\Desktop\\Mercs2_Decompiled_Lua\\docs\\mercs2-luacd\\src",
+ "files": 370,
+ "natives": {
+  "Ai": {
+   "AddInfraction": {
+    "n": 8,
+    "min": 3,
+    "max": 3,
+    "example": "Ai.AddInfraction(uActionerGuid, uFaction, 5)"
+   },
+   "AddSubject": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Ai.AddSubject(uCharacterGuid)"
+   },
+   "Anchor": {
+    "n": 9,
+    "min": 0,
+    "max": 0,
+    "example": "Ai.Anchor({AIGuid = uBoatCapn, AnchorRadius = 0})"
+   },
+   "DefaultGoal": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Ai.DefaultGoal(tParameters)"
+   },
+   "Deliver": {
+    "n": 2,
+    "min": 6,
+    "max": 6,
+    "example": "Ai.Deliver(Vehicle.GetDriver(uHeli), nDesX, nDesY, nDesZ, 0.5, bCareless)"
+   },
+   "Deploy": {
+    "n": 7,
+    "min": 0,
+    "max": 1,
+    "example": "Ai.Deploy(tParameters)"
+   },
+   "Enable": {
+    "n": 5,
+    "min": 2,
+    "max": 2,
+    "example": "Ai.Enable(uGuid, false)"
+   },
+   "GetFactionGuid": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Ai.GetFactionGuid(uRusher)"
+   },
+   "GetFeeling": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Ai.GetFeeling(uGuid, uTarget)"
+   },
+   "GetRelation": {
+    "n": 9,
+    "min": 2,
+    "max": 2,
+    "example": "Ai.GetRelation(uGuid, uDriver)"
+   },
+   "GetState": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Ai.GetState({AIGuid = uRusher, State = \"NoCapture\"})"
+   },
+   "Goal": {
+    "n": 120,
+    "min": 0,
+    "max": 1,
+    "example": "Ai.Goal(args)"
+   },
+   "LivingWorld": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Ai.LivingWorld({ AIGuid = uGuid, Attrib = \"LivingWorldBehaviour\", State = false })"
+   },
+   "RemoveExclusionZone": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Ai.RemoveExclusionZone()"
+   },
+   "RemoveGoal": {
+    "n": 16,
+    "min": 0,
+    "max": 2,
+    "example": "Ai.RemoveGoal(tParameters)"
+   },
+   "RemoveSubject": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Ai.RemoveSubject(uCharacterGuid)"
+   },
+   "Role": {
+    "n": 14,
+    "min": 0,
+    "max": 1,
+    "example": "Ai.Role(tParameters)"
+   },
+   "SetFeeling": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Ai.SetFeeling(uGuid, uTarget, 100)"
+   },
+   "SetHaste": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Ai.SetHaste(uBoatCapn, 1)"
+   },
+   "SetInfractionMultiplier": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Ai.SetInfractionMultiplier(GetGuidByName(\"OC\"), 0.1)"
+   },
+   "SetLaneActive": {
+    "n": 3,
+    "min": 3,
+    "max": 3,
+    "example": "Ai.SetLaneActive(Pg.GetGuidByName(road), 1, false)"
+   },
+   "SetPriorityTarget": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Ai.SetPriorityTarget(uHeli)"
+   },
+   "SetRelation": {
+    "n": 13,
+    "min": 3,
+    "max": 3,
+    "example": "Ai.SetRelation(uFaction, uGuid, 0)"
+   },
+   "SetState": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Ai.SetState({ AIGuid = uCarmona, State = \"Vip\", Value = true })"
+   },
+   "Squad": {
+    "n": 9,
+    "min": 0,
+    "max": 0,
+    "example": "Ai.Squad({SquadGuid = uSquad, Action = \"GetUnits\"})"
+   },
+   "TestDropZone": {
+    "n": 5,
+    "min": 0,
+    "max": 0,
+    "example": null
+   },
+   "TweakAttachedSpawners": {
+    "n": 31,
+    "min": 2,
+    "max": 2,
+    "example": "Ai.TweakAttachedSpawners(uGuid, tProps)"
+   },
+   "TweakAttachedSpawnersInGroup": {
+    "n": 14,
+    "min": 3,
+    "max": 3,
+    "example": "Ai.TweakAttachedSpawnersInGroup(uGuid, tProps.Group, tProps)"
+   }
+  },
+  "Airstrike": {
+   "ConeSpawn": {
+    "n": 12,
+    "min": 10,
+    "max": 10,
+    "example": null
+   },
+   "EquipDesignator": {
+    "n": 3,
+    "min": 5,
+    "max": 5,
+    "example": "Airstrike.EquipDesignator(self.uOwner, self.sDesignationType, nil, nil, bFireImmediately)"
+   },
+   "FindDesignatorOwner": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Airstrike.FindDesignatorOwner(uDesignatorGuid)"
+   },
+   "Flyby": {
+    "n": 19,
+    "min": 7,
+    "max": 9,
+    "example": "Airstrike.Flyby(tTemplates[sFaction], x - 50, z + 300, x, z, y + 100, 40)"
+   },
+   "RefillDesignator": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Airstrike.RefillDesignator(oSupport.oDesignator.uWeaponGuid)"
+   },
+   "RemoveDesignator": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Airstrike.RemoveDesignator(uPlayerGuid)"
+   },
+   "SpawnCarpetBombLine": {
+    "n": 2,
+    "min": 8,
+    "max": 8,
+    "example": null
+   },
+   "SpawnDirectedObject": {
+    "n": 3,
+    "min": 7,
+    "max": 7,
+    "example": null
+   },
+   "SpawnOrdnance": {
+    "n": 18,
+    "min": 7,
+    "max": 13,
+    "example": "Airstrike.SpawnOrdnance(sTemplate, x, y, z, 0, -100, 0, \"impact\", 1)"
+   },
+   "SpawnTargettedOrdnance": {
+    "n": 6,
+    "min": 11,
+    "max": 13,
+    "example": null
+   }
+  },
+  "Animation": {
+   "BindFaceAnimSet": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Animation.BindFaceAnimSet(uGuid, sSet)"
+   },
+   "PlayFacialExpression": {
+    "n": 5,
+    "min": 2,
+    "max": 5,
+    "example": "Animation.PlayFacialExpression(self._hijackee, \"DisableAll\")"
+   },
+   "SetUseBriefingLOD": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Animation.SetUseBriefingLOD(true)"
+   },
+   "UnbindFaceAnimSet": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Animation.UnbindFaceAnimSet(uGuid, self.sFaceFxSet)"
+   }
+  },
+  "AnimationData": {
+   "fCompletion": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "AnimationData.fCompletion(unpack(tData))"
+   }
+  },
+  "Atmosphere": {
+   "Begin": {
+    "n": 11,
+    "min": 0,
+    "max": 0,
+    "example": "Atmosphere.Begin()"
+   },
+   "ChangeLineRegionSetting": {
+    "n": 15,
+    "min": 2,
+    "max": 2,
+    "example": "Atmosphere.ChangeLineRegionSetting(Pg.GetGuidByName(\"rgn_atmo_interior\"), \"pmc\")"
+   },
+   "EnableImmediatelyChangeMode": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.EnableImmediatelyChangeMode(true)"
+   },
+   "End": {
+    "n": 11,
+    "min": 0,
+    "max": 1,
+    "example": "Atmosphere.End()"
+   },
+   "GetValue": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Atmosphere.GetValue(\"fBloomContastLimit\")"
+   },
+   "IsInterpolating": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Atmosphere.IsInterpolating()"
+   },
+   "SetAmbientColor": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Atmosphere.SetAmbientColor(0.45, 0.45, 0.45)"
+   },
+   "SetAmbientCube": {
+    "n": 1,
+    "min": 18,
+    "max": 18,
+    "example": null
+   },
+   "SetBetaMieMultiplier": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetBetaMieMultiplier(0.01)"
+   },
+   "SetBetaRayMultiplier": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetBetaRayMultiplier(0.001)"
+   },
+   "SetColorValue": {
+    "n": 78,
+    "min": 5,
+    "max": 5,
+    "example": "Atmosphere.SetColorValue(\"uiRimColor\", 128, 128, 128, 255)"
+   },
+   "SetExtinctionMultiplier": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetExtinctionMultiplier(0.8)"
+   },
+   "SetHenyeyGreensteinConst": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetHenyeyGreensteinConst(0.9)"
+   },
+   "SetInscatteringMultiplier": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetInscatteringMultiplier(50)"
+   },
+   "SetLightIntensity": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetLightIntensity(1)"
+   },
+   "SetSky": {
+    "n": 5,
+    "min": 0,
+    "max": 0,
+    "example": "Atmosphere.SetSky(\"afternoon\")"
+   },
+   "SetTime": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetTime(0.3)"
+   },
+   "SetTimeSpeed": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Atmosphere.SetTimeSpeed(0)"
+   },
+   "SetValue": {
+    "n": 109,
+    "min": 2,
+    "max": 2,
+    "example": "Atmosphere.SetValue(\"fBloomAmount\", 1)"
+   }
+  },
+  "Bloom": {
+   "SetBlurRadius": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Bloom.SetBlurRadius(0.5)"
+   },
+   "SetMultiplier": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Bloom.SetMultiplier(0)"
+   },
+   "SetThreshold": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Bloom.SetThreshold(0.775)"
+   }
+  },
+  "Camera": {
+   "Blend": {
+    "n": 2,
+    "min": 2,
+    "max": 3,
+    "example": "Camera.Blend(uCamera, 1)"
+   },
+   "GetYaw": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Camera.GetYaw(uCamera)"
+   },
+   "Hold": {
+    "n": 2,
+    "min": 3,
+    "max": 4,
+    "example": "Camera.Hold(uCamera, true, false)"
+   },
+   "RestoreFocusParams": {
+    "n": 5,
+    "min": 2,
+    "max": 2,
+    "example": "Camera.RestoreFocusParams(0, 0)"
+   },
+   "RestoreFovParams": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Camera.RestoreFovParams(0, 1)"
+   },
+   "RestoreNearFar": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Camera.RestoreNearFar(0)"
+   },
+   "SetFocusParams": {
+    "n": 5,
+    "min": 6,
+    "max": 7,
+    "example": "Camera.SetFocusParams(0, 0, 0.1, 4, 6, 1)"
+   },
+   "SetFovParams": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Camera.SetFovParams(nPlayerCam, nAngle, nDuration)"
+   },
+   "SetLookAt": {
+    "n": 3,
+    "min": 3,
+    "max": 6,
+    "example": "Camera.SetLookAt(uCamera, self._hijacker, \"bone_chest\")"
+   },
+   "SetNearFar": {
+    "n": 3,
+    "min": 4,
+    "max": 4,
+    "example": "Camera.SetNearFar(0, 0.3, 500, 0)"
+   },
+   "SetPitch": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Camera.SetPitch(uCamera, 0.302)"
+   },
+   "SetPosition": {
+    "n": 2,
+    "min": 4,
+    "max": 5,
+    "example": "Camera.SetPosition(uCamera, tSettings.uPositionObject, tSettings.sPositionHardpoint, true)"
+   },
+   "SetShot": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": null
+   },
+   "SetYaw": {
+    "n": 5,
+    "min": 2,
+    "max": 2,
+    "example": "Camera.SetYaw(uCamera, 0)"
+   },
+   "Shake": {
+    "n": 6,
+    "min": 3,
+    "max": 5,
+    "example": "Camera.Shake(StringToGuid(\"0x1\"), \"StopShakeCameraConstantly\", uiGuid)"
+   },
+   "StopBlending": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Camera.StopBlending(uCam)"
+   }
+  },
+  "Contrast": {
+   "SetLimit": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Contrast.SetLimit(0.1)"
+   },
+   "SetMultiplier": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Contrast.SetMultiplier(1.5)"
+   }
+  },
+  "Debug": {
+   "GetCallstack": {
+    "n": 7,
+    "min": 0,
+    "max": 0,
+    "example": "Debug.GetCallstack()"
+   },
+   "Printdf": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": null
+   },
+   "Printf": {
+    "n": 1612,
+    "min": 0,
+    "max": 6,
+    "example": "Debug.Printf(sMsg)"
+   }
+  },
+  "Disguise": {
+   "Init": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Disguise.Init({InvestigatorCallback = HandleInvestigator})"
+   }
+  },
+  "Effect": {
+   "CameraFade": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Effect.CameraFade(0)"
+   },
+   "Terrain": {
+    "n": 3,
+    "min": 6,
+    "max": 6,
+    "example": "Effect.Terrain(\"global_particle_dustfall\", 20, 0.005, x, 8, z)"
+   }
+  },
+  "Event": {
+   "Create": {
+    "n": 557,
+    "min": 3,
+    "max": 6,
+    "example": "Event.Create(Event.TimerRelative, {0.5}, _Go)"
+   },
+   "CreatePersistent": {
+    "n": 95,
+    "min": 3,
+    "max": 5,
+    "example": "Event.CreatePersistent(Event.TimerRelative, {8}, CheckAlarm, {uGuid})"
+   },
+   "Delete": {
+    "n": 513,
+    "min": 0,
+    "max": 1,
+    "example": "Event.Delete(e)"
+   },
+   "Post": {
+    "n": 52,
+    "min": 0,
+    "max": 2,
+    "example": "Event.Post(\"PDA Close\", {})"
+   }
+  },
+  "FanfareQueue": {
+   "ClientPause": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "FanfareQueue.ClientPause(true)"
+   },
+   "ClientSetPending": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "FanfareQueue.ClientSetPending(false)"
+   },
+   "Pause": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "FanfareQueue.Pause(true)"
+   }
+  },
+  "Graphics": {
+   "GetShadowBaseDistance": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Graphics.GetShadowBaseDistance()"
+   },
+   "InitTinyGeometry": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Graphics.InitTinyGeometry()"
+   },
+   "SetBoundaryEffect": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Graphics.SetBoundaryEffect(0)"
+   },
+   "SetGamma": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Graphics.SetGamma(0, 0.8, 1)"
+   },
+   "SetShadowBaseDistance": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Graphics.SetShadowBaseDistance(2)"
+   }
+  },
+  "Gui": {
+   "ControllerInUse": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.ControllerInUse()"
+   },
+   "DoSigninCheck": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.DoSigninCheck()"
+   },
+   "EnablePlayerMarkers": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Gui.EnablePlayerMarkers(true)"
+   },
+   "FindGuiLocation": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Gui.FindGuiLocation(uPlayerGuid, uGuid)"
+   },
+   "GetLanguageName": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.GetLanguageName()"
+   },
+   "GetReticlePosition": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Gui.GetReticlePosition(oWidget:GetOwner())"
+   },
+   "IsPdaOnSelect": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.IsPdaOnSelect()"
+   },
+   "IsXboxController": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.IsXboxController()"
+   },
+   "LoadFont": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.LoadFont(\"fanfare_36\")"
+   },
+   "LoadTexture": {
+    "n": 27,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.LoadTexture(\"icon_fail\", \"texture\")"
+   },
+   "OnGlobalExit": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.OnGlobalExit()"
+   },
+   "OnShellLoaded": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Gui.OnShellLoaded()"
+   },
+   "SetPickupMarkerSize": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Gui.SetPickupMarkerSize(18, true)"
+   },
+   "SetPickupMarkerVisibleDistance": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Gui.SetPickupMarkerVisibleDistance(20, false)"
+   },
+   "ShowLoadingHints": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Gui.ShowLoadingHints(true)"
+   }
+  },
+  "HijackContractManager": {
+   "CancelActiveContract": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "HijackContractManager.CancelActiveContract()"
+   },
+   "SetActiveContract": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "HijackContractManager.SetActiveContract(self)"
+   }
+  },
+  "Human": {
+   "DisableWeapons": {
+    "n": 25,
+    "min": 1,
+    "max": 1,
+    "example": "Human.DisableWeapons(uChar)"
+   },
+   "DoAction": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Human.DoAction(uGuid, \"Cower\")"
+   },
+   "Drop": {
+    "n": 3,
+    "min": 1,
+    "max": 2,
+    "example": "Human.Drop(uChar)"
+   },
+   "EnableWeapons": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Human.EnableWeapons(uChar)"
+   },
+   "ForceExitSeatNoSnap": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Human.ForceExitSeatNoSnap(uCharacter)"
+   },
+   "IsCarrying": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Human.IsCarrying(uChar)"
+   },
+   "IsGrappling": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Human.IsGrappling(uCharGuid)"
+   },
+   "IsSwimming": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Human.IsSwimming(uCharacter)"
+   },
+   "Knockdown": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Human.Knockdown(uCharacter, 0.5)"
+   },
+   "PersistTransform": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Human.PersistTransform(uGuid)"
+   },
+   "PlayRawAnimation": {
+    "n": 5,
+    "min": 6,
+    "max": 7,
+    "example": "Human.PlayRawAnimation(uGuid, sAnim, false, false, -1, true, true)"
+   },
+   "Scrub": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Human.Scrub(uChar)"
+   },
+   "SetAllowCorpseCleanup": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Human.SetAllowCorpseCleanup(uGuid, true)"
+   },
+   "SetFireLock": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Human.SetFireLock(uChar, true)"
+   },
+   "SetJostleEnabled": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Human.SetJostleEnabled(uChar, bOn)"
+   },
+   "SetPreemptiveRagdoll": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Human.SetPreemptiveRagdoll(self._hijackee)"
+   },
+   "SetState": {
+    "n": 21,
+    "min": 3,
+    "max": 3,
+    "example": "Human.SetState(uChar, \"Upright\", \"Idle\")"
+   },
+   "StopGrappling": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Human.StopGrappling(uCharGuid)"
+   }
+  },
+  "Inventory": {
+   "DropWeapon": {
+    "n": 17,
+    "min": 2,
+    "max": 2,
+    "example": "Inventory.DropWeapon(uChar, weapon)"
+   },
+   "EquipWeapon": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Inventory.EquipWeapon(uPlayer, tWeapons.Primary2)"
+   },
+   "GetAllWeapons": {
+    "n": 27,
+    "min": 1,
+    "max": 2,
+    "example": "Inventory.GetAllWeapons(uGuid)"
+   },
+   "GetPrimaryWeapon": {
+    "n": 9,
+    "min": 1,
+    "max": 1,
+    "example": "Inventory.GetPrimaryWeapon(uChar)"
+   },
+   "GetSecondaryWeapon": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Inventory.GetSecondaryWeapon(uPlayer)"
+   },
+   "ReloadAll": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Inventory.ReloadAll(uCharacter, false)"
+   },
+   "SetAllWeapons": {
+    "n": 25,
+    "min": 2,
+    "max": 2,
+    "example": "Inventory.SetAllWeapons(uGuid, tEquipment)"
+   }
+  },
+  "Junk": {
+   "DrawPath": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Junk.DrawPath(uPath)"
+   },
+   "FormatTime": {
+    "n": 2,
+    "min": 1,
+    "max": 2,
+    "example": "Junk.FormatTime(nTime)"
+   },
+   "InstallToHDD": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Junk.InstallToHDD()"
+   },
+   "IsInstallable": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Junk.IsInstallable()"
+   },
+   "UseExistingInstall": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Junk.UseExistingInstall()"
+   }
+  },
+  "LTILibName": {
+   "ChangeShellState": {
+    "n": 24,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.ChangeShellState(true)"
+   },
+   "FirstRun": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.FirstRun()"
+   },
+   "LTICamera": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTICamera(iNumber)"
+   },
+   "LTIChoseOnline": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIChoseOnline(iNumber)"
+   },
+   "LTIGetDateFormat": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIGetDateFormat()"
+   },
+   "LTIGetStartButton": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIGetStartButton()"
+   },
+   "LTIInputGeneralEnter": {
+    "n": 8,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputGeneralEnter()"
+   },
+   "LTIInputGeneralInvertMouse": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputGeneralInvertMouse(iNumber)"
+   },
+   "LTIInputGeneralJoySense": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputGeneralJoySense(fNumber)"
+   },
+   "LTIInputGeneralMouseSense": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputGeneralMouseSense(fNumber)"
+   },
+   "LTIInputGeneralOptions": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputGeneralOptions(sString)"
+   },
+   "LTIInputGeneralRumble": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputGeneralRumble(bBoolean)"
+   },
+   "LTIInputJoystickApplyChanges": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputJoystickApplyChanges()"
+   },
+   "LTIInputJoystickCancel": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputJoystickCancel()"
+   },
+   "LTIInputJoystickChangeInput": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputJoystickChangeInput(iNumber)"
+   },
+   "LTIInputJoystickChangePrimary": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputJoystickChangePrimary(iNumber)"
+   },
+   "LTIInputJoystickDefault": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputJoystickDefault()"
+   },
+   "LTIInputJoystickEnter": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputJoystickEnter()"
+   },
+   "LTIInputJoystickExit": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputJoystickExit()"
+   },
+   "LTIInputJoystickReEnter": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputJoystickReEnter()"
+   },
+   "LTIInputKMApplyChanges": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputKMApplyChanges()"
+   },
+   "LTIInputKMCancelInput": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputKMCancelInput()"
+   },
+   "LTIInputKMChangeInput": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIInputKMChangeInput(iNumber)"
+   },
+   "LTIInputKMDefault": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputKMDefault()"
+   },
+   "LTIInputKMEnter": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputKMEnter()"
+   },
+   "LTIInputKMExit": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIInputKMExit()"
+   },
+   "LTIJoystickOverBoundResponse": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIJoystickOverBoundResponse(iNumber)"
+   },
+   "LTIOverBoundResponse": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIOverBoundResponse(iNumber)"
+   },
+   "LTIPauseItemChanged": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIPauseItemChanged(iNumber)"
+   },
+   "LTIPrecacheDone": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIPrecacheDone()"
+   },
+   "LTIPrecacheSmokeDone": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIPrecacheSmokeDone()"
+   },
+   "LTIProfileEnter": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIProfileEnter()"
+   },
+   "LTIProfileExit": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIProfileExit()"
+   },
+   "LTIVideoAdvanceDefault": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoAdvanceDefault()"
+   },
+   "LTIVideoAdvanceEnter": {
+    "n": 8,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoAdvanceEnter()"
+   },
+   "LTIVideoApplyChanges": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoApplyChanges()"
+   },
+   "LTIVideoCancel": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoCancel()"
+   },
+   "LTIVideoDefault": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoDefault()"
+   },
+   "LTIVideoEnter": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoEnter()"
+   },
+   "LTIVideoGetViewDistance": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIVideoGetViewDistance(iNumber)"
+   },
+   "LTIVideoNextRefresh": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoNextRefresh()"
+   },
+   "LTIVideoNextRes": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoNextRes()"
+   },
+   "LTIVideoPrevRefresh": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoPrevRefresh()"
+   },
+   "LTIVideoPrevRes": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoPrevRes()"
+   },
+   "LTIVideoSetGamma": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIVideoSetGamma(fNumber)"
+   },
+   "LTIVideoSwitchMode": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "LTILibName.LTIVideoSwitchMode()"
+   },
+   "LTIVideoSwitchOpt1": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIVideoSwitchOpt1(iNumber)"
+   },
+   "LTIupdateSupportQuickSlot": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "LTILibName.LTIupdateSupportQuickSlot(sParm)"
+   }
+  },
+  "Marker": {
+   "Add": {
+    "n": 1,
+    "min": 8,
+    "max": 8,
+    "example": "Marker.Add(0, 2, 0, uGuid, r, g, b, 0.05)"
+   },
+   "Add3D": {
+    "n": 3,
+    "min": 5,
+    "max": 6,
+    "example": "Marker.Add3D(uGuid, \"global_tripwirefinish\", r, g, b)"
+   },
+   "AddBlip": {
+    "n": 11,
+    "min": 8,
+    "max": 13,
+    "example": "Marker.AddBlip(uGuid, sIcon, 32, icon_r, icon_g, icon_b, 255, 1.25)"
+   },
+   "AddDisc": {
+    "n": 5,
+    "min": 6,
+    "max": 6,
+    "example": "Marker.AddDisc(uGuid, 0.5, disc_r, disc_g, disc_b, 0.1)"
+   },
+   "AddTripwire": {
+    "n": 1,
+    "min": 8,
+    "max": 8,
+    "example": "Marker.AddTripwire(x0, y0, z0, fWidth, yaw0, r, g, b)"
+   },
+   "HaltPulse": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Marker.HaltPulse(uGuid)"
+   },
+   "Pulse": {
+    "n": 3,
+    "min": 4,
+    "max": 4,
+    "example": "Marker.Pulse(uGuid, 0, 255, 0)"
+   },
+   "Remove": {
+    "n": 26,
+    "min": 1,
+    "max": 1,
+    "example": "Marker.Remove(uMarker)"
+   }
+  },
+  "Math": {
+   "GetXZHeading": {
+    "n": 8,
+    "min": 3,
+    "max": 3,
+    "example": "Math.GetXZHeading(tX - pX, tY - pY, tZ - pZ)"
+   },
+   "Length": {
+    "n": 4,
+    "min": 3,
+    "max": 3,
+    "example": "Math.Length(dx, dy, dz)"
+   },
+   "Normalize": {
+    "n": 30,
+    "min": 3,
+    "max": 3,
+    "example": "Math.Normalize(nOffsetX, 0, nOffsetZ)"
+   },
+   "PolarToRect": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Math.PolarToRect(-nTheta + 90, nRadius)"
+   },
+   "floor": {
+    "n": 10,
+    "min": 1,
+    "max": 1,
+    "example": "Math.floor(nTime)"
+   },
+   "max": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Math.max(nHeal, 1)"
+   },
+   "min": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Math.min(n, nMax)"
+   },
+   "randf": {
+    "n": 10,
+    "min": 2,
+    "max": 2,
+    "example": "Math.randf(5, 20)"
+   },
+   "randi": {
+    "n": 24,
+    "min": 1,
+    "max": 2,
+    "example": "Math.randi(3)"
+   }
+  },
+  "Monochrome": {
+   "SetGradient": {
+    "n": 2,
+    "min": 10,
+    "max": 10,
+    "example": "Monochrome.SetGradient(0, 128, 0, 0, 0, 0, 0, 0.65, 0.35, 0)"
+   }
+  },
+  "Net": {
+   "ApplyCachedFactionRelations": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.ApplyCachedFactionRelations()"
+   },
+   "AutoClient": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.AutoClient()"
+   },
+   "AutoLobby": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.AutoLobby()"
+   },
+   "AutoServer": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.AutoServer()"
+   },
+   "BeginLayerEventGroup": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.BeginLayerEventGroup()"
+   },
+   "ConnectToServer": {
+    "n": 10,
+    "min": 0,
+    "max": 2,
+    "example": "Net.ConnectToServer()"
+   },
+   "DoneReloadingLayers": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Net.DoneReloadingLayers()"
+   },
+   "EndLayerEventGroup": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.EndLayerEventGroup()"
+   },
+   "EnterFriendsLobby": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.EnterFriendsLobby()"
+   },
+   "EnterLobby": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Net.EnterLobby()"
+   },
+   "ExitFriendsLobby": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.ExitFriendsLobby()"
+   },
+   "GetHostName": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Net.GetHostName()"
+   },
+   "GrantAchievement": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Net.GrantAchievement(sName)"
+   },
+   "HasPlayerUnlockedCode": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.HasPlayerUnlockedCode()"
+   },
+   "IsActive": {
+    "n": 21,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsActive()"
+   },
+   "IsClient": {
+    "n": 121,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsClient()"
+   },
+   "IsConnectedToInternet": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsConnectedToInternet()"
+   },
+   "IsMatchmakingInternet": {
+    "n": 10,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsMatchmakingInternet()"
+   },
+   "IsMultiplayer": {
+    "n": 13,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsMultiplayer()"
+   },
+   "IsOnlineConnected": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsOnlineConnected()"
+   },
+   "IsPlatformConnected": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsPlatformConnected()"
+   },
+   "IsReadyToTether": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsReadyToTether()"
+   },
+   "IsServer": {
+    "n": 210,
+    "min": 0,
+    "max": 0,
+    "example": "Net.IsServer()"
+   },
+   "LoadMissionSpiel": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": null
+   },
+   "QuitGame": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Net.QuitGame()"
+   },
+   "SendCustomEvent": {
+    "n": 156,
+    "min": 3,
+    "max": 4,
+    "example": "Net.SendCustomEvent(\"MrxGuiPda\", NETEVENT_PDAOPEN, {})"
+   },
+   "SendEvent_AddDangerousBuilding": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Net.SendEvent_AddDangerousBuilding(uGuid, bRadar, tDBs[uGuid].Permanent)"
+   },
+   "SendEvent_AddHqPdaBlip": {
+    "n": 1,
+    "min": 7,
+    "max": 7,
+    "example": null
+   },
+   "SendEvent_AddMarkerObjective": {
+    "n": 14,
+    "min": 9,
+    "max": 13,
+    "example": "Net.SendEvent_AddMarkerObjective(uGuid, tTargetData.uMarker, r, g, b, 2, \"\", 0.05, 0)"
+   },
+   "SendEvent_AddPDAMission": {
+    "n": 2,
+    "min": 3,
+    "max": 4,
+    "example": null
+   },
+   "SendEvent_AddPdaObjective": {
+    "n": 1,
+    "min": 7,
+    "max": 7,
+    "example": null
+   },
+   "SendEvent_AddPmcPdaBlip": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Net.SendEvent_AddPmcPdaBlip(iSticky, tMissions)"
+   },
+   "SendEvent_AddRadarObjective": {
+    "n": 3,
+    "min": 14,
+    "max": 15,
+    "example": null
+   },
+   "SendEvent_AddRandomDangerousBuilding": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_AddRandomDangerousBuilding(uGuid)"
+   },
+   "SendEvent_AddSupportItem": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "SendEvent_BatchUnlockFanfare": {
+    "n": 2,
+    "min": 1,
+    "max": 6,
+    "example": "Net.SendEvent_BatchUnlockFanfare(true)"
+   },
+   "SendEvent_CardFanfare": {
+    "n": 1,
+    "min": 8,
+    "max": 8,
+    "example": null
+   },
+   "SendEvent_ClearObjectiveTraySlot": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Net.SendEvent_ClearObjectiveTraySlot(uGuid, tArgs.nSlot)"
+   },
+   "SendEvent_CloseFanfare": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SendEvent_CloseFanfare()"
+   },
+   "SendEvent_Fanfare": {
+    "n": 1,
+    "min": 8,
+    "max": 8,
+    "example": null
+   },
+   "SendEvent_ForceClientTether": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SendEvent_ForceClientTether()"
+   },
+   "SendEvent_HVTFanfare": {
+    "n": 1,
+    "min": 6,
+    "max": 6,
+    "example": "Net.SendEvent_HVTFanfare(iFanfareType, sFactionId, sDesc, iInlineIcon, nCompleted, nQuota)"
+   },
+   "SendEvent_HideMovie": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SendEvent_HideMovie()"
+   },
+   "SendEvent_JoinPOForceRequest": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SendEvent_JoinPOForceRequest()"
+   },
+   "SendEvent_ObjectiveMessage": {
+    "n": 2,
+    "min": 3,
+    "max": 4,
+    "example": "Net.SendEvent_ObjectiveMessage(99, \"\", \"\")"
+   },
+   "SendEvent_PursuitMessage": {
+    "n": 3,
+    "min": 2,
+    "max": 3,
+    "example": "Net.SendEvent_PursuitMessage(2, tArgs.sFaction)"
+   },
+   "SendEvent_RecruitsUnlocked": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RecruitsUnlocked(tRequirementsObtained)"
+   },
+   "SendEvent_RemoveDangerousBuilding": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Net.SendEvent_RemoveDangerousBuilding(uGuid, bKilled)"
+   },
+   "SendEvent_RemoveHqPdaBlip": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemoveHqPdaBlip(nHqIndex)"
+   },
+   "SendEvent_RemoveMarkerObjective": {
+    "n": 18,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemoveMarkerObjective(uMarker)"
+   },
+   "SendEvent_RemoveObjective": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemoveObjective(sBlipName)"
+   },
+   "SendEvent_RemovePDAMission": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemovePDAMission(WifMissionData.GetMissionIndexFromId(sMissionName))"
+   },
+   "SendEvent_RemovePdaObjective": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemovePdaObjective(tArgs.sName)"
+   },
+   "SendEvent_RemovePmcPdaBlip": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SendEvent_RemovePmcPdaBlip()"
+   },
+   "SendEvent_RemoveRadarObjective": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemoveRadarObjective(tArgs.sName)"
+   },
+   "SendEvent_RemoveSupportItem": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RemoveSupportItem(sItemName)"
+   },
+   "SendEvent_RequestPosition": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SendEvent_RequestPosition()"
+   },
+   "SendEvent_RevivePlayer": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_RevivePlayer(1)"
+   },
+   "SendEvent_SetObjectiveTraySlotImage": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": null
+   },
+   "SendEvent_SetObjectiveTraySlotText": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Net.SendEvent_SetObjectiveTraySlotText(uGuid, tArgs.nSlot, tArgs.sText)"
+   },
+   "SendEvent_SetOccupiedDangerousBuilding": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SendEvent_SetOccupiedDangerousBuilding(uGuid)"
+   },
+   "SendEvent_ShowMessage": {
+    "n": 1,
+    "min": 9,
+    "max": 9,
+    "example": null
+   },
+   "SendEvent_ShowMovie": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "Net.SendEvent_ShowMovie(sFile, nFadeInTime, nFadeOutTime, bSubtitles)"
+   },
+   "SendEvent_Support": {
+    "n": 1,
+    "min": 11,
+    "max": 11,
+    "example": null
+   },
+   "SendEvent_TeleportPlayer": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": "Net.SendEvent_TeleportPlayer(uPlayer, nX, nY, nZ, nYaw)"
+   },
+   "SendEvent_TeleportPlayerToHardPoint": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Net.SendEvent_TeleportPlayerToHardPoint(uPlayer, uObject, sHardpoint)"
+   },
+   "SendEvent_TextFanfare": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": "Net.SendEvent_TextFanfare(sLine1, sLine2, nTime, nDelay, nFade)"
+   },
+   "SendEvent_UnlockFanfare": {
+    "n": 1,
+    "min": 6,
+    "max": 6,
+    "example": null
+   },
+   "SetBriefingCheapCinematic": {
+    "n": 5,
+    "min": 1,
+    "max": 2,
+    "example": "Net.SetBriefingCheapCinematic(0)"
+   },
+   "SetBriefingInterior": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Net.SetBriefingInterior()"
+   },
+   "SetBriefingStarters": {
+    "n": 2,
+    "min": 1,
+    "max": 3,
+    "example": "Net.SetBriefingStarters(0)"
+   },
+   "SetLastHeroTeleportLocation": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": "Net.SetLastHeroTeleportLocation(nX, nY, nZ, nYaw)"
+   },
+   "SetLoadingScreen": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SetLoadingScreen(true)"
+   },
+   "SetPursuitReportingState": {
+    "n": 4,
+    "min": 3,
+    "max": 3,
+    "example": "Net.SetPursuitReportingState(uGuid, 0, sAbbrev)"
+   },
+   "SetShootingGalleryBorder": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.SetShootingGalleryBorder(uBorderName)"
+   },
+   "SetTutorialMessage": {
+    "n": 2,
+    "min": 0,
+    "max": 1,
+    "example": "Net.SetTutorialMessage()"
+   },
+   "StartServer": {
+    "n": 4,
+    "min": 3,
+    "max": 3,
+    "example": "Net.StartServer(Net.GetHostName(), Sys.GetLevelName(), Sys.GetMasterScriptName())"
+   },
+   "Stop": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Net.Stop()"
+   },
+   "UnloadMissionSpiel": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Net.UnloadMissionSpiel(bExitingBriefing)"
+   }
+  },
+  "Object": {
+   "AddLabel": {
+    "n": 7,
+    "min": 2,
+    "max": 2,
+    "example": "Object.AddLabel(uGuid, \"Prisoner\")"
+   },
+   "AddQualityRef": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Object.AddQualityRef(uGuid, 1)"
+   },
+   "AddToDisposer": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Object.AddToDisposer(uHeli, \"Vehicle\")"
+   },
+   "ApplyImpulse": {
+    "n": 6,
+    "min": 4,
+    "max": 5,
+    "example": "Object.ApplyImpulse(uNewGuid, 0, -0.5, 0)"
+   },
+   "ApplyPointImpulse": {
+    "n": 2,
+    "min": 8,
+    "max": 8,
+    "example": "Object.ApplyPointImpulse(uGuid, 0, 0, 50000, 0, -0.5, -1.5, true)"
+   },
+   "Attach": {
+    "n": 5,
+    "min": 3,
+    "max": 3,
+    "example": "Object.Attach(uObject, sHardpoint, uGuid)"
+   },
+   "AttachCargoToWinch": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Object.AttachCargoToWinch(uCargo, uGuid)"
+   },
+   "CloseGate": {
+    "n": 12,
+    "min": 1,
+    "max": 1,
+    "example": "Object.CloseGate(uGuid)"
+   },
+   "Detach": {
+    "n": 5,
+    "min": 2,
+    "max": 2,
+    "example": "Object.Detach(uObject, uGuid)"
+   },
+   "DetachCargoFromWinch": {
+    "n": 6,
+    "min": 1,
+    "max": 1,
+    "example": "Object.DetachCargoFromWinch(uHeli)"
+   },
+   "DisablePhysics": {
+    "n": 22,
+    "min": 1,
+    "max": 1,
+    "example": "Object.DisablePhysics(uGuid)"
+   },
+   "EnablePhysics": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Object.EnablePhysics(uGuid)"
+   },
+   "FadeOut": {
+    "n": 13,
+    "min": 3,
+    "max": 3,
+    "example": "Object.FadeOut(uVeh, 1, true)"
+   },
+   "GetAttachedObjects": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetAttachedObjects(uTruck)"
+   },
+   "GetCashValue": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetCashValue(uGuid)"
+   },
+   "GetDistanceFrom": {
+    "n": 9,
+    "min": 2,
+    "max": 5,
+    "example": "Object.GetDistanceFrom(uGuid, uLoc)"
+   },
+   "GetHardpointPosition": {
+    "n": 12,
+    "min": 2,
+    "max": 2,
+    "example": "Object.GetHardpointPosition(uVeh, \"HP_Truckbed\")"
+   },
+   "GetHealth": {
+    "n": 39,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetHealth(uGuid)"
+   },
+   "GetHibernationDistance": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetHibernationDistance(uGuid)"
+   },
+   "GetLocalizedName": {
+    "n": 24,
+    "min": 1,
+    "max": 2,
+    "example": "Object.GetLocalizedName(uGuid)"
+   },
+   "GetMass": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetMass(uGuid)"
+   },
+   "GetMaxHealth": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetMaxHealth(uGuid)"
+   },
+   "GetName": {
+    "n": 11,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetName(i)"
+   },
+   "GetNodeHealth": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Object.GetNodeHealth(uGuid, sNodeName)"
+   },
+   "GetParent": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetParent(uGuid)"
+   },
+   "GetPhysicsType": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetPhysicsType(uVehicle)"
+   },
+   "GetPos": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetPos(uBomb)"
+   },
+   "GetPosition": {
+    "n": 199,
+    "min": 1,
+    "max": 2,
+    "example": "Object.GetPosition(char)"
+   },
+   "GetVelocity": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetVelocity(uDude)"
+   },
+   "GetYaw": {
+    "n": 38,
+    "min": 1,
+    "max": 1,
+    "example": "Object.GetYaw(char)"
+   },
+   "HasLabel": {
+    "n": 98,
+    "min": 0,
+    "max": 2,
+    "example": "Object.HasLabel(\"Blanco\")"
+   },
+   "InSeat": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Object.InSeat(uGuid)"
+   },
+   "InVehicle": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Object.InVehicle(uRusher)"
+   },
+   "InsideBoundary": {
+    "n": 8,
+    "min": 2,
+    "max": 3,
+    "example": "Object.InsideBoundary(char, self.uRgn)"
+   },
+   "IsAlive": {
+    "n": 121,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsAlive(char)"
+   },
+   "IsAttached": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Object.IsAttached(uPlayerGuid, uDesignatorGuid)"
+   },
+   "IsAwake": {
+    "n": 11,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsAwake(uGuid)"
+   },
+   "IsDisguised": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsDisguised(uGuid)"
+   },
+   "IsHibernated": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsHibernated(self.uCar)"
+   },
+   "IsPlayerControlled": {
+    "n": 57,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsPlayerControlled(veh)"
+   },
+   "IsTemplate": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsTemplate(uVehicle)"
+   },
+   "IsValid": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsValid(uGuid)"
+   },
+   "IsVisible": {
+    "n": 11,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsVisible(uTank)"
+   },
+   "IsWinched": {
+    "n": 7,
+    "min": 1,
+    "max": 1,
+    "example": "Object.IsWinched(uGuid)"
+   },
+   "Kill": {
+    "n": 27,
+    "min": 1,
+    "max": 1,
+    "example": "Object.Kill(gate)"
+   },
+   "OpenGate": {
+    "n": 7,
+    "min": 1,
+    "max": 1,
+    "example": "Object.OpenGate(uGate)"
+   },
+   "OutsideBoundary": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Object.OutsideBoundary(self.uVehicle, self.inRegion)"
+   },
+   "PlayAnimation": {
+    "n": 3,
+    "min": 6,
+    "max": 6,
+    "example": "Object.PlayAnimation(uGuid, sAnim, false, nil, 0, true)"
+   },
+   "PlayMaterialAnimation": {
+    "n": 11,
+    "min": 3,
+    "max": 3,
+    "example": "Object.PlayMaterialAnimation(uGuid, \"global_weapon_beacon\", true)"
+   },
+   "Remove": {
+    "n": 71,
+    "min": 1,
+    "max": 2,
+    "example": "Object.Remove(v)"
+   },
+   "RemoveLabel": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Object.RemoveLabel(uVehicle, \"garage\")"
+   },
+   "RemoveQualityRef": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.RemoveQualityRef(uRef)"
+   },
+   "Revive": {
+    "n": 7,
+    "min": 1,
+    "max": 2,
+    "example": "Object.Revive(uGuid)"
+   },
+   "SetHealth": {
+    "n": 7,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetHealth(uJeep, 8)"
+   },
+   "SetHibernationDistance": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetHibernationDistance(apc, 300)"
+   },
+   "SetInfiniteAmmo": {
+    "n": 21,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetInfiniteAmmo(uPlayer, false)"
+   },
+   "SetInvincible": {
+    "n": 23,
+    "min": 2,
+    "max": 3,
+    "example": "Object.SetInvincible(_uEva, true)"
+   },
+   "SetModelName": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetModelName(uCharacterGuid, sModelName)"
+   },
+   "SetName": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetName(res, sName)"
+   },
+   "SetPosition": {
+    "n": 21,
+    "min": 4,
+    "max": 5,
+    "example": "Object.SetPosition(uGuid, x, y, z)"
+   },
+   "SetTransformToObject": {
+    "n": 23,
+    "min": 2,
+    "max": 3,
+    "example": "Object.SetTransformToObject(uVeh, uDstPoint)"
+   },
+   "SetUnkillable": {
+    "n": 3,
+    "min": 3,
+    "max": 3,
+    "example": "Object.SetUnkillable(uGuid, true, \"Support\")"
+   },
+   "SetVisible": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetVisible(uGuid, false)"
+   },
+   "SetWinchState": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetWinchState(uGuid, \"deployed\")"
+   },
+   "SetYaw": {
+    "n": 17,
+    "min": 2,
+    "max": 2,
+    "example": "Object.SetYaw(uGuid, yaw)"
+   },
+   "StopAllAnimation": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Object.StopAllAnimation(uGuid)"
+   },
+   "StopAnimationChannel": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Object.StopAnimationChannel(self._vehicle, \"hijack\")"
+   },
+   "StopMaterialAnimation": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Object.StopMaterialAnimation(uGuid, \"global_weapon_beacon\")"
+   }
+  },
+  "ObjectFilter": {
+   "AddObject": {
+    "n": 7,
+    "min": 3,
+    "max": 3,
+    "example": "ObjectFilter.AddObject(self._uFarTgtFilter, uGuid, true)"
+   },
+   "Copy": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "ObjectFilter.Copy(self:GetTargetObjectFilter())"
+   },
+   "Create": {
+    "n": 15,
+    "min": 0,
+    "max": 0,
+    "example": "ObjectFilter.Create()"
+   },
+   "Eval": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "ObjectFilter.Eval(self._uTgtObjFilter, tData[1])"
+   },
+   "GetCoopPlayerGuid": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "ObjectFilter.GetCoopPlayerGuid(self._uTgtObjFilter)"
+   },
+   "GetObjects": {
+    "n": 12,
+    "min": 2,
+    "max": 2,
+    "example": "ObjectFilter.GetObjects(self._uFarTgtFilter, false)"
+   },
+   "RemoveObject": {
+    "n": 8,
+    "min": 2,
+    "max": 2,
+    "example": "ObjectFilter.RemoveObject(self._uFarTgtFilter, uGuid)"
+   },
+   "SetFilter": {
+    "n": 11,
+    "min": 2,
+    "max": 2,
+    "example": "ObjectFilter.SetFilter(uVZFilter, \"VZ\")"
+   },
+   "UsePlayers": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "ObjectFilter.UsePlayers(self._uTgtObjFilter, tConfig.bTgtPlayers)"
+   }
+  },
+  "ObjectState": {
+   "GetLinkGuid": {
+    "n": 7,
+    "min": 2,
+    "max": 2,
+    "example": "ObjectState.GetLinkGuid(uParent, String.GetHash(sLinkName))"
+   },
+   "GetStringHash": {
+    "n": 3,
+    "min": 0,
+    "max": 1,
+    "example": "ObjectState.GetStringHash(self.sModuleName)"
+   },
+   "SendDamage": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "ObjectState.SendDamage(uGuid, uNodeNameHash, 1)"
+   },
+   "StartEmitter": {
+    "n": 10,
+    "min": 3,
+    "max": 3,
+    "example": "ObjectState.StartEmitter(self.uGuid, uHp, uTemplate)"
+   },
+   "StopEmitter": {
+    "n": 10,
+    "min": 3,
+    "max": 3,
+    "example": "ObjectState.StopEmitter(uiGuid, uiNodeHashName, fxName)"
+   }
+  },
+  "Pg": {
+   "AchievementAddCount": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.AchievementAddCount(sAchievementName, i - 1, 1, tAchievement.nRequiredCount)"
+   },
+   "AchievementIsGranted": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Pg.AchievementIsGranted(sAchievementName, i - 1, tAchievement.nRequiredCount)"
+   },
+   "AddContextAction": {
+    "n": 20,
+    "min": 2,
+    "max": 8,
+    "example": "Pg.AddContextAction(uGuid, \"Dance\", false)"
+   },
+   "AssetExists": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Pg.AssetExists(sLayerName, \"layer\")"
+   },
+   "ClearCustomPursuit": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.ClearCustomPursuit()"
+   },
+   "ClearPursuitLock": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.ClearPursuitLock(true)"
+   },
+   "ContractActivated": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.ContractActivated(sMissionName)"
+   },
+   "ContractCancelled": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.ContractCancelled()"
+   },
+   "ContractCompleted": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.ContractCompleted()"
+   },
+   "EnableIntersection": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Pg.EnableIntersection(false, StringToGuid(\"_maracaibo_bridge_segmentb 0x0008ab9c\"))"
+   },
+   "FastCollectBuildings": {
+    "n": 4,
+    "min": 4,
+    "max": 5,
+    "example": "Pg.FastCollectBuildings(x, y, z, 100, \"Occupied\")"
+   },
+   "FastCollectFlying": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.FastCollectFlying(nSpawnX, nSpawnY, nSpawnZ, 200)"
+   },
+   "FastCollectGroundVehicles": {
+    "n": 4,
+    "min": 4,
+    "max": 5,
+    "example": "Pg.FastCollectGroundVehicles(x, y, z, 5.5)"
+   },
+   "FastCollectHelicopters": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.FastCollectHelicopters(x, y, z, 12)"
+   },
+   "FastCollectHumans": {
+    "n": 9,
+    "min": 5,
+    "max": 5,
+    "example": "Pg.FastCollectHumans(x, y, z, 10, \"VZ\")"
+   },
+   "FastCollectTanks": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.FastCollectTanks(nSpawnX, nSpawnY, nSpawnZ, 200)"
+   },
+   "FindPointFromCamera": {
+    "n": 46,
+    "min": 2,
+    "max": 5,
+    "example": "Pg.FindPointFromCamera(0, 0)"
+   },
+   "GetAllLandingZones": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.GetAllLandingZones(1)"
+   },
+   "GetAwakeObjects": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.GetAwakeObjects(nSpawnX, nSpawnY, nSpawnZ, 100)"
+   },
+   "GetDistantSpawnPointOnPath": {
+    "n": 3,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.GetDistantSpawnPointOnPath(uPath, uBackupPoint, 0, fDist)"
+   },
+   "GetGuidByName": {
+    "n": 1103,
+    "min": 0,
+    "max": 2,
+    "example": "Pg.GetGuidByName(s)"
+   },
+   "GetLineRegionPoints": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Pg.GetLineRegionPoints(uRegion, bInvert)"
+   },
+   "GetLoadingStaticLayers": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.GetLoadingStaticLayers()"
+   },
+   "GetObjectsInArea": {
+    "n": 16,
+    "min": 5,
+    "max": 5,
+    "example": "Pg.GetObjectsInArea(x, y, z, 1, \"RumJug\")"
+   },
+   "GetPursuitState": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.GetPursuitState()"
+   },
+   "GetTetherDiameterStart": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.GetTetherDiameterStart()"
+   },
+   "GetUnloadingStaticLayers": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.GetUnloadingStaticLayers()"
+   },
+   "IsPointInBoundary": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "Pg.IsPointInBoundary(nX, nY, nZ, uGuid)"
+   },
+   "IsStaticLayer": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.IsStaticLayer(sLayerName)"
+   },
+   "LoadAsset": {
+    "n": 25,
+    "min": 0,
+    "max": 4,
+    "example": "Pg.LoadAsset(\"pda_titles\", \"texture\")"
+   },
+   "LoadGame": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.LoadGame(\"InitialSaveData\")"
+   },
+   "LoadIsRetry": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.LoadIsRetry()"
+   },
+   "LoadLayer": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": null
+   },
+   "LoadingStaticLayers": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.LoadingStaticLayers(false)"
+   },
+   "LockPursuit": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Pg.LockPursuit(uGuid, nLevel)"
+   },
+   "ReloadLayer": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "RemoveContextAction": {
+    "n": 26,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.RemoveContextAction(uGuid)"
+   },
+   "ResetSingletonDone": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.ResetSingletonDone()"
+   },
+   "Rumble": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Pg.Rumble(self._hijacker, 0.15555)"
+   },
+   "SaveGame": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.SaveGame(\"retry\")"
+   },
+   "SetBoundaryRadius": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.SetBoundaryRadius(38.5)"
+   },
+   "SetCustomPursuit": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Pg.SetCustomPursuit(uFaction, nDuration, tSettings)"
+   },
+   "SetPursuit": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Pg.SetPursuit(uFaction, nLevel, true)"
+   },
+   "SetPursuitLevelTimes": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Pg.SetPursuitLevelTimes(120, 300)"
+   },
+   "SetPursuitSeconds": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Pg.SetPursuitSeconds(uFaction, 5, true)"
+   },
+   "Spawn": {
+    "n": 103,
+    "min": 2,
+    "max": 8,
+    "example": "Pg.Spawn(sCar, x, y, z)"
+   },
+   "SpawnFromCamera": {
+    "n": 6,
+    "min": 3,
+    "max": 7,
+    "example": "Pg.SpawnFromCamera(object, 10, 0.5)"
+   },
+   "StartHeliWaveSpawner": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Pg.StartHeliWaveSpawner({ tWave1, tWave2, tWave3, tWave4, tWave5, tWave6 })"
+   },
+   "StopHeliWaveSpawner": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.StopHeliWaveSpawner(self)"
+   },
+   "UnloadAsset": {
+    "n": 22,
+    "min": 0,
+    "max": 2,
+    "example": "Pg.UnloadAsset(sAssetName, sAssetType)"
+   },
+   "UnloadLayer": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "UnloadingStaticLayers": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Pg.UnloadingStaticLayers(true)"
+   }
+  },
+  "Player": {
+   "AddBoundary": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Player.AddBoundary(uPlayerGuid, uBoundary)"
+   },
+   "AddCash": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.AddCash(totalAmount)"
+   },
+   "AddFuel": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.AddFuel(nAmt)"
+   },
+   "AttachToCharacter": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Player.AttachToCharacter(iPlayerId, uCharacterGuid)"
+   },
+   "BindToLocal": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Player.BindToLocal(iPlayerId, iLocalId)"
+   },
+   "BindToRemote": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.BindToRemote(iPlayerId)"
+   },
+   "ClearGPS": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Player.ClearGPS(uPlayer)"
+   },
+   "ClearPlayerDB": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Player.ClearPlayerDB()"
+   },
+   "CreatePlayer": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.CreatePlayer(i)"
+   },
+   "DestroyPlayer": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.DestroyPlayer(i)"
+   },
+   "DetachFromCharacter": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Player.DetachFromCharacter(iPlayerId)"
+   },
+   "GetAllCharacters": {
+    "n": 26,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetAllCharacters()"
+   },
+   "GetAllPlayers": {
+    "n": 62,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetAllPlayers()"
+   },
+   "GetAllTargetMarkerPos": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetAllTargetMarkerPos()"
+   },
+   "GetAnyCharacter": {
+    "n": 201,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetAnyCharacter()"
+   },
+   "GetAvailableCostumes": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetAvailableCostumes()"
+   },
+   "GetCamera": {
+    "n": 17,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetCamera(player)"
+   },
+   "GetCameraXZHeading": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetCameraXZHeading(oWidget:GetOwner())"
+   },
+   "GetCash": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetCash()"
+   },
+   "GetCharacter": {
+    "n": 65,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetCharacter(p)"
+   },
+   "GetControlBindingType": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetControlBindingType(uPlayerGuid)"
+   },
+   "GetControlledObject": {
+    "n": 13,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetControlledObject(uPlayer)"
+   },
+   "GetCurrentPlayers": {
+    "n": 16,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetCurrentPlayers()"
+   },
+   "GetFuel": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetFuel()"
+   },
+   "GetFuelCapacity": {
+    "n": 5,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetFuelCapacity()"
+   },
+   "GetLocalCharacter": {
+    "n": 146,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetLocalCharacter()"
+   },
+   "GetLocalPlayer": {
+    "n": 89,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetLocalPlayer()"
+   },
+   "GetLocalPlayerId": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetLocalPlayerId()"
+   },
+   "GetMaximumPlayers": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetMaximumPlayers()"
+   },
+   "GetPlayer": {
+    "n": 7,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetPlayer(tArgs[1])"
+   },
+   "GetPlayerId": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetPlayerId(uGuid)"
+   },
+   "GetPlayerStart": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetPlayerStart()"
+   },
+   "GetPrimaryCharacter": {
+    "n": 65,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetPrimaryCharacter()"
+   },
+   "GetPrimaryPlayer": {
+    "n": 37,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetPrimaryPlayer()"
+   },
+   "GetProfileCostume": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetProfileCostume()"
+   },
+   "GetSecondaryCharacter": {
+    "n": 118,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetSecondaryCharacter()"
+   },
+   "GetSecondaryPlayer": {
+    "n": 24,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetSecondaryPlayer()"
+   },
+   "GetTargetUnderReticle": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetTargetUnderReticle(oWidget:GetOwner())"
+   },
+   "GetVehicleDisguise": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetVehicleDisguise()"
+   },
+   "GetVehicleDisguiseState": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.GetVehicleDisguiseState({Player = uRider})"
+   },
+   "GetViewportId": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Player.GetViewportId(uGuid)"
+   },
+   "InCinematicMode": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.InCinematicMode(uPlayerGuid)"
+   },
+   "IsBoundaryDeath": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Player.IsBoundaryDeath(uChar)"
+   },
+   "IsCoopMultiplayer": {
+    "n": 5,
+    "min": 0,
+    "max": 0,
+    "example": "Player.IsCoopMultiplayer()"
+   },
+   "IsLocal": {
+    "n": 44,
+    "min": 1,
+    "max": 1,
+    "example": "Player.IsLocal(uGuid)"
+   },
+   "IsPositionOutBoundary": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "IsRemote": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Player.IsRemote(i)"
+   },
+   "RemoveAllBoundary": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.RemoveAllBoundary(uPlayerGuid)"
+   },
+   "RemoveBoundary": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Player.RemoveBoundary(uPlayerGuid, uBoundary)"
+   },
+   "RemovePlayerJoinedCallback": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Player.RemovePlayerJoinedCallback()"
+   },
+   "RemovePlayerLeftCallback": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Player.RemovePlayerLeftCallback()"
+   },
+   "RequestPDAMapModeCancel": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.RequestPDAMapModeCancel(uPlayer)"
+   },
+   "RequestPDAMapModeExit": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": null
+   },
+   "SetAimMode": {
+    "n": 17,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetAimMode(Player.GetLocalPlayer(), true)"
+   },
+   "SetAvailableCostumes": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetAvailableCostumes(WifPmcInterior.GetAvailableCostumes())"
+   },
+   "SetBoundaryCallback": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetBoundaryCallback(uPlayerGuid, BoundaryCallback)"
+   },
+   "SetCash": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetCash(nTotal)"
+   },
+   "SetCinematicMode": {
+    "n": 6,
+    "min": 2,
+    "max": 5,
+    "example": "Player.SetCinematicMode(uPlayer, false)"
+   },
+   "SetFuel": {
+    "n": 6,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetFuel(0)"
+   },
+   "SetFuelCapacity": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetFuelCapacity(GetFuelCapacity())"
+   },
+   "SetGrappleEnabled": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetGrappleEnabled(uGuid, bEnable)"
+   },
+   "SetHealthClamp": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetHealthClamp(uPlayer, true)"
+   },
+   "SetInPmc": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetInPmc(uPlayer, true)"
+   },
+   "SetInputEnabled": {
+    "n": 5,
+    "min": 2,
+    "max": 3,
+    "example": "Player.SetInputEnabled(uPlayer, true)"
+   },
+   "SetOutBoundary": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetOutBoundary(player, false)"
+   },
+   "SetOutfit": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetOutfit(uGuid, sModelName)"
+   },
+   "SetPDAMapMode": {
+    "n": 3,
+    "min": 2,
+    "max": 9,
+    "example": "Player.SetPDAMapMode(oDesignator.uOwner, false)"
+   },
+   "SetPDAMapModeCallback": {
+    "n": 7,
+    "min": 3,
+    "max": 4,
+    "example": "Player.SetPDAMapModeCallback(uPlayerGuid, false, DoNothing)"
+   },
+   "SetPDAMapModeCancelCallback": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Player.SetPDAMapModeCancelCallback(self.uOwner, SatelliteTargettingCancel, {self})"
+   },
+   "SetPlayerJoinedCallback": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetPlayerJoinedCallback(OnPlayerJoined)"
+   },
+   "SetPlayerLeftCallback": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetPlayerLeftCallback(OnPlayerLeft)"
+   },
+   "SetProfileCostume": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetProfileCostume(iIndex - 1)"
+   },
+   "SetSatelliteScanMode": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": "Player.SetSatelliteScanMode(uPlayer, false, 0, 0, 0)"
+   },
+   "SetScopeEnabled": {
+    "n": 6,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetScopeEnabled(uPlayer, true)"
+   },
+   "SetSeatMovementLocks": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetSeatMovementLocks(uPlayerGuid, true)"
+   },
+   "SetSurvivalMode": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Player.SetSurvivalMode(uPlayer, true)"
+   },
+   "SetVehicleDisguise": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetVehicleDisguise(bEnable)"
+   },
+   "SetWaitForInGame": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Player.SetWaitForInGame(uHero)"
+   },
+   "TeleportCamera": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Player.TeleportCamera(uSecondaryPlayer)"
+   },
+   "Unbind": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Player.Unbind(iPlayerId)"
+   },
+   "VehicleDisguise": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Player.VehicleDisguise({Player = uRider, Remove = true})"
+   }
+  },
+  "Report": {
+   "Completed": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Report.Completed(uGuid)"
+   },
+   "Failed": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Report.Failed(uGuid)"
+   },
+   "GetInfractions": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Report.GetInfractions(uGuid)"
+   },
+   "Init": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": null
+   },
+   "SetDelay": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Report.SetDelay(faction, nDelay)"
+   }
+  },
+  "Shop": {
+   "Close": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Shop.Close()"
+   }
+  },
+  "Sound": {
+   "ActivateFactionRegionMusic": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.ActivateFactionRegionMusic()"
+   },
+   "AddCueToMusicSourcePlaylist": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.AddCueToMusicSourcePlaylist(sPlaylist, sCue)"
+   },
+   "AddFactionMusic": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.AddFactionMusic(sFaction)"
+   },
+   "AddMusicSourcePlaylist": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.AddMusicSourcePlaylist(sPlaylist, fGap)"
+   },
+   "AddMusicState": {
+    "n": 58,
+    "min": 6,
+    "max": 6,
+    "example": "Sound.AddMusicState(\"shell\", 0, -1, 0, 0, 4)"
+   },
+   "AddMusicTransition": {
+    "n": 66,
+    "min": 5,
+    "max": 5,
+    "example": "Sound.AddMusicTransition(\"none\", \"action\", 1, 0, 0)"
+   },
+   "AddSourceMusicEntryState": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.AddSourceMusicEntryState(transition.entryState)"
+   },
+   "BindMusicCue": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.BindMusicCue(cue, state)"
+   },
+   "ClearMusicCues": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.ClearMusicCues(_tMiscMusicStates[_iCurrentMiscMusicIndex])"
+   },
+   "ClearMusicSourcePlaylist": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.ClearMusicSourcePlaylist(sPlaylist)"
+   },
+   "ClearSourceMusicEntryStates": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.ClearSourceMusicEntryStates()"
+   },
+   "ClearSourceMusicTransitions": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.ClearSourceMusicTransitions()"
+   },
+   "CueAmbience": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.CueAmbience(sAmbienceStream)"
+   },
+   "CueSound": {
+    "n": 91,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.CueSound(0, sCue)"
+   },
+   "DefineReverbPreset": {
+    "n": 1,
+    "min": 17,
+    "max": 17,
+    "example": null
+   },
+   "FadeCategoryDown": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Sound.FadeCategoryDown(category, fLevel, fEnterLength)"
+   },
+   "FadeCategoryUp": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.FadeCategoryUp(category, fExitLength)"
+   },
+   "GetAudioDir": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.GetAudioDir()"
+   },
+   "IsDynamicMusic": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.IsDynamicMusic()"
+   },
+   "IsFactionLockedMusic": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.IsFactionLockedMusic()"
+   },
+   "LoadBankWithCallback": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Sound.LoadBankWithCallback(_GetLocalizedName(sBank), sType, _FlagAssetOpComplete)"
+   },
+   "LoadTempBank": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "Sound.LoadTempBank(_GetLocalizedName(sBank), sType, funcCallback, tCallbackData)"
+   },
+   "LockActionLevelMusic": {
+    "n": 15,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.LockActionLevelMusic(true)"
+   },
+   "LockFactionMusic": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.LockFactionMusic(true)"
+   },
+   "LockListenerPosition": {
+    "n": 8,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.LockListenerPosition(true)"
+   },
+   "OpenStreamFile": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.OpenStreamFile(sStreamFile, sFileName)"
+   },
+   "OverrideUserMusic": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.OverrideUserMusic()"
+   },
+   "PitchCategoryActivate": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Sound.PitchCategoryActivate(category, fLevel, fEnterLength)"
+   },
+   "PitchCategoryDeactivate": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.PitchCategoryDeactivate(category, fExitLength)"
+   },
+   "RegisterReadyCallback": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.RegisterReadyCallback(_FlagSystemReady)"
+   },
+   "RequestAmbienceBank": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.RequestAmbienceBank(_GetLocalizedName(sBank))"
+   },
+   "RestoreUserMusic": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.RestoreUserMusic()"
+   },
+   "SetActionLevelsMusic": {
+    "n": 8,
+    "min": 4,
+    "max": 4,
+    "example": "Sound.SetActionLevelsMusic(0, 0, 0, 0)"
+   },
+   "SetActionThresholdsMusic": {
+    "n": 8,
+    "min": 3,
+    "max": 3,
+    "example": "Sound.SetActionThresholdsMusic(\"none\", 2, 0)"
+   },
+   "SetDynamicMusic": {
+    "n": 14,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetDynamicMusic(true)"
+   },
+   "SetFactionMusic": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetFactionMusic(sFaction)"
+   },
+   "SetHijackMusic": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.SetHijackMusic(_sHijackSuccessMusicState, _sHijackResumeMusicState)"
+   },
+   "SetMasterVolume": {
+    "n": 11,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.SetMasterVolume(1, 0)"
+   },
+   "SetReverb": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetReverb(1)"
+   },
+   "SetReverbPreset": {
+    "n": 2,
+    "min": 0,
+    "max": 1,
+    "example": "Sound.SetReverbPreset(1)"
+   },
+   "SetRootFactionRegionMusic": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetRootFactionRegionMusic(_sRootFactionRegion)"
+   },
+   "SetSourceMusic": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetSourceMusic(_sSourceMusicState)"
+   },
+   "SetSourceMusicTransition": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.SetSourceMusicTransition(transition.entryState, transition.exitState)"
+   },
+   "SetSurvivalMode": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetSurvivalMode(true)"
+   },
+   "SetTimerUpdateMusic": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.SetTimerUpdateMusic(true)"
+   },
+   "SetVehicleEngineBoost": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.SetVehicleEngineBoost(uGuid, 0)"
+   },
+   "StopAmbience": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sound.StopAmbience(sAmbienceStream)"
+   },
+   "StopAndFlushAllSounds": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sound.StopAndFlushAllSounds()"
+   },
+   "StopSound": {
+    "n": 26,
+    "min": 2,
+    "max": 2,
+    "example": "Sound.StopSound(0, sCue)"
+   },
+   "TransitionMusic": {
+    "n": 43,
+    "min": 0,
+    "max": 2,
+    "example": "Sound.TransitionMusic(\"none\")"
+   },
+   "UnloadBankWithCallback": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Sound.UnloadBankWithCallback(_GetLocalizedName(sBank), sType, _FlagAssetOpComplete)"
+   },
+   "UnloadTempBank": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "Sound.UnloadTempBank(_GetLocalizedName(sBank), sType, funcCallback, tCallbackData)"
+   },
+   "_GetLibVersion": {
+    "n": 5,
+    "min": 0,
+    "max": 0,
+    "example": "Sound._GetLibVersion()"
+   }
+  },
+  "String": {
+   "GetHash": {
+    "n": 90,
+    "min": 0,
+    "max": 2,
+    "example": "String.GetHash(\"OC\")"
+   }
+  },
+  "Sys": {
+   "AutoLoad": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.AutoLoad()"
+   },
+   "FinishedShell": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.FinishedShell()"
+   },
+   "ForceNextAutosave": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.ForceNextAutosave()"
+   },
+   "GetAssetRequestMax": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetAssetRequestMax()"
+   },
+   "GetCharacterTemplate": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetCharacterTemplate()"
+   },
+   "GetForceNewGame": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetForceNewGame()"
+   },
+   "GetINIBriefing": {
+    "n": 5,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetINIBriefing()"
+   },
+   "GetIgnoreLayers": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetIgnoreLayers()"
+   },
+   "GetLanguage": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetLanguage()"
+   },
+   "GetLevelName": {
+    "n": 10,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetLevelName()"
+   },
+   "GetMasterScriptName": {
+    "n": 8,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetMasterScriptName()"
+   },
+   "GetPlatform": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetPlatform()"
+   },
+   "GetShellCode": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetShellCode()"
+   },
+   "GetSkipMission": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetSkipMission()"
+   },
+   "GetVersion": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.GetVersion()"
+   },
+   "GuidToString": {
+    "n": 25,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.GuidToString(uGuid)"
+   },
+   "HaveActiveProfile": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.HaveActiveProfile()"
+   },
+   "IsConfirmOnCircle": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.IsConfirmOnCircle()"
+   },
+   "IsDemoMode": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.IsDemoMode()"
+   },
+   "IsFinalConfig": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.IsFinalConfig()"
+   },
+   "IsGermanSKU": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.IsGermanSKU()"
+   },
+   "IsLoadingOrStreaming": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.IsLoadingOrStreaming()"
+   },
+   "LTIGetPrecacheBypass": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.LTIGetPrecacheBypass()"
+   },
+   "MainTime": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.MainTime()"
+   },
+   "MainTimeStamp": {
+    "n": 4,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.MainTimeStamp()"
+   },
+   "NoHud": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.NoHud()"
+   },
+   "PlayIntroMovies": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.PlayIntroMovies()"
+   },
+   "RealTimeStamp": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.RealTimeStamp()"
+   },
+   "RequestAutosave": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "RequestGameState": {
+    "n": 38,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.RequestGameState(\"PDA\")"
+   },
+   "RequiredAsset": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "Sys.RequiredAsset(MasterScript, \"script\", -3, false)"
+   },
+   "RumbleEnabled": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.RumbleEnabled()"
+   },
+   "SetAssetRequestMax": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetAssetRequestMax(nPendingOps)"
+   },
+   "SetINIBriefing": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetINIBriefing(bBriefing)"
+   },
+   "SetLevelName": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetLevelName(LevelName)"
+   },
+   "SetLuaSaveVersion": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetLuaSaveVersion(GetSaveDataVersion())"
+   },
+   "SetMasterScriptName": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetMasterScriptName(MasterScript)"
+   },
+   "SetNumberOfViewports": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetNumberOfViewports(1)"
+   },
+   "SetSkipMission": {
+    "n": 7,
+    "min": 0,
+    "max": 1,
+    "example": "Sys.SetSkipMission(\"\")"
+   },
+   "SetTimeScale": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetTimeScale(Math.min(nNewTimeScale, nMinTimeScale))"
+   },
+   "SetTutorialsEnabled": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.SetTutorialsEnabled(bEnable)"
+   },
+   "StartSingleplayer": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Sys.StartSingleplayer(sLevelName, sMasterScript)"
+   },
+   "StartWithResources": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.StartWithResources()"
+   },
+   "StringToGuid": {
+    "n": 2,
+    "min": 0,
+    "max": 1,
+    "example": "Sys.StringToGuid(sVehicleGuid)"
+   },
+   "SubtitlesEnabled": {
+    "n": 3,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.SubtitlesEnabled()"
+   },
+   "TimeStampGetElapsed": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.TimeStampGetElapsed(self._uTimeStamp)"
+   },
+   "TimeStampMark": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Sys.TimeStampMark(self._uTimeStamp)"
+   },
+   "TutorialsEnabled": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.TutorialsEnabled()"
+   },
+   "YAxisInverted": {
+    "n": 1,
+    "min": 0,
+    "max": 0,
+    "example": "Sys.YAxisInverted()"
+   }
+  },
+  "Table": {
+   "Create": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Table.Create(nListSize, 0)"
+   },
+   "InsertI": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Table.InsertI(tChildren, WidgetIdIndex[uId], nIndex)"
+   }
+  },
+  "TruckObj": {
+   "Cancel": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "TruckObj.Cancel(TruckObj)"
+   }
+  },
+  "Vehicle": {
+   "CancelHijack": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.CancelHijack(uCharacterGuid)"
+   },
+   "ClearControls": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.ClearControls(self._vehicle)"
+   },
+   "CloseDoor": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "Vehicle.CloseDoor(uGuid, \"pivot\")"
+   },
+   "EnableTurret": {
+    "n": 6,
+    "min": 3,
+    "max": 5,
+    "example": "Vehicle.EnableTurret(uGuid, \"head\", false)"
+   },
+   "Enter": {
+    "n": 14,
+    "min": 2,
+    "max": 5,
+    "example": "Vehicle.Enter(uBoat, uChar, \"d\", false)"
+   },
+   "EnterBySeatGuid": {
+    "n": 3,
+    "min": 4,
+    "max": 5,
+    "example": "Vehicle.EnterBySeatGuid(uLuckyLady, uChar, uSeatTran, true, false)"
+   },
+   "Exit": {
+    "n": 19,
+    "min": 2,
+    "max": 3,
+    "example": "Vehicle.Exit(uVeh, uGuid)"
+   },
+   "GetDriver": {
+    "n": 112,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.GetDriver(uVeh)"
+   },
+   "GetFromRider": {
+    "n": 26,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.GetFromRider(uChar)"
+   },
+   "GetRiders": {
+    "n": 18,
+    "min": 1,
+    "max": 2,
+    "example": "Vehicle.GetRiders(uVeh)"
+   },
+   "GetSeatByType": {
+    "n": 6,
+    "min": 2,
+    "max": 3,
+    "example": "Vehicle.GetSeatByType(uVehicle, \"d\")"
+   },
+   "GetSeatFromRider": {
+    "n": 5,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.GetSeatFromRider(uGuid)"
+   },
+   "GetSeatParams": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.GetSeatParams(uRusherSeat)"
+   },
+   "GetSeatToSeat": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Vehicle.GetSeatToSeat(uSeat, false)"
+   },
+   "HijackAbort": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.HijackAbort(self._hijacker)"
+   },
+   "HijackAbortDone": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.HijackAbortDone(self._hijacker)"
+   },
+   "HijackComplete": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.HijackComplete(self._hijacker)"
+   },
+   "HijackStart": {
+    "n": 1,
+    "min": 4,
+    "max": 4,
+    "example": "Vehicle.HijackStart(self._hijacker, self._hijackee, self._vehicle, self)"
+   },
+   "IsFlying": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.IsFlying(uVehicle)"
+   },
+   "IsHijackRemote": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.IsHijackRemote(self._hijacker)"
+   },
+   "IsSeatALadder": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.IsSeatALadder(uSeat)"
+   },
+   "IsSeatBlocked": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.IsSeatBlocked(uDriverSeat)"
+   },
+   "OpenDoor": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "Vehicle.OpenDoor(uGuid, \"pivot\")"
+   },
+   "SetCanPlayerUse": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "Vehicle.SetCanPlayerUse(uHeli, \"d\", true)"
+   },
+   "SetHijackState": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Vehicle.SetHijackState(self._hijacker, i)"
+   },
+   "SetHijackSuccess": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "Vehicle.SetHijackSuccess(self._hijacker, false)"
+   },
+   "SetParts": {
+    "n": 27,
+    "min": 3,
+    "max": 3,
+    "example": "Vehicle.SetParts(uGuid, \"LightFront\", true)"
+   },
+   "SetTurretPitch": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Vehicle.SetTurretPitch(self._vehicle, \"main_turret\", 0)"
+   },
+   "StopTankHijackMotion": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "Vehicle.StopTankHijackMotion(self._vehicle)"
+   },
+   "TransferToSeat": {
+    "n": 1,
+    "min": 3,
+    "max": 3,
+    "example": "Vehicle.TransferToSeat(uGuid, uDriverSeat, false)"
+   },
+   "Usable": {
+    "n": 13,
+    "min": 2,
+    "max": 2,
+    "example": "Vehicle.Usable(uSeat, false)"
+   }
+  },
+  "Weapon": {
+   "GetMaxReserveAmmo": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "Weapon.GetMaxReserveAmmo(uGuid)"
+   },
+   "GetReserveAmmo": {
+    "n": 3,
+    "min": 1,
+    "max": 1,
+    "example": "Weapon.GetReserveAmmo(weapon)"
+   },
+   "SetReserveAmmo": {
+    "n": 5,
+    "min": 2,
+    "max": 2,
+    "example": "Weapon.SetReserveAmmo(weapon, max)"
+   }
+  },
+  "_GuiInternal": {
+   "ActivateWidget": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.ActivateWidget(widget.BasicData.uId, true)"
+   },
+   "AddPdaMapBlips": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.AddPdaMapBlips(oFlash.BasicData.uId, tBlipTable)"
+   },
+   "AddWidgetChild": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.AddWidgetChild(self.BasicData.uId, oChild.BasicData.uId)"
+   },
+   "AnimateSprite": {
+    "n": 2,
+    "min": 5,
+    "max": 5,
+    "example": "_GuiInternal.AnimateSprite(self.BasicData.uId, nStartFrame, nEndFrame, nTime, bLoop)"
+   },
+   "AnimateText": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.AnimateText(self.BasicData.uId, sType)"
+   },
+   "CallFlashScriptFunction": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.CallFlashScriptFunction(unpack(tArgs))"
+   },
+   "CorrectWidgetForResolution": {
+    "n": 6,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.CorrectWidgetForResolution(uId)"
+   },
+   "CreateFlashWidget": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.CreateFlashWidget()"
+   },
+   "CreateImageWidget": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.CreateImageWidget()"
+   },
+   "CreateMovieWidget": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.CreateMovieWidget()"
+   },
+   "CreateSpriteWidget": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.CreateSpriteWidget()"
+   },
+   "CreateTextWidget": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.CreateTextWidget()"
+   },
+   "CreateWidget": {
+    "n": 2,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.CreateWidget()"
+   },
+   "DeleteWidget": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.DeleteWidget(self.BasicData.uId)"
+   },
+   "DisableImagePieSliceRender": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.DisableImagePieSliceRender(self.BasicData.uId)"
+   },
+   "GetFlashPlaySpeed": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.GetFlashPlaySpeed(self.BasicData.uId, nSpeed)"
+   },
+   "GetImageClockElapsed": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetImageClockElapsed(self.BasicData.uId)"
+   },
+   "GetImageRotation": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetImageRotation(self.BasicData.uId)"
+   },
+   "GetImageTextureCoordinates": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetImageTextureCoordinates(self.BasicData.uId)"
+   },
+   "GetMovieCurrentFrameNumber": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetMovieCurrentFrameNumber(self.BasicData.uId)"
+   },
+   "GetTextHeight": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetTextHeight(self.BasicData.uId)"
+   },
+   "GetTextJustification": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetTextJustification(self.BasicData.uId)"
+   },
+   "GetTextScale": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetTextScale(self.BasicData.uId)"
+   },
+   "GetTextText": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetTextText(self.BasicData.uId)"
+   },
+   "GetTextWidth": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetTextWidth(self.BasicData.uId)"
+   },
+   "GetWidgetAnchoring": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetAnchoring(self.BasicData.uId)"
+   },
+   "GetWidgetChildren": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetChildren(self.BasicData.uId)"
+   },
+   "GetWidgetColor": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetColor(self.BasicData.uId)"
+   },
+   "GetWidgetCorrectedLocation": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetCorrectedLocation(self.BasicData.uId)"
+   },
+   "GetWidgetDownId": {
+    "n": 6,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.GetWidgetDownId()"
+   },
+   "GetWidgetHighlightId": {
+    "n": 8,
+    "min": 0,
+    "max": 0,
+    "example": "_GuiInternal.GetWidgetHighlightId()"
+   },
+   "GetWidgetIgnoresPause": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetIgnoresPause(self.BasicData.uId)"
+   },
+   "GetWidgetLocation": {
+    "n": 4,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetLocation(self.BasicData.uId)"
+   },
+   "GetWidgetSleep": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetSleep(self.BasicData.uId)"
+   },
+   "GetWidgetViewport": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetViewport(_gFanfareFlashWidget.BasicData.uId)"
+   },
+   "GetWidgetVisible": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.GetWidgetVisible(self.BasicData.uId)"
+   },
+   "HaltSpriteAnimation": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.HaltSpriteAnimation(self.BasicData.uId)"
+   },
+   "HaltTextAnimation": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.HaltTextAnimation(self.BasicData.uId)"
+   },
+   "InterpolateWidget": {
+    "n": 4,
+    "min": 19,
+    "max": 19,
+    "example": null
+   },
+   "MinimapAddObjective": {
+    "n": 4,
+    "min": 16,
+    "max": 16,
+    "example": null
+   },
+   "MinimapAnimateObjectiveAlpha": {
+    "n": 2,
+    "min": 7,
+    "max": 7,
+    "example": null
+   },
+   "MinimapAnimateObjectiveSize": {
+    "n": 2,
+    "min": 10,
+    "max": 10,
+    "example": null
+   },
+   "MinimapAnimateObjectiveSonar": {
+    "n": 2,
+    "min": 15,
+    "max": 15,
+    "example": null
+   },
+   "MinimapCreate": {
+    "n": 2,
+    "min": 12,
+    "max": 12,
+    "example": null
+   },
+   "MinimapDelete": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.MinimapDelete(self.BasicData.uId)"
+   },
+   "MinimapRemoveObjective": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.MinimapRemoveObjective(self.BasicData.uId, name)"
+   },
+   "MinimapSetFocusLocation": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "_GuiInternal.MinimapSetFocusLocation(self.BasicData.uId, x, y, z)"
+   },
+   "MinimapSetPlayerLocation": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "_GuiInternal.MinimapSetPlayerLocation(self.BasicData.uId, x, y, z)"
+   },
+   "MinimapSetRange": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.MinimapSetRange(self.BasicData.uId, nRange)"
+   },
+   "MinimapSetRotation": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.MinimapSetRotation(self.BasicData.uId, nRotation)"
+   },
+   "MinimapUnanimateObjective": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.MinimapUnanimateObjective(self.BasicData.uId, name, type or \"all\")"
+   },
+   "MinimapUpdate": {
+    "n": 2,
+    "min": 10,
+    "max": 10,
+    "example": null
+   },
+   "PauseFlash": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.PauseFlash(self.BasicData.uId)"
+   },
+   "PauseMovie": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.PauseMovie(self.BasicData.uId)"
+   },
+   "PlayFlash": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.PlayFlash(self.BasicData.uId)"
+   },
+   "PlayMovie": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.PlayMovie(self.BasicData.uId, bLoop)"
+   },
+   "PushWidgetToBack": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.PushWidgetToBack(oWidget.BasicData.uId)"
+   },
+   "PushWidgetToFront": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.PushWidgetToFront(oWidget.BasicData.uId)"
+   },
+   "RegisterForPdaUpdate": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.RegisterForPdaUpdate(oPda.CustomData.oMapFlash.BasicData.uId, true)"
+   },
+   "RemoveAllWidgetChildren": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.RemoveAllWidgetChildren(self.BasicData.uId)"
+   },
+   "RemoveFlashPauseMenu": {
+    "n": 1,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.RemoveFlashPauseMenu(oPauseMenu.CustomData.oMapFlash.BasicData.uId)"
+   },
+   "RemovePdaBlip": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.RemovePdaBlip(oFlash.BasicData.uId, sName)"
+   },
+   "RemoveWidgetChild": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.RemoveWidgetChild(self.BasicData.uId, oChild.BasicData.uId)"
+   },
+   "RestartFlash": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.RestartFlash(self.BasicData.uId)"
+   },
+   "SendFlashInput": {
+    "n": 5,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SendFlashInput(oWidget.BasicData.uId, nValue, \"p\")"
+   },
+   "SendFlashLeftAnalogInput": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SendFlashLeftAnalogInput(self.BasicData.uId, nX, nY)"
+   },
+   "SendFlashRightAnalogInput": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SendFlashRightAnalogInput(self.BasicData.uId, nX, nY)"
+   },
+   "SetFlashCallback": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "SetFlashPauseMenu": {
+    "n": 1,
+    "min": 5,
+    "max": 5,
+    "example": null
+   },
+   "SetFlashPlaySpeed": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetFlashPlaySpeed(self.BasicData.uId, nSpeed)"
+   },
+   "SetFlashSwfFile": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": "_GuiInternal.SetFlashSwfFile(self.BasicData.uId, sSwfName, fCallback, tData)"
+   },
+   "SetFlashTesselationAllowed": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetFlashTesselationAllowed(self.BasicData.uId, bAllow)"
+   },
+   "SetImageClockAnimation": {
+    "n": 2,
+    "min": 5,
+    "max": 5,
+    "example": null
+   },
+   "SetImageClockCallback": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetImageClockCallback(self.BasicData.uId, fCallback, tData)"
+   },
+   "SetImagePieSliceRender": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetImagePieSliceRender(self.BasicData.uId, fStartAngle, fEndAngle)"
+   },
+   "SetImageRotation": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetImageRotation(self.BasicData.uId, nDegrees)"
+   },
+   "SetImageTexture": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetImageTexture(self.BasicData.uId, TextureName)"
+   },
+   "SetImageTextureCoordinates": {
+    "n": 2,
+    "min": 5,
+    "max": 5,
+    "example": null
+   },
+   "SetImageTextureTransience": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetImageTextureTransience(oIcon.BasicData.uId, true)"
+   },
+   "SetImageTiling": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetImageTiling(self.BasicData.uId, nTileWidth, nTileHeight)"
+   },
+   "SetMinimapBorder": {
+    "n": 2,
+    "min": 4,
+    "max": 4,
+    "example": null
+   },
+   "SetMinimapOwner": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetMinimapOwner(self.BasicData.uId, uGuid)"
+   },
+   "SetMovieEndCallback": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetMovieEndCallback(self.BasicData.uId, fCallback, tData)"
+   },
+   "SetMovieFile": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetMovieFile(self.BasicData.uId, sFileName)"
+   },
+   "SetPlayerPDAWidget": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetPlayerPDAWidget(oPda:GetOwner(), 0)"
+   },
+   "SetSpriteFrame": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetSpriteFrame(self.BasicData.uId, nFrame)"
+   },
+   "SetSpriteFrameSize": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetSpriteFrameSize(self.BasicData.uId, nWidth, nHeight)"
+   },
+   "SetSpriteTexture": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetSpriteTexture(self.BasicData.uId, sTexture)"
+   },
+   "SetSpriteTextureSize": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetSpriteTextureSize(self.BasicData.uId, nWidth, nHeight)"
+   },
+   "SetTextFont": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetTextFont(self.BasicData.uId, font)"
+   },
+   "SetTextJustification": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetTextJustification(self.BasicData.uId, sJustification)"
+   },
+   "SetTextScale": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetTextScale(self.BasicData.uId, nScale)"
+   },
+   "SetTextText": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetTextText(self.BasicData.uId, t)"
+   },
+   "SetTextWrapping": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetTextWrapping(self.BasicData.uId, true)"
+   },
+   "SetWidgetAnchoring": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetWidgetAnchoring(self.BasicData.uId, nHorizAnchor, nVertAnchor)"
+   },
+   "SetWidgetChild": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetChild(self.BasicData.uId, oChild.BasicData.uId)"
+   },
+   "SetWidgetColor": {
+    "n": 4,
+    "min": 6,
+    "max": 6,
+    "example": "_GuiInternal.SetWidgetColor(self.BasicData.uId, r, g, b, a, not bSuppressPropogation)"
+   },
+   "SetWidgetCorrectedLocation": {
+    "n": 2,
+    "min": 5,
+    "max": 5,
+    "example": "_GuiInternal.SetWidgetCorrectedLocation(self.BasicData.uId, nX1, nY1, nX2, nY2)"
+   },
+   "SetWidgetFullscreen": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetFullscreen(self.BasicData.uId, sType)"
+   },
+   "SetWidgetHighlightable": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetHighlightable(self.BasicData.uId, setting)"
+   },
+   "SetWidgetIgnoresPause": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetIgnoresPause(self.BasicData.uId, bIgnore)"
+   },
+   "SetWidgetLocation": {
+    "n": 6,
+    "min": 5,
+    "max": 6,
+    "example": "_GuiInternal.SetWidgetLocation(self.BasicData.uId, x, y, x1, y1)"
+   },
+   "SetWidgetSleep": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetSleep(self.BasicData.uId, bSleeping)"
+   },
+   "SetWidgetUpdateCallback": {
+    "n": 2,
+    "min": 3,
+    "max": 3,
+    "example": "_GuiInternal.SetWidgetUpdateCallback(self.BasicData.uId, EventHandlerFunction, {self})"
+   },
+   "SetWidgetUseNewRescale": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetUseNewRescale(oAdd.BasicData.uId, true)"
+   },
+   "SetWidgetUseResolutionCorrection": {
+    "n": 1,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetUseResolutionCorrection(oTargettingReticle.BasicData.uId, false)"
+   },
+   "SetWidgetViewport": {
+    "n": 3,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetViewport(self.BasicData.uId, Player.GetViewportId(uGuid))"
+   },
+   "SetWidgetVisible": {
+    "n": 4,
+    "min": 2,
+    "max": 2,
+    "example": "_GuiInternal.SetWidgetVisible(self.BasicData.uId, bVisible)"
+   },
+   "SplitText": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.SplitText(self.BasicData.uId)"
+   },
+   "StopMovie": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_GuiInternal.StopMovie(self.BasicData.uId)"
+   },
+   "UpdatePdaBlip": {
+    "n": 2,
+    "min": 2,
+    "max": 2,
+    "example": null
+   }
+  },
+  "_NetSafeBriefingModule": {
+   "NetSafeLoadBriefingAssets": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_NetSafeBriefingModule.NetSafeLoadBriefingAssets(_tAssetPreload)"
+   },
+   "NetSafeUnloadBriefingAssets": {
+    "n": 2,
+    "min": 1,
+    "max": 1,
+    "example": "_NetSafeBriefingModule.NetSafeUnloadBriefingAssets(_tAssetPreload)"
+   }
+  }
+ }
+}

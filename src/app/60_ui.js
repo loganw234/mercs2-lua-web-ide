@@ -1,22 +1,10 @@
-/* 60_ui.js -- toolbar wiring: connect/disconnect, run/save/share, examples, output tabs, onboarding,
-   status dot, and autosave to localStorage. */
+/* 60_ui.js -- toolbar + chrome wiring: connect/disconnect, run/save/share, the sidebar's Scripts/Examples/API
+   tabs, output tabs, onboarding, status dot, and the debounced autosave into the script library. */
 (function () {
   var IDE = window.IDE, $ = IDE.$;
 
-  var EXAMPLES = {
-    "Hello - engine version": "-- confirm you're connected\nreturn Ess.VERSION",
-    "Spawn a car and hop in": 'Ess.Easy.Vehicle.summon("Veyron")',
-    "Airstrike on your reticle": "Ess.Easy.Airstrike.onTarget(0)",
-    "Give cash + a weapon": 'Ess.Player.giveCash(100000)\nEss.Easy.Human.giveWeapon(Ess.Player.character(0), "RPG")',
-    "Toast + HUD banner": 'Ess.UI.Toast("hello from the web IDE")\nEss.Hud.banner("WEB IDE")',
-    "A repeating tick (F-free)": 'Ess.Loop.start("demo", 1, function()\n  Ess.UI.Toast("tick "..tostring(os and os.time and os.time() or "?"))\n  return true\nend)\n-- stop with:  Ess.Loop.stop("demo")'
-  };
-  var sel = $("examples");
-  Object.keys(EXAMPLES).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = k; sel.appendChild(o); });
-  sel.onchange = function () { if (EXAMPLES[sel.value]) { IDE.editor.set(EXAMPLES[sel.value]); save(); } sel.value = ""; IDE.editor.focus(); };
-
   function flash(btn, msg) { var o = btn.textContent; btn.textContent = msg; setTimeout(function () { btn.textContent = o; }, 1100); }
-  function save() { try { localStorage.setItem(IDE.cfg.scriptKey, IDE.editor.get()); } catch (e) {} }
+  function save() { IDE.store.saveActive(IDE.editor.get()); }
 
   IDE.bus.on("status", function (s) {
     $("dot").className = "dot " + s; $("state").textContent = s;
@@ -38,6 +26,19 @@
     else prompt("Copy this link:", url);
   };
 
+  /* sidebar panels: Scripts / Examples / API */
+  Array.prototype.forEach.call(document.querySelectorAll(".stab"), function (t) {
+    t.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll(".stab"), function (x) { x.classList.remove("on"); });
+      t.classList.add("on");
+      var which = t.getAttribute("data-p");
+      $("panelScripts").classList.toggle("hidden", which !== "scripts");
+      $("panelExamples").classList.toggle("hidden", which !== "examples");
+      $("panelApi").classList.toggle("hidden", which !== "api");
+    };
+  });
+
+  /* output tabs */
   Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
     t.onclick = function () {
       Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (x) { x.classList.remove("on"); });

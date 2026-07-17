@@ -24,8 +24,11 @@ def main():
     html = (SRC / "index.html").read_text(encoding="utf-8")
     css = (SRC / "styles.css").read_text(encoding="utf-8")
     api = (SRC / "data" / "ess-api.json").read_text(encoding="utf-8")
+    natives = (SRC / "data" / "natives.json").read_text(encoding="utf-8")
+    examples = (SRC / "data" / "examples.json").read_text(encoding="utf-8")
 
-    parts = [(SRC / "lib" / "ess-bridge.js").read_text(encoding="utf-8")]
+    parts = [(SRC / "lib" / "vendor.js").read_text(encoding="utf-8"),
+             (SRC / "lib" / "ess-bridge.js").read_text(encoding="utf-8")]
     for p in sorted((SRC / "app").glob("*.js")):
         parts.append("/* ==== %s ==== */\n%s" % (p.name, p.read_text(encoding="utf-8")))
     app = "\n".join(parts)
@@ -33,12 +36,14 @@ def main():
     html = (html
             .replace("/*__CSS__*/", guard(css))
             .replace("/*__API__*/", "window.ESS_API=" + guard(api) + ";")
+            .replace("/*__NATIVES__*/", "window.MERCS_NATIVES=" + guard(natives) + ";")
+            .replace("/*__EXAMPLES__*/", "window.ESS_EXAMPLES=" + guard(examples) + ";")
             .replace("/*__APP__*/", guard(app)))
 
     out = ROOT / "dist" / "index.html"
     out.parent.mkdir(exist_ok=True)
     out.write_text(html, encoding="utf-8")
-    print("[build] wrote %s (%d KB, %d app modules)" % (out, out.stat().st_size // 1024, len(parts) - 1))
+    print("[build] wrote %s (%d KB, %d app modules + vendor + bridge)" % (out, out.stat().st_size // 1024, len(parts) - 2))
     return 0
 
 

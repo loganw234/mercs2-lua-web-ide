@@ -12,9 +12,9 @@
   <span class="brand">Mercs2 <b>Lua IDE</b></span>
   <span class="conn"><span class="dot" id="dot"></span><span id="state">offline</span></span>
   <button class="btn go" id="run" title="Run (Ctrl/Cmd+Enter) — runs the selection if you have one, else the whole file">Run ▷</button>
-  <button class="btn" id="save" title="Save to this browser (Ctrl/Cmd+S)">Save</button>
+  <span class="scriptname" id="scriptName" title="The open script — manage scripts in the sidebar"></span>
+  <button class="btn" id="save" title="Save to this browser (Ctrl/Cmd+S) — also autosaves as you type">Save</button>
   <button class="btn" id="share" title="Copy a shareable link (script encoded in the URL)">Share</button>
-  <select class="btn" id="examples" title="Load an example"><option value="">Examples…</option></select>
   <span class="spacer"></span>
   <input id="url" class="url" value="ws://127.0.0.1:27050" spellcheck="false" title="The lua-bridge WebSocket address">
   <button class="btn" id="connect">Connect</button>
@@ -22,21 +22,34 @@
 
 <main class="layout">
   <aside class="side" id="side">
-    <div class="sidehead">
-      <input id="apiSearch" placeholder="search the Ess API…" spellcheck="false">
+    <div class="sidetabs">
+      <button class="stab on" data-p="scripts">Scripts</button>
+      <button class="stab" data-p="examples">Examples</button>
+      <button class="stab" data-p="api">API</button>
     </div>
-    <div class="apitree" id="apiTree"></div>
+    <div class="spanel" id="panelScripts">
+      <div class="sidehead scriptshead">
+        <button class="btn small" id="scNew" title="Start a new empty script">+ New</button>
+        <button class="btn small" id="scImport" title="Import .lua files from disk">Import</button>
+        <button class="btn small" id="scExport" title="Download the open script as a .lua file">Export</button>
+        <input type="file" id="scFile" accept=".lua,.txt" multiple hidden>
+      </div>
+      <div class="sclist" id="scList"></div>
+    </div>
+    <div class="spanel hidden" id="panelExamples">
+      <div class="exlist" id="exList"></div>
+    </div>
+    <div class="spanel hidden" id="panelApi">
+      <div class="sidehead">
+        <input id="apiSearch" placeholder="search the API…" spellcheck="false">
+      </div>
+      <div class="apitree" id="apiTree"></div>
+      <div class="apidoc hidden" id="apiDoc"></div>
+    </div>
   </aside>
 
   <section class="work">
-    <div class="editor" id="editor">
-      <div class="gutter" id="gutter"></div>
-      <div class="code">
-        <pre class="hl"><code id="hl"></code></pre>
-        <textarea id="ta" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"></textarea>
-        <div class="ac" id="ac" hidden></div>
-      </div>
-    </div>
+    <div class="editor" id="editor"></div>
     <div class="output">
       <div class="tabs">
         <button class="tab on" data-t="results" id="tabResults">Results</button>
@@ -82,6 +95,8 @@
 </div>
 
 <script>/*__API__*/</script>
+<script>/*__NATIVES__*/</script>
+<script>/*__EXAMPLES__*/</script>
 <script>/*__APP__*/</script>
 </body>
 </html>

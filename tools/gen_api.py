@@ -78,7 +78,10 @@ def main():
         if row_ns:
             ns_entry(row_ns, section, doc)
 
-        # every backtick span across the row -> individual calls
+        # every backtick span across the row -> individual calls. `.method` shorthand attaches to the
+        # namespace of the MOST RECENT full path in the row (e.g. `Ess.Easy.Airstrike.at(x,y,z)` /
+        # `.onTarget(i)` inside an `Ess.Support` row), falling back to the row's own namespace.
+        last_ns = row_ns
         for cell in cells:
             for tok in BACKTICK.findall(cell):
                 for piece in tok.split("/"):
@@ -94,11 +97,13 @@ def main():
                         ns = path.rsplit(".", 1)[0]
                         ns_entry(ns, section)
                         namespaces[ns]["calls"][path] = piece
+                        last_ns = ns
                         continue
                     m = METHOD_RE.match(piece)
-                    if m and row_ns:
-                        path = row_ns + m.group(1)
-                        namespaces[row_ns]["calls"][path] = row_ns + piece
+                    if m and last_ns:
+                        ns_entry(last_ns, section)
+                        path = last_ns + m.group(1)
+                        namespaces[last_ns]["calls"][path] = last_ns + piece
 
     # finalize
     out_ns = []

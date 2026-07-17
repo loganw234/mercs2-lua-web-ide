@@ -1,20 +1,23 @@
-/* 99_main.js -- bootstrap. Restore the saved WS url + script (or a #s= share link, or a starter), connect,
-   and pop the onboarding card if we're not live shortly after load. */
+/* 99_main.js -- bootstrap. Restore the saved WS url, open the active script from the library (a #s= share
+   link becomes a NEW script so it never overwrites anyone's work), connect, and pop the onboarding card if
+   we're not live shortly after load. */
 (function () {
   var IDE = window.IDE, $ = IDE.$;
 
   var savedWs = null; try { savedWs = localStorage.getItem(IDE.cfg.wsKey); } catch (e) {}
   if (savedWs) $("url").value = savedWs;
 
-  var script = null, h = /[#&]s=([^&]+)/.exec(location.hash || "");
-  if (h) { try { script = decodeURIComponent(h[1]); } catch (e) {} }
-  if (script == null) { try { script = localStorage.getItem(IDE.cfg.scriptKey); } catch (e) {} }
-  if (script == null) {
-    script = "-- Mercs2 Lua IDE - write Lua, hit Run (Ctrl/Cmd+Enter).\n" +
-             "-- Type \"Ess.\" for autocomplete; browse the full API on the left.\n\n" +
-             "return Ess.VERSION\n";
+  var h = /[#&]s=([^&]+)/.exec(location.hash || "");
+  if (h) {
+    var shared = null;
+    try { shared = decodeURIComponent(h[1]); } catch (e) {}
+    if (shared != null) {
+      IDE.store.create("Shared script", shared);   // emits "script" -> 55 loads it into the editor
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    }
   }
-  IDE.editor.set(script);
+  if (!IDE.editor.get()) IDE.editor.reset(IDE.store.active().code);
+  IDE.scriptsPanel.render();
 
   IDE.bridge.connect($("url").value);
   setTimeout(function () { if (IDE.bridge.state() !== "open") $("onboard").hidden = false; }, 2500);

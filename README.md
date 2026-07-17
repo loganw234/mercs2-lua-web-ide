@@ -1,10 +1,10 @@
 # Mercs2 Lua IDE
 
 A live, in-browser Lua / [Ess](https://github.com/loganw234/mercs2-lua-essentials) editor for **Mercenaries 2**
-modding. Write a script, hit **Run**, and it executes in your **running game** over the `lua-bridge` — results
-and the live game log stream straight back to the page. No install, no build step to *use* it.
+modding, built for **beginners**. Write a script, hit **Run**, and it executes in your **running game** over the
+`lua-bridge` — results and the live game log stream straight back to the page. No install, no build step to *use* it.
 
-It's a single self-contained `dist/index.html` (editor, Ess API reference, and the WebSocket client all
+It's a single self-contained `dist/index.html` (editor, API reference, examples, and the WebSocket client all
 inlined), so it works three ways:
 
 - **Hosted** on GitHub Pages — just open the URL (works in Chrome; loopback is treated as trustworthy).
@@ -18,38 +18,71 @@ inlined), so it works three ways:
 2. It listening on `ws://127.0.0.1:27050` (the default).
 3. Hit **Connect**. Green dot = live.
 
-You can still write, save, and browse the API with no game attached — only *running* needs the bridge.
+You can still write, save, and browse everything with no game attached — only *running* needs the bridge.
 
 ## Features
 
-- **Editor** with Lua syntax highlighting, line numbers, block indent, `Ctrl/Cmd+Enter` to run (the selection
-  if you have one, else the whole file), `Ctrl/Cmd+S` to save.
-- **`Ess.` autocomplete** and a **browsable API reference** sidebar — generated from Ess's `CAPABILITIES.md`
-  (~69 namespaces / 400+ calls). Click any call to insert it.
-- **Results** panel (ok / runtime error / timeout) + a live **Log & telemetry** feed (`Loader.Printf` and the
-  hidden `Loader.WsSend` channel).
-- **Save** to your browser (autosaves as you type) and **Share** a link with the script encoded in the URL.
-- Zero external dependencies — one file, fully offline-capable.
+- **Real editor** — CodeMirror 6 (vendored, still zero external requests): Lua highlighting, undo/redo,
+  find & replace (`Ctrl/Cmd+F`), bracket matching + auto-close, auto-indent, code folding.
+  `Ctrl/Cmd+Enter` runs (the selection if you have one, else the whole file); `Ctrl/Cmd+S` saves.
+- **Beginner guardrails** — every script is parsed *before* it's sent. Syntax errors block the run with a
+  plain-English explanation (missing `end`, `=` vs `==`, `!=` vs `~=`, unclosed strings…) and jump you to the
+  line. Live squiggles as you type, plus: did-you-mean for typo'd `Ess.*` / native / `Loader.*` calls,
+  argument-count checks backed by how the game's own scripts call each native, colon-vs-dot fixes,
+  `print()` → `Ess.Log` hints, and a hard warning on `while true` loops (they freeze the game).
+- **Script library** — named scripts with rename / duplicate / delete, autosave as you type, import/export
+  `.lua` files. Share links open as a *new* script so they never clobber anyone's work.
+- **Examples gallery** — 45 categorized, smoke-tested examples generated straight from the Ess repo's
+  `samples/recipes/` (the framework's living documentation), from "Am I connected?" to full missions.
+  One click opens any of them as a new script to play with.
+- **Two-layer API reference** — the full Ess API (~69 namespaces / 430 calls, tier-badged Easy / Core / Raw)
+  *plus* the engine's own native functions (40 namespaces / ~770 calls, scraped from the decompiled base-game
+  scripts, each with a **real call site from the game** and observed argument counts). Click any call for
+  docs; insert it as a snippet with tab-through argument placeholders. The same data powers autocomplete
+  (`Ess.Easy.*` floats to the top).
+- **Results + live log** — ok / runtime error / timeout per run, and the live `Loader.Printf` +
+  `Loader.WsSend` telemetry feed.
+- Zero external requests at runtime — one file, fully offline-capable.
 
 ## Build
 
-The page is assembled from `src/` by a tiny Python script (mirrors the Ess framework's own merge build):
+The page is assembled from `src/` by a tiny Python script; every generated input is **committed**, so a plain
+`python build.py` (or CI) needs nothing but Python:
 
 ```
-python tools/gen_api.py   # src/data/CAPABILITIES.md -> src/data/ess-api.json
 python build.py           # src/* -> dist/index.html (standalone)
 ```
 
-- `src/index.html` — page skeleton (with `/*__CSS__*/`, `/*__API__*/`, `/*__APP__*/` inject markers).
-- `src/styles.css` — all styling (dark/light).
+Regenerating the data (only when the upstream sources change):
+
+```
+python tools/gen_api.py         # src/data/CAPABILITIES.md          -> src/data/ess-api.json
+python tools/gen_examples.py    # <ess repo>/samples/recipes + README -> src/data/examples.json
+python tools/scrape_natives.py  # <decompiled game lua>/src          -> src/data/natives.json
+```
+
+Regenerating the vendored editor bundle (only when bumping CodeMirror/luaparse — needs Node):
+
+```
+cd tools/vendor && npm install && npm run build    # -> src/lib/vendor.js (committed)
+node smoke.js                                      # headless boot + behavior test of dist/index.html
+```
+
+- `src/index.html` — page skeleton (with `/*__CSS__*/`, `/*__API__*/`, `/*__NATIVES__*/`, `/*__EXAMPLES__*/`,
+  `/*__APP__*/` inject markers).
+- `src/styles.css` — all styling (dark/light), including the CodeMirror theme.
+- `src/lib/vendor.js` — CodeMirror 6 + luaparse, bundled to one IIFE (`window.CM`) by `tools/vendor/`.
 - `src/lib/ess-bridge.js` — the vendored WebSocket client (kept in sync with the Ess repo's `tools/`).
 - `src/app/*.js` — the app, one concern per file (`00_state` → `99_main`), merged in order.
-- `src/data/` — `CAPABILITIES.md` (the API source) + generated `ess-api.json`.
+- `src/data/` — `CAPABILITIES.md` (copied from the Ess repo) + the three generated JSONs.
 - `dist/index.html` — the built standalone page (committed, so Pages + downloads need no build).
 
 `.github/workflows/pages.yml` regenerates the API, rebuilds, and deploys `dist/` to GitHub Pages on push.
 
-## Keeping the API current
+## Keeping the data current
 
-`src/data/CAPABILITIES.md` is a copy from the Ess framework. When Ess grows, refresh it and re-run
-`tools/gen_api.py` + `build.py`.
+- **Ess API**: refresh `src/data/CAPABILITIES.md` from the Ess repo, re-run `tools/gen_api.py`.
+- **Examples**: re-run `tools/gen_examples.py` (reads the Ess repo's `samples/` directly).
+- **Natives**: re-run `tools/scrape_natives.py` against the decompiled game scripts.
+
+Then `python build.py` and commit.

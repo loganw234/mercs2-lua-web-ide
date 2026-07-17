@@ -170,10 +170,6 @@
      "sig": "Ess.Cinematic.playNamed(id)"
     },
     {
-     "path": "Ess.Cinematic.shot",
-     "sig": "Ess.Cinematic.shot(at, lookAt, seconds)"
-    },
-    {
      "path": "Ess.Cinematic.skip",
      "sig": "Ess.Cinematic.skip()"
     },
@@ -264,6 +260,14 @@
     {
      "path": "Ess.Easy.Airstrike.at",
      "sig": "Ess.Easy.Airstrike.at(x,y,z)"
+    },
+    {
+     "path": "Ess.Easy.Airstrike.onMe",
+     "sig": "Ess.Easy.Airstrike.onMe(i)"
+    },
+    {
+     "path": "Ess.Easy.Airstrike.onTarget",
+     "sig": "Ess.Easy.Airstrike.onTarget(i)"
     }
    ]
   },
@@ -275,6 +279,10 @@
     {
      "path": "Ess.Easy.Cinematic.play",
      "sig": "Ess.Easy.Cinematic.play(steps, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Cinematic.shot",
+     "sig": "Ess.Easy.Cinematic.shot(at, lookAt, seconds)"
     }
    ]
   },
@@ -339,6 +347,10 @@
     {
      "path": "Ess.Easy.Fun.dance",
      "sig": "Ess.Easy.Fun.dance()"
+    },
+    {
+     "path": "Ess.Easy.Fun.fanfare",
+     "sig": "Ess.Easy.Fun.fanfare(win)"
     }
    ]
   },
@@ -358,6 +370,14 @@
    "group": "Identity & world query",
    "doc": "",
    "calls": [
+    {
+     "path": "Ess.Easy.Impulse.knockback",
+     "sig": "Ess.Easy.Impulse.knockback(g, from)"
+    },
+    {
+     "path": "Ess.Easy.Impulse.launch",
+     "sig": "Ess.Easy.Impulse.launch(g)"
+    },
     {
      "path": "Ess.Easy.Impulse.speedBoost",
      "sig": "Ess.Easy.Impulse.speedBoost(g)"
@@ -412,8 +432,28 @@
    "doc": "",
    "calls": [
     {
+     "path": "Ess.Easy.Player.freeSupport",
+     "sig": "Ess.Easy.Player.freeSupport()"
+    },
+    {
+     "path": "Ess.Easy.Player.giveAllRewards",
+     "sig": "Ess.Easy.Player.giveAllRewards()"
+    },
+    {
      "path": "Ess.Easy.Player.giveGrapplingHook",
      "sig": "Ess.Easy.Player.giveGrapplingHook()"
+    },
+    {
+     "path": "Ess.Easy.Player.skin",
+     "sig": "Ess.Easy.Player.skin(code)"
+    },
+    {
+     "path": "Ess.Easy.Player.unlockAllHQs",
+     "sig": "Ess.Easy.Player.unlockAllHQs()"
+    },
+    {
+     "path": "Ess.Easy.Player.unlockFastTravel",
+     "sig": "Ess.Easy.Player.unlockFastTravel()"
     }
    ]
   },
@@ -434,12 +474,32 @@
    "doc": "",
    "calls": [
     {
+     "path": "Ess.Easy.Spawn.airstrike",
+     "sig": "Ess.Easy.Spawn.airstrike(round)"
+    },
+    {
+     "path": "Ess.Easy.Spawn.crate",
+     "sig": "Ess.Easy.Spawn.crate(type)"
+    },
+    {
+     "path": "Ess.Easy.Spawn.enemies",
+     "sig": "Ess.Easy.Spawn.enemies(n)"
+    },
+    {
      "path": "Ess.Easy.Spawn.explosion",
      "sig": "Ess.Easy.Spawn.explosion(type)"
     },
     {
      "path": "Ess.Easy.Spawn.fx",
      "sig": "Ess.Easy.Spawn.fx(t, x,y,z)"
+    },
+    {
+     "path": "Ess.Easy.Spawn.fxOn",
+     "sig": "Ess.Easy.Spawn.fxOn(t, guid, bone)"
+    },
+    {
+     "path": "Ess.Easy.Spawn.weapon",
+     "sig": "Ess.Easy.Spawn.weapon(name)"
     }
    ]
   },
@@ -471,12 +531,28 @@
    "doc": "",
    "calls": [
     {
+     "path": "Ess.Easy.World.brightness",
+     "sig": "Ess.Easy.World.brightness(n)"
+    },
+    {
+     "path": "Ess.Easy.World.clearWanted",
+     "sig": "Ess.Easy.World.clearWanted()"
+    },
+    {
      "path": "Ess.Easy.World.hellscape",
      "sig": "Ess.Easy.World.hellscape()"
     },
     {
      "path": "Ess.Easy.World.removeMapBoundary",
      "sig": "Ess.Easy.World.removeMapBoundary()"
+    },
+    {
+     "path": "Ess.Easy.World.resetAtmosphere",
+     "sig": "Ess.Easy.World.resetAtmosphere()"
+    },
+    {
+     "path": "Ess.Easy.World.tint",
+     "sig": "Ess.Easy.World.tint(r,g,b)"
     }
    ]
   },
@@ -634,28 +710,7 @@
    "name": "Ess.Impulse",
    "group": "Identity & world query",
    "doc": "Launch / boost / knock objects around (the speed-boost effect), mass-scaling handled",
-   "calls": [
-    {
-     "path": "Ess.Impulse.applyAtPoint",
-     "sig": "Ess.Impulse.applyAtPoint"
-    },
-    {
-     "path": "Ess.Impulse.knockback",
-     "sig": "Ess.Impulse.knockback(g, from)"
-    },
-    {
-     "path": "Ess.Impulse.launch",
-     "sig": "Ess.Impulse.launch(g)"
-    },
-    {
-     "path": "Ess.Impulse.mass",
-     "sig": "Ess.Impulse.mass"
-    },
-    {
-     "path": "Ess.Impulse.spin",
-     "sig": "Ess.Impulse.spin"
-    }
-   ]
+   "calls": []
   },
   {
    "name": "Ess.Input",
@@ -1273,6 +1328,18 @@
     {
      "path": "Ess.Raw.Impulse.apply",
      "sig": "Ess.Raw.Impulse.apply"
+    },
+    {
+     "path": "Ess.Raw.Impulse.applyAtPoint",
+     "sig": "Ess.Raw.Impulse.applyAtPoint"
+    },
+    {
+     "path": "Ess.Raw.Impulse.mass",
+     "sig": "Ess.Raw.Impulse.mass"
+    },
+    {
+     "path": "Ess.Raw.Impulse.spin",
+     "sig": "Ess.Raw.Impulse.spin"
     }
    ]
   },
@@ -1553,14 +1620,6 @@
     {
      "path": "Ess.Support.gunship",
      "sig": "Ess.Support.gunship"
-    },
-    {
-     "path": "Ess.Support.onMe",
-     "sig": "Ess.Support.onMe(i)"
-    },
-    {
-     "path": "Ess.Support.onTarget",
-     "sig": "Ess.Support.onTarget(i)"
     },
     {
      "path": "Ess.Support.reinforce",
@@ -1909,7 +1968,6 @@
   "Ess.Cinematic.isPlaying",
   "Ess.Cinematic.play",
   "Ess.Cinematic.playNamed",
-  "Ess.Cinematic.shot",
   "Ess.Cinematic.skip",
   "Ess.Cinematic.stop",
   "Ess.Color",
@@ -1926,8 +1984,11 @@
   "Ess.Easy",
   "Ess.Easy.Airstrike",
   "Ess.Easy.Airstrike.at",
+  "Ess.Easy.Airstrike.onMe",
+  "Ess.Easy.Airstrike.onTarget",
   "Ess.Easy.Cinematic",
   "Ess.Easy.Cinematic.play",
+  "Ess.Easy.Cinematic.shot",
   "Ess.Easy.Confirm",
   "Ess.Easy.Console",
   "Ess.Easy.Console.close",
@@ -1942,9 +2003,12 @@
   "Ess.Easy.Debug.overlay",
   "Ess.Easy.Fun",
   "Ess.Easy.Fun.dance",
+  "Ess.Easy.Fun.fanfare",
   "Ess.Easy.Human",
   "Ess.Easy.Human.giveWeapon",
   "Ess.Easy.Impulse",
+  "Ess.Easy.Impulse.knockback",
+  "Ess.Easy.Impulse.launch",
   "Ess.Easy.Impulse.speedBoost",
   "Ess.Easy.Mark",
   "Ess.Easy.Mark.enemy",
@@ -1957,21 +2021,35 @@
   "Ess.Easy.Objective.reach",
   "Ess.Easy.Objective.survive",
   "Ess.Easy.Player",
+  "Ess.Easy.Player.freeSupport",
+  "Ess.Easy.Player.giveAllRewards",
   "Ess.Easy.Player.giveGrapplingHook",
+  "Ess.Easy.Player.skin",
+  "Ess.Easy.Player.unlockAllHQs",
+  "Ess.Easy.Player.unlockFastTravel",
   "Ess.Easy.Quest",
   "Ess.Easy.Sound",
   "Ess.Easy.Sound.play",
   "Ess.Easy.Spawn",
+  "Ess.Easy.Spawn.airstrike",
+  "Ess.Easy.Spawn.crate",
+  "Ess.Easy.Spawn.enemies",
   "Ess.Easy.Spawn.explosion",
   "Ess.Easy.Spawn.fx",
+  "Ess.Easy.Spawn.fxOn",
+  "Ess.Easy.Spawn.weapon",
   "Ess.Easy.Time",
   "Ess.Easy.Time.slowmo",
   "Ess.Easy.Toast",
   "Ess.Easy.Vehicle",
   "Ess.Easy.Vehicle.summon",
   "Ess.Easy.World",
+  "Ess.Easy.World.brightness",
+  "Ess.Easy.World.clearWanted",
   "Ess.Easy.World.hellscape",
   "Ess.Easy.World.removeMapBoundary",
+  "Ess.Easy.World.resetAtmosphere",
+  "Ess.Easy.World.tint",
   "Ess.Event",
   "Ess.Event.off",
   "Ess.Event.on",
@@ -2007,11 +2085,6 @@
   "Ess.Human.setAmmo",
   "Ess.Human.setInfiniteAmmo",
   "Ess.Impulse",
-  "Ess.Impulse.applyAtPoint",
-  "Ess.Impulse.knockback",
-  "Ess.Impulse.launch",
-  "Ess.Impulse.mass",
-  "Ess.Impulse.spin",
   "Ess.Input",
   "Ess.Input.VkToChar",
   "Ess.Input.clear",
@@ -2153,6 +2226,9 @@
   "Ess.Raw",
   "Ess.Raw.Impulse",
   "Ess.Raw.Impulse.apply",
+  "Ess.Raw.Impulse.applyAtPoint",
+  "Ess.Raw.Impulse.mass",
+  "Ess.Raw.Impulse.spin",
   "Ess.Raw.Mark",
   "Ess.Raw.Mark.haltPulse",
   "Ess.Raw.Mark.pda",
@@ -2215,8 +2291,6 @@
   "Ess.Support.artillery",
   "Ess.Support.bombingrun",
   "Ess.Support.gunship",
-  "Ess.Support.onMe",
-  "Ess.Support.onTarget",
   "Ess.Support.reinforce",
   "Ess.Support.shell",
   "Ess.Table",

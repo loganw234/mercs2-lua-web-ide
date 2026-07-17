@@ -1,0 +1,2292 @@
+{
+ "namespaces": [
+  {
+   "name": "Ess",
+   "group": "Core primitives",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Guid",
+     "sig": "Ess.Guid(name)"
+    },
+    {
+     "path": "Ess.Log",
+     "sig": "Ess.Log(msg)"
+    },
+    {
+     "path": "Ess.Name",
+     "sig": "Ess.Name(guid)"
+    },
+    {
+     "path": "Ess.State",
+     "sig": "Ess.State(name, defaults)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.AIOrders",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".command(guids, behavior, opts, tracker) \u2014 11 behaviors (move/patrol/defend/attack/hold/face/follow/flee/enter/deploy/animate); .setGroup/.group",
+   "calls": [
+    {
+     "path": "Ess.AIOrders.attack",
+     "sig": "Ess.AIOrders.attack(guids, target)"
+    },
+    {
+     "path": "Ess.AIOrders.command",
+     "sig": "Ess.AIOrders.command(guids, behavior, opts, tracker)"
+    },
+    {
+     "path": "Ess.AIOrders.group",
+     "sig": "Ess.AIOrders.group"
+    },
+    {
+     "path": "Ess.AIOrders.guard",
+     "sig": "Ess.AIOrders.guard(guids, at)"
+    },
+    {
+     "path": "Ess.AIOrders.patrol",
+     "sig": "Ess.AIOrders.patrol(guids, points)"
+    },
+    {
+     "path": "Ess.AIOrders.setGroup",
+     "sig": "Ess.AIOrders.setGroup"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Bones",
+   "group": "Camera, bones & spatial",
+   "doc": "The confirmed bone/hardpoint recipes",
+   "calls": [
+    {
+     "path": "Ess.Bones.aimVector",
+     "sig": "Ess.Bones.aimVector"
+    },
+    {
+     "path": "Ess.Bones.attachFX",
+     "sig": "Ess.Bones.attachFX"
+    },
+    {
+     "path": "Ess.Bones.detachFX",
+     "sig": "Ess.Bones.detachFX"
+    },
+    {
+     "path": "Ess.Bones.probeNames",
+     "sig": "Ess.Bones.probeNames"
+    },
+    {
+     "path": "Ess.Bones.waitForReady",
+     "sig": "Ess.Bones.waitForReady"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Camera",
+   "group": "Camera, bones & spatial",
+   "doc": "Camera effects (top-level Camera + Graphics.Camera + Graphics.Effect, kept clear)",
+   "calls": [
+    {
+     "path": "Ess.Camera.beginCinematic",
+     "sig": "Ess.Camera.beginCinematic"
+    },
+    {
+     "path": "Ess.Camera.endCinematic",
+     "sig": "Ess.Camera.endCinematic"
+    },
+    {
+     "path": "Ess.Camera.fade",
+     "sig": "Ess.Camera.fade(amt)"
+    },
+    {
+     "path": "Ess.Camera.followHardpoint",
+     "sig": "Ess.Camera.followHardpoint"
+    },
+    {
+     "path": "Ess.Camera.fov",
+     "sig": "Ess.Camera.fov"
+    },
+    {
+     "path": "Ess.Camera.hold",
+     "sig": "Ess.Camera.hold"
+    },
+    {
+     "path": "Ess.Camera.lookAtAnchor",
+     "sig": "Ess.Camera.lookAtAnchor"
+    },
+    {
+     "path": "Ess.Camera.lookAtObject",
+     "sig": "Ess.Camera.lookAtObject"
+    },
+    {
+     "path": "Ess.Camera.lookAtPoint",
+     "sig": "Ess.Camera.lookAtPoint"
+    },
+    {
+     "path": "Ess.Camera.panicRevert",
+     "sig": "Ess.Camera.panicRevert"
+    },
+    {
+     "path": "Ess.Camera.placeCamera",
+     "sig": "Ess.Camera.placeCamera"
+    },
+    {
+     "path": "Ess.Camera.restoreFov",
+     "sig": "Ess.Camera.restoreFov"
+    },
+    {
+     "path": "Ess.Camera.shake",
+     "sig": "Ess.Camera.shake"
+    },
+    {
+     "path": "Ess.Camera.staleAxisDecay",
+     "sig": "Ess.Camera.staleAxisDecay"
+    },
+    {
+     "path": "Ess.Camera.stopShake",
+     "sig": "Ess.Camera.stopShake"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Cinematic",
+   "group": "Camera, bones & spatial",
+   "doc": "A declarative cutscene timeline \u2014 the runtime the cinematic authoring suite feeds",
+   "calls": [
+    {
+     "path": "Ess.Cinematic.define",
+     "sig": "Ess.Cinematic.define(id, steps, opts)"
+    },
+    {
+     "path": "Ess.Cinematic.isPlaying",
+     "sig": "Ess.Cinematic.isPlaying()"
+    },
+    {
+     "path": "Ess.Cinematic.play",
+     "sig": "Ess.Cinematic.play(steps, opts)"
+    },
+    {
+     "path": "Ess.Cinematic.playNamed",
+     "sig": "Ess.Cinematic.playNamed(id)"
+    },
+    {
+     "path": "Ess.Cinematic.shot",
+     "sig": "Ess.Cinematic.shot(at, lookAt, seconds)"
+    },
+    {
+     "path": "Ess.Cinematic.skip",
+     "sig": "Ess.Cinematic.skip()"
+    },
+    {
+     "path": "Ess.Cinematic.stop",
+     "sig": "Ess.Cinematic.stop()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Color",
+   "group": "Core primitives",
+   "doc": "RGB for the rgb = {r,g,b} params (Ess.Mark / Ess.UI)",
+   "calls": [
+    {
+     "path": "Ess.Color.NAMES",
+     "sig": "Ess.Color.NAMES"
+    },
+    {
+     "path": "Ess.Color.hex",
+     "sig": "Ess.Color.hex(s)"
+    },
+    {
+     "path": "Ess.Color.hsv",
+     "sig": "Ess.Color.hsv(h,s,v)"
+    },
+    {
+     "path": "Ess.Color.lerp",
+     "sig": "Ess.Color.lerp(c1,c2,t)"
+    },
+    {
+     "path": "Ess.Color.of",
+     "sig": "Ess.Color.of(name)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Contract",
+   "group": "Missions",
+   "doc": "The full ephemeral-mission engine (native port of ContractFramework)",
+   "calls": [
+    {
+     "path": "Ess.Contract.Abort",
+     "sig": "Ess.Contract.Abort()"
+    },
+    {
+     "path": "Ess.Contract.Accept",
+     "sig": "Ess.Contract.Accept(id)"
+    },
+    {
+     "path": "Ess.Contract.Register",
+     "sig": "Ess.Contract.Register(def)"
+    },
+    {
+     "path": "Ess.Contract.Status",
+     "sig": "Ess.Contract.Status()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy",
+   "group": "UI kit",
+   "doc": "Single-call UI",
+   "calls": [
+    {
+     "path": "Ess.Easy.Confirm",
+     "sig": "Ess.Easy.Confirm(text, onYes, onNo)"
+    },
+    {
+     "path": "Ess.Easy.Menu",
+     "sig": "Ess.Easy.Menu(title, entries)"
+    },
+    {
+     "path": "Ess.Easy.Quest",
+     "sig": "Ess.Easy.Quest(steps, onComplete)"
+    },
+    {
+     "path": "Ess.Easy.Toast",
+     "sig": "Ess.Easy.Toast(msg)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Airstrike",
+   "group": "Humans & combat",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Airstrike.at",
+     "sig": "Ess.Easy.Airstrike.at(x,y,z)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Cinematic",
+   "group": "Camera, bones & spatial",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Cinematic.play",
+     "sig": "Ess.Easy.Cinematic.play(steps, onDone)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Console",
+   "group": "UI kit",
+   "doc": "In-game reference AND interactive playground",
+   "calls": [
+    {
+     "path": "Ess.Easy.Console.close",
+     "sig": "Ess.Easy.Console.close()"
+    },
+    {
+     "path": "Ess.Easy.Console.open",
+     "sig": "Ess.Easy.Console.open()"
+    },
+    {
+     "path": "Ess.Easy.Console.play",
+     "sig": "Ess.Easy.Console.play()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Contract",
+   "group": "Missions",
+   "doc": "One-call contracts",
+   "calls": [
+    {
+     "path": "Ess.Easy.Contract.destroy",
+     "sig": "Ess.Easy.Contract.destroy(title, spawns, opts)"
+    },
+    {
+     "path": "Ess.Easy.Contract.reach",
+     "sig": "Ess.Easy.Contract.reach(title, at, radius, opts)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Debug",
+   "group": "UI kit",
+   "doc": "A live dev overlay for mod authors",
+   "calls": [
+    {
+     "path": "Ess.Easy.Debug.hide",
+     "sig": "Ess.Easy.Debug.hide()"
+    },
+    {
+     "path": "Ess.Easy.Debug.isOn",
+     "sig": "Ess.Easy.Debug.isOn()"
+    },
+    {
+     "path": "Ess.Easy.Debug.overlay",
+     "sig": "Ess.Easy.Debug.overlay(opts)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Fun",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Fun.dance",
+     "sig": "Ess.Easy.Fun.dance()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Human",
+   "group": "Humans & combat",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Human.giveWeapon",
+     "sig": "Ess.Easy.Human.giveWeapon(char, templateName)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Impulse",
+   "group": "Identity & world query",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Impulse.speedBoost",
+     "sig": "Ess.Easy.Impulse.speedBoost(g)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Mark",
+   "group": "Markers",
+   "doc": ".enemy(guid) (radar+PDA), .objective(guid) (all 3), .zone(x,y,z,r) (world ring)",
+   "calls": [
+    {
+     "path": "Ess.Easy.Mark.enemy",
+     "sig": "Ess.Easy.Mark.enemy(guid)"
+    },
+    {
+     "path": "Ess.Easy.Mark.objective",
+     "sig": "Ess.Easy.Mark.objective(guid)"
+    },
+    {
+     "path": "Ess.Easy.Mark.zone",
+     "sig": "Ess.Easy.Mark.zone(x,y,z,r)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Objective",
+   "group": "Missions",
+   "doc": "The intent bundles \u2014 a goal wired to a world event + its marker, in one line",
+   "calls": [
+    {
+     "path": "Ess.Easy.Objective.clear",
+     "sig": "Ess.Easy.Objective.clear(x,y,z,r, faction, label, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Objective.destroy",
+     "sig": "Ess.Easy.Objective.destroy(guid, label, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Objective.reach",
+     "sig": "Ess.Easy.Objective.reach(x,y,z,r, label, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Objective.survive",
+     "sig": "Ess.Easy.Objective.survive(seconds, label, onDone, onFail)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Player",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Player.giveGrapplingHook",
+     "sig": "Ess.Easy.Player.giveGrapplingHook()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Sound",
+   "group": "Audio & HUD",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Sound.play",
+     "sig": "Ess.Easy.Sound.play(cue)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Spawn",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Spawn.explosion",
+     "sig": "Ess.Easy.Spawn.explosion(type)"
+    },
+    {
+     "path": "Ess.Easy.Spawn.fx",
+     "sig": "Ess.Easy.Spawn.fx(t, x,y,z)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Time",
+   "group": "Timing & input",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Time.slowmo",
+     "sig": "Ess.Easy.Time.slowmo(n, seconds)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Vehicle",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Vehicle.summon",
+     "sig": "Ess.Easy.Vehicle.summon(template)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.World",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.World.hellscape",
+     "sig": "Ess.Easy.World.hellscape()"
+    },
+    {
+     "path": "Ess.Easy.World.removeMapBoundary",
+     "sig": "Ess.Easy.World.removeMapBoundary()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Event",
+   "group": "Tracking & cleanup",
+   "doc": "Event.Create that logs failures + auto-tracks",
+   "calls": [
+    {
+     "path": "Ess.Event.off",
+     "sig": "Ess.Event.off(handle)"
+    },
+    {
+     "path": "Ess.Event.on",
+     "sig": "Ess.Event.on(type, args, cb, tracker)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Gfx",
+   "group": "UI kit",
+   "doc": "Raw FlashWidget primitives (the Raw tier of UI)",
+   "calls": [
+    {
+     "path": "Ess.Gfx.call",
+     "sig": "Ess.Gfx.call"
+    },
+    {
+     "path": "Ess.Gfx.menuNav",
+     "sig": "Ess.Gfx.menuNav"
+    },
+    {
+     "path": "Ess.Gfx.onEvent",
+     "sig": "Ess.Gfx.onEvent"
+    },
+    {
+     "path": "Ess.Gfx.setVisible",
+     "sig": "Ess.Gfx.setVisible"
+    },
+    {
+     "path": "Ess.Gfx.warmupRerender",
+     "sig": "Ess.Gfx.warmupRerender"
+    },
+    {
+     "path": "Ess.Gfx.widget",
+     "sig": "Ess.Gfx.widget"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Guid",
+   "group": "Core primitives",
+   "doc": "Name\u2194guid, pcall-wrapped",
+   "calls": []
+  },
+  {
+   "name": "Ess.Hud",
+   "group": "Audio & HUD",
+   "doc": "Native HUD popups",
+   "calls": [
+    {
+     "path": "Ess.Hud.banner",
+     "sig": "Ess.Hud.banner(msg)"
+    },
+    {
+     "path": "Ess.Hud.hideHint",
+     "sig": "Ess.Hud.hideHint"
+    },
+    {
+     "path": "Ess.Hud.hint",
+     "sig": "Ess.Hud.hint"
+    },
+    {
+     "path": "Ess.Hud.objective",
+     "sig": "Ess.Hud.objective(text)"
+    },
+    {
+     "path": "Ess.Hud.radio",
+     "sig": "Ess.Hud.radio(text, hold)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Human",
+   "group": "Humans & combat",
+   "doc": "Weapon/inventory/action control for a character",
+   "calls": [
+    {
+     "path": "Ess.Human.allWeapons",
+     "sig": "Ess.Human.allWeapons"
+    },
+    {
+     "path": "Ess.Human.ammo",
+     "sig": "Ess.Human.ammo"
+    },
+    {
+     "path": "Ess.Human.disableWeapons",
+     "sig": "Ess.Human.disableWeapons"
+    },
+    {
+     "path": "Ess.Human.doAction",
+     "sig": "Ess.Human.doAction"
+    },
+    {
+     "path": "Ess.Human.dropWeapon",
+     "sig": "Ess.Human.dropWeapon"
+    },
+    {
+     "path": "Ess.Human.enableWeapons",
+     "sig": "Ess.Human.enableWeapons"
+    },
+    {
+     "path": "Ess.Human.equipWeapon",
+     "sig": "Ess.Human.equipWeapon"
+    },
+    {
+     "path": "Ess.Human.knockdown",
+     "sig": "Ess.Human.knockdown"
+    },
+    {
+     "path": "Ess.Human.maxAmmo",
+     "sig": "Ess.Human.maxAmmo"
+    },
+    {
+     "path": "Ess.Human.primaryWeapon",
+     "sig": "Ess.Human.primaryWeapon"
+    },
+    {
+     "path": "Ess.Human.refillAmmo",
+     "sig": "Ess.Human.refillAmmo"
+    },
+    {
+     "path": "Ess.Human.reloadAll",
+     "sig": "Ess.Human.reloadAll"
+    },
+    {
+     "path": "Ess.Human.secondaryWeapon",
+     "sig": "Ess.Human.secondaryWeapon"
+    },
+    {
+     "path": "Ess.Human.setAllWeapons",
+     "sig": "Ess.Human.setAllWeapons"
+    },
+    {
+     "path": "Ess.Human.setAmmo",
+     "sig": "Ess.Human.setAmmo"
+    },
+    {
+     "path": "Ess.Human.setInfiniteAmmo",
+     "sig": "Ess.Human.setInfiniteAmmo"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Impulse",
+   "group": "Identity & world query",
+   "doc": "Launch / boost / knock objects around (the speed-boost effect), mass-scaling handled",
+   "calls": [
+    {
+     "path": "Ess.Impulse.applyAtPoint",
+     "sig": "Ess.Impulse.applyAtPoint"
+    },
+    {
+     "path": "Ess.Impulse.knockback",
+     "sig": "Ess.Impulse.knockback(g, from)"
+    },
+    {
+     "path": "Ess.Impulse.launch",
+     "sig": "Ess.Impulse.launch(g)"
+    },
+    {
+     "path": "Ess.Impulse.mass",
+     "sig": "Ess.Impulse.mass"
+    },
+    {
+     "path": "Ess.Impulse.spin",
+     "sig": "Ess.Impulse.spin"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Input",
+   "group": "Timing & input",
+   "doc": "The only correct key-polling shape + device query",
+   "calls": [
+    {
+     "path": "Ess.Input.VkToChar",
+     "sig": "Ess.Input.VkToChar(vk, shift)"
+    },
+    {
+     "path": "Ess.Input.clear",
+     "sig": "Ess.Input.clear()"
+    },
+    {
+     "path": "Ess.Input.hijackController",
+     "sig": "Ess.Input.hijackController(onInput)"
+    },
+    {
+     "path": "Ess.Input.poll",
+     "sig": "Ess.Input.poll()"
+    },
+    {
+     "path": "Ess.Input.usingController",
+     "sig": "Ess.Input.usingController()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Keys",
+   "group": "Timing & input",
+   "doc": "Bind several hotkeys in ONE script (a toolkit)",
+   "calls": [
+    {
+     "path": "Ess.Keys.clear",
+     "sig": "Ess.Keys.clear"
+    },
+    {
+     "path": "Ess.Keys.isBound",
+     "sig": "Ess.Keys.isBound"
+    },
+    {
+     "path": "Ess.Keys.off",
+     "sig": "Ess.Keys.off"
+    },
+    {
+     "path": "Ess.Keys.on",
+     "sig": "Ess.Keys.on(key, fn)"
+    },
+    {
+     "path": "Ess.Keys.vk",
+     "sig": "Ess.Keys.vk(name)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Layers",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "Save-clean vz_state_* layer manipulation for arenas/minigames: .begin/.add/.remove/.swap/.expect/.composite/.finish, .isActive/.isLoaded/.snapshot/.current",
+   "calls": [
+    {
+     "path": "Ess.Layers.add",
+     "sig": "Ess.Layers.add"
+    },
+    {
+     "path": "Ess.Layers.begin",
+     "sig": "Ess.Layers.begin"
+    },
+    {
+     "path": "Ess.Layers.composite",
+     "sig": "Ess.Layers.composite"
+    },
+    {
+     "path": "Ess.Layers.current",
+     "sig": "Ess.Layers.current"
+    },
+    {
+     "path": "Ess.Layers.expect",
+     "sig": "Ess.Layers.expect"
+    },
+    {
+     "path": "Ess.Layers.finish",
+     "sig": "Ess.Layers.finish"
+    },
+    {
+     "path": "Ess.Layers.isActive",
+     "sig": "Ess.Layers.isActive"
+    },
+    {
+     "path": "Ess.Layers.isLoaded",
+     "sig": "Ess.Layers.isLoaded"
+    },
+    {
+     "path": "Ess.Layers.remove",
+     "sig": "Ess.Layers.remove"
+    },
+    {
+     "path": "Ess.Layers.snapshot",
+     "sig": "Ess.Layers.snapshot"
+    },
+    {
+     "path": "Ess.Layers.swap",
+     "sig": "Ess.Layers.swap"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Log",
+   "group": "Core primitives",
+   "doc": "One line to the bridge log",
+   "calls": []
+  },
+  {
+   "name": "Ess.Loop",
+   "group": "Timing & input",
+   "doc": "The one shared reload-safe heartbeat",
+   "calls": [
+    {
+     "path": "Ess.Loop.isRunning",
+     "sig": "Ess.Loop.isRunning(id)"
+    },
+    {
+     "path": "Ess.Loop.start",
+     "sig": "Ess.Loop.start(id, interval, tickFn)"
+    },
+    {
+     "path": "Ess.Loop.stop",
+     "sig": "Ess.Loop.stop(id)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Mark",
+   "group": "Markers",
+   "doc": ".object(guid, {radar=, pda=, world=, disc=, kind=, rgb=, radius=, discAlpha=, size=, dist=}), .zone(x,y,z,r, {world=, radar=, pda=, icon=, kind=, rgb=, discAlpha=, size=, dist=}), .clear(handle) \u2014 every surface (radar / PDA / ground ring / floating icon) is an independent opt, so one call covers any combination",
+   "calls": [
+    {
+     "path": "Ess.Mark.clear",
+     "sig": "Ess.Mark.clear(handle)"
+    },
+    {
+     "path": "Ess.Mark.object",
+     "sig": "Ess.Mark.object(guid, {radar=, pda=, world=, disc=, kind=, rgb=, radius=, discAlpha=, size=, dist=})"
+    },
+    {
+     "path": "Ess.Mark.zone",
+     "sig": "Ess.Mark.zone(x,y,z,r, {world=, radar=, pda=, icon=, kind=, rgb=, discAlpha=, size=, dist=})"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Math",
+   "group": "Core primitives",
+   "doc": "Geometry/number helpers in the engine's yaw convention",
+   "calls": [
+    {
+     "path": "Ess.Math.angleTo",
+     "sig": "Ess.Math.angleTo(fx,fz,tx,tz)"
+    },
+    {
+     "path": "Ess.Math.approach",
+     "sig": "Ess.Math.approach"
+    },
+    {
+     "path": "Ess.Math.clamp",
+     "sig": "Ess.Math.clamp"
+    },
+    {
+     "path": "Ess.Math.clamp01",
+     "sig": "Ess.Math.clamp01"
+    },
+    {
+     "path": "Ess.Math.dist2D",
+     "sig": "Ess.Math.dist2D"
+    },
+    {
+     "path": "Ess.Math.dist2DSq",
+     "sig": "Ess.Math.dist2DSq"
+    },
+    {
+     "path": "Ess.Math.dist3D",
+     "sig": "Ess.Math.dist3D"
+    },
+    {
+     "path": "Ess.Math.dist3DSq",
+     "sig": "Ess.Math.dist3DSq"
+    },
+    {
+     "path": "Ess.Math.lerp",
+     "sig": "Ess.Math.lerp"
+    },
+    {
+     "path": "Ess.Math.lerpAngle",
+     "sig": "Ess.Math.lerpAngle"
+    },
+    {
+     "path": "Ess.Math.normDeg",
+     "sig": "Ess.Math.normDeg"
+    },
+    {
+     "path": "Ess.Math.pointAhead",
+     "sig": "Ess.Math.pointAhead(x,z,yaw,dist)"
+    },
+    {
+     "path": "Ess.Math.remap",
+     "sig": "Ess.Math.remap"
+    },
+    {
+     "path": "Ess.Math.round",
+     "sig": "Ess.Math.round"
+    },
+    {
+     "path": "Ess.Math.sign",
+     "sig": "Ess.Math.sign"
+    },
+    {
+     "path": "Ess.Math.smoothstep",
+     "sig": "Ess.Math.smoothstep"
+    },
+    {
+     "path": "Ess.Math.within2D",
+     "sig": "Ess.Math.within2D"
+    },
+    {
+     "path": "Ess.Math.within3D",
+     "sig": "Ess.Math.within3D"
+    },
+    {
+     "path": "Ess.Math.wrap",
+     "sig": "Ess.Math.wrap"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Name",
+   "group": "Core primitives",
+   "doc": "",
+   "calls": []
+  },
+  {
+   "name": "Ess.Net",
+   "group": "Networking",
+   "doc": "Co-op data sync (native port of ModNet)",
+   "calls": [
+    {
+     "path": "Ess.Net.Get",
+     "sig": "Ess.Net.Get"
+    },
+    {
+     "path": "Ess.Net.IsAuthority",
+     "sig": "Ess.Net.IsAuthority"
+    },
+    {
+     "path": "Ess.Net.IsCoop",
+     "sig": "Ess.Net.IsCoop"
+    },
+    {
+     "path": "Ess.Net.IsHost",
+     "sig": "Ess.Net.IsHost"
+    },
+    {
+     "path": "Ess.Net.Me",
+     "sig": "Ess.Net.Me"
+    },
+    {
+     "path": "Ess.Net.On",
+     "sig": "Ess.Net.On"
+    },
+    {
+     "path": "Ess.Net.OnRaw",
+     "sig": "Ess.Net.OnRaw"
+    },
+    {
+     "path": "Ess.Net.Send",
+     "sig": "Ess.Net.Send"
+    },
+    {
+     "path": "Ess.Net.SendRaw",
+     "sig": "Ess.Net.SendRaw"
+    },
+    {
+     "path": "Ess.Net.Set",
+     "sig": "Ess.Net.Set"
+    },
+    {
+     "path": "Ess.Net.Shared",
+     "sig": "Ess.Net.Shared(ns)"
+    },
+    {
+     "path": "Ess.Net.Track",
+     "sig": "Ess.Net.Track"
+    },
+    {
+     "path": "Ess.Net.hijackCallback",
+     "sig": "Ess.Net.hijackCallback(module, name, isMine, onMine)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Object",
+   "group": "Identity & world query",
+   "doc": "The everyday object-manipulation namespace",
+   "calls": [
+    {
+     "path": "Ess.Object.addLabel",
+     "sig": "Ess.Object.addLabel"
+    },
+    {
+     "path": "Ess.Object.alive",
+     "sig": "Ess.Object.alive"
+    },
+    {
+     "path": "Ess.Object.disablePhysics",
+     "sig": "Ess.Object.disablePhysics"
+    },
+    {
+     "path": "Ess.Object.displayName",
+     "sig": "Ess.Object.displayName"
+    },
+    {
+     "path": "Ess.Object.distance",
+     "sig": "Ess.Object.distance"
+    },
+    {
+     "path": "Ess.Object.enablePhysics",
+     "sig": "Ess.Object.enablePhysics"
+    },
+    {
+     "path": "Ess.Object.faceObject",
+     "sig": "Ess.Object.faceObject(g,target)"
+    },
+    {
+     "path": "Ess.Object.faceToward",
+     "sig": "Ess.Object.faceToward(g,x,y,z)"
+    },
+    {
+     "path": "Ess.Object.hasLabel",
+     "sig": "Ess.Object.hasLabel"
+    },
+    {
+     "path": "Ess.Object.heal",
+     "sig": "Ess.Object.heal"
+    },
+    {
+     "path": "Ess.Object.health",
+     "sig": "Ess.Object.health"
+    },
+    {
+     "path": "Ess.Object.impulse",
+     "sig": "Ess.Object.impulse"
+    },
+    {
+     "path": "Ess.Object.kill",
+     "sig": "Ess.Object.kill"
+    },
+    {
+     "path": "Ess.Object.maxHealth",
+     "sig": "Ess.Object.maxHealth"
+    },
+    {
+     "path": "Ess.Object.playerControlled",
+     "sig": "Ess.Object.playerControlled"
+    },
+    {
+     "path": "Ess.Object.pollVehicleChange",
+     "sig": "Ess.Object.pollVehicleChange"
+    },
+    {
+     "path": "Ess.Object.pos",
+     "sig": "Ess.Object.pos"
+    },
+    {
+     "path": "Ess.Object.remove",
+     "sig": "Ess.Object.remove"
+    },
+    {
+     "path": "Ess.Object.removeLabel",
+     "sig": "Ess.Object.removeLabel"
+    },
+    {
+     "path": "Ess.Object.revive",
+     "sig": "Ess.Object.revive"
+    },
+    {
+     "path": "Ess.Object.setHealth",
+     "sig": "Ess.Object.setHealth"
+    },
+    {
+     "path": "Ess.Object.setInvincible",
+     "sig": "Ess.Object.setInvincible"
+    },
+    {
+     "path": "Ess.Object.setPos",
+     "sig": "Ess.Object.setPos"
+    },
+    {
+     "path": "Ess.Object.setVisible",
+     "sig": "Ess.Object.setVisible"
+    },
+    {
+     "path": "Ess.Object.setYaw",
+     "sig": "Ess.Object.setYaw"
+    },
+    {
+     "path": "Ess.Object.spawn",
+     "sig": "Ess.Object.spawn(template, x,y,z, yaw)"
+    },
+    {
+     "path": "Ess.Object.spawnAhead",
+     "sig": "Ess.Object.spawnAhead(template, dist, height, i)"
+    },
+    {
+     "path": "Ess.Object.valid",
+     "sig": "Ess.Object.valid"
+    },
+    {
+     "path": "Ess.Object.vehicleOf",
+     "sig": "Ess.Object.vehicleOf"
+    },
+    {
+     "path": "Ess.Object.visible",
+     "sig": "Ess.Object.visible"
+    },
+    {
+     "path": "Ess.Object.yaw",
+     "sig": "Ess.Object.yaw"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Objective",
+   "group": "Missions",
+   "doc": "A single counted goal on the HUD objective line (state, no Contract)",
+   "calls": []
+  },
+  {
+   "name": "Ess.On",
+   "group": "Tracking & cleanup",
+   "doc": "Intent-named REACTIVE hooks (respond to the world)",
+   "calls": [
+    {
+     "path": "Ess.On.death",
+     "sig": "Ess.On.death(guid, fn)"
+    },
+    {
+     "path": "Ess.On.enterArea",
+     "sig": "Ess.On.enterArea"
+    },
+    {
+     "path": "Ess.On.exitArea",
+     "sig": "Ess.On.exitArea"
+    },
+    {
+     "path": "Ess.On.healthBelow",
+     "sig": "Ess.On.healthBelow(guid, pct, fn)"
+    },
+    {
+     "path": "Ess.On.insideArea",
+     "sig": "Ess.On.insideArea(x,y,z,r, fn)"
+    },
+    {
+     "path": "Ess.On.playerHurt",
+     "sig": "Ess.On.playerHurt(fn)"
+    },
+    {
+     "path": "Ess.On.tick",
+     "sig": "Ess.On.tick(iv, fn)"
+    },
+    {
+     "path": "Ess.On.vehicle",
+     "sig": "Ess.On.vehicle(fn)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Override",
+   "group": "Meta",
+   "doc": "Change engine logic without the tail-call crash",
+   "calls": [
+    {
+     "path": "Ess.Override.mergeIntoLiveTable",
+     "sig": "Ess.Override.mergeIntoLiveTable(t, key, data)"
+    },
+    {
+     "path": "Ess.Override.wrap",
+     "sig": "Ess.Override.wrap(target, name, newFn)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Player",
+   "group": "Identity & world query",
+   "doc": "Player/character identity without the 8-getter sprawl",
+   "calls": [
+    {
+     "path": "Ess.Player.camera",
+     "sig": "Ess.Player.camera(i)"
+    },
+    {
+     "path": "Ess.Player.character",
+     "sig": "Ess.Player.character(i)"
+    },
+    {
+     "path": "Ess.Player.giveCash",
+     "sig": "Ess.Player.giveCash(n)"
+    },
+    {
+     "path": "Ess.Player.giveFuel",
+     "sig": "Ess.Player.giveFuel(n)"
+    },
+    {
+     "path": "Ess.Player.inVehicle",
+     "sig": "Ess.Player.inVehicle(i)"
+    },
+    {
+     "path": "Ess.Player.onFoot",
+     "sig": "Ess.Player.onFoot(i)"
+    },
+    {
+     "path": "Ess.Player.pose",
+     "sig": "Ess.Player.pose(i)"
+    },
+    {
+     "path": "Ess.Player.removeBoundaries",
+     "sig": "Ess.Player.removeBoundaries()"
+    },
+    {
+     "path": "Ess.Player.rumble",
+     "sig": "Ess.Player.rumble(i, len)"
+    },
+    {
+     "path": "Ess.Player.setInputEnabled",
+     "sig": "Ess.Player.setInputEnabled(on, i)"
+    },
+    {
+     "path": "Ess.Player.slot",
+     "sig": "Ess.Player.slot(i)"
+    },
+    {
+     "path": "Ess.Player.targetUnderReticle",
+     "sig": "Ess.Player.targetUnderReticle(i)"
+    },
+    {
+     "path": "Ess.Player.teleport",
+     "sig": "Ess.Player.teleport(x,y,z, yaw, onDone)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Points",
+   "group": "Camera, bones & spatial",
+   "doc": "Arena spawn-point selection",
+   "calls": [
+    {
+     "path": "Ess.Points.bucket",
+     "sig": "Ess.Points.bucket(spawnList)"
+    },
+    {
+     "path": "Ess.Points.ideal",
+     "sig": "Ess.Points.ideal(pts, refX, refZ, opts)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Probe",
+   "group": "Identity & world query",
+   "doc": "Nearby-object collection, one dispatcher",
+   "calls": [
+    {
+     "path": "Ess.Probe.describeSafe",
+     "sig": "Ess.Probe.describeSafe(guid)"
+    },
+    {
+     "path": "Ess.Probe.getFaction",
+     "sig": "Ess.Probe.getFaction(guid)"
+    },
+    {
+     "path": "Ess.Probe.nearby",
+     "sig": "Ess.Probe.nearby(...)"
+    },
+    {
+     "path": "Ess.Probe.nearest",
+     "sig": "Ess.Probe.nearest(...)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Quest",
+   "group": "Missions",
+   "doc": "An ordered sequence shown one step at a time",
+   "calls": []
+  },
+  {
+   "name": "Ess.RNG",
+   "group": "Core primitives",
+   "doc": "Engine-safe RNG (avoids the 32-bit-float big-LCG trap)",
+   "calls": [
+    {
+     "path": "Ess.RNG.new",
+     "sig": "Ess.RNG.new(seed)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Raw",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "Raw.AIOrders (actor/pri/goal/haste/priorityTarget/enable), Raw.Relations (snapshot/set/restore), Raw.Triggers.arm (full condition vocabulary), Raw.Sandbox (register/gateSaves/ungateSaves)",
+   "calls": []
+  },
+  {
+   "name": "Ess.Raw.Impulse",
+   "group": "Identity & world query",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Raw.Impulse.apply",
+     "sig": "Ess.Raw.Impulse.apply"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Raw.Mark",
+   "group": "Markers",
+   "doc": ".radar/.pda/.world(guid,tex,rgb,size,dist)/.worldDisc (4 surfaces independently), .pulse/.haltPulse (flash existing), .showPlayerMarkers(on)",
+   "calls": [
+    {
+     "path": "Ess.Raw.Mark.haltPulse",
+     "sig": "Ess.Raw.Mark.haltPulse"
+    },
+    {
+     "path": "Ess.Raw.Mark.pda",
+     "sig": "Ess.Raw.Mark.pda"
+    },
+    {
+     "path": "Ess.Raw.Mark.pulse",
+     "sig": "Ess.Raw.Mark.pulse"
+    },
+    {
+     "path": "Ess.Raw.Mark.radar",
+     "sig": "Ess.Raw.Mark.radar"
+    },
+    {
+     "path": "Ess.Raw.Mark.showPlayerMarkers",
+     "sig": "Ess.Raw.Mark.showPlayerMarkers(on)"
+    },
+    {
+     "path": "Ess.Raw.Mark.world",
+     "sig": "Ess.Raw.Mark.world(guid,tex,rgb,size,dist)"
+    },
+    {
+     "path": "Ess.Raw.Mark.worldDisc",
+     "sig": "Ess.Raw.Mark.worldDisc"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Relations",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".apply(pairs, label) \u2192 handle, .restore(handle), .isActive(handle), .getFeeling/.setFeeling (per-individual)",
+   "calls": [
+    {
+     "path": "Ess.Relations.apply",
+     "sig": "Ess.Relations.apply(pairs, label)"
+    },
+    {
+     "path": "Ess.Relations.getFeeling",
+     "sig": "Ess.Relations.getFeeling"
+    },
+    {
+     "path": "Ess.Relations.isActive",
+     "sig": "Ess.Relations.isActive(handle)"
+    },
+    {
+     "path": "Ess.Relations.makeAllies",
+     "sig": "Ess.Relations.makeAllies(factions)"
+    },
+    {
+     "path": "Ess.Relations.makeHostile",
+     "sig": "Ess.Relations.makeHostile(factions)"
+    },
+    {
+     "path": "Ess.Relations.restore",
+     "sig": "Ess.Relations.restore()"
+    },
+    {
+     "path": "Ess.Relations.setFeeling",
+     "sig": "Ess.Relations.setFeeling"
+    },
+    {
+     "path": "Ess.Relations.sideWith",
+     "sig": "Ess.Relations.sideWith(friend, foe)"
+    },
+    {
+     "path": "Ess.Relations.war",
+     "sig": "Ess.Relations.war(a, b)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Safe",
+   "group": "Core primitives",
+   "doc": "The pcall-and-log idiom, once",
+   "calls": [
+    {
+     "path": "Ess.Safe.call",
+     "sig": "Ess.Safe.call(fn, ...)"
+    },
+    {
+     "path": "Ess.Safe.quiet",
+     "sig": "Ess.Safe.quiet(fn, ...)"
+    },
+    {
+     "path": "Ess.Safe.string",
+     "sig": "Ess.Safe.string(ok, val, fallback)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Sandbox",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".begin(id, providerNames, opts), .finish(id), .isActive(id) \u2014 providers: layers/economy/supports/relations, all save-gated",
+   "calls": [
+    {
+     "path": "Ess.Sandbox.arena",
+     "sig": "Ess.Sandbox.arena(id, opts)"
+    },
+    {
+     "path": "Ess.Sandbox.begin",
+     "sig": "Ess.Sandbox.begin(id, providerNames, opts)"
+    },
+    {
+     "path": "Ess.Sandbox.done",
+     "sig": "Ess.Sandbox.done(id)"
+    },
+    {
+     "path": "Ess.Sandbox.finish",
+     "sig": "Ess.Sandbox.finish(id)"
+    },
+    {
+     "path": "Ess.Sandbox.isActive",
+     "sig": "Ess.Sandbox.isActive(id)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Save",
+   "group": "Tracking & cleanup",
+   "doc": "The one shared save-gate (suppress saves during an ephemeral mode)",
+   "calls": [
+    {
+     "path": "Ess.Save.gate",
+     "sig": "Ess.Save.gate(key)"
+    },
+    {
+     "path": "Ess.Save.isGated",
+     "sig": "Ess.Save.isGated()"
+    },
+    {
+     "path": "Ess.Save.ungate",
+     "sig": "Ess.Save.ungate(key)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.SaveVar",
+   "group": "Core primitives",
+   "doc": "Namespaced persistent vars over Loader.SaveVar",
+   "calls": [
+    {
+     "path": "Ess.SaveVar.ns",
+     "sig": "Ess.SaveVar.ns(prefix)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.ScrollLog",
+   "group": "UI kit",
+   "doc": "A scrolling text log widget",
+   "calls": [
+    {
+     "path": "Ess.ScrollLog.new",
+     "sig": "Ess.ScrollLog.new(name, x,y,w,h)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Sound",
+   "group": "Audio & HUD",
+   "doc": "Direct sound/ambience cueing",
+   "calls": [
+    {
+     "path": "Ess.Sound.ambience",
+     "sig": "Ess.Sound.ambience"
+    },
+    {
+     "path": "Ess.Sound.cue",
+     "sig": "Ess.Sound.cue"
+    },
+    {
+     "path": "Ess.Sound.stop",
+     "sig": "Ess.Sound.stop"
+    },
+    {
+     "path": "Ess.Sound.stopAmbience",
+     "sig": "Ess.Sound.stopAmbience"
+    },
+    {
+     "path": "Ess.Sound.volume",
+     "sig": "Ess.Sound.volume"
+    }
+   ]
+  },
+  {
+   "name": "Ess.State",
+   "group": "Core primitives",
+   "doc": "Reload-safe _G state, field-merged",
+   "calls": []
+  },
+  {
+   "name": "Ess.Str",
+   "group": "Core primitives",
+   "doc": "The string helpers Lua 5.1 omits (all LITERAL, not patterns)",
+   "calls": [
+    {
+     "path": "Ess.Str.capitalize",
+     "sig": "Ess.Str.capitalize"
+    },
+    {
+     "path": "Ess.Str.contains",
+     "sig": "Ess.Str.contains"
+    },
+    {
+     "path": "Ess.Str.count",
+     "sig": "Ess.Str.count"
+    },
+    {
+     "path": "Ess.Str.endsWith",
+     "sig": "Ess.Str.endsWith"
+    },
+    {
+     "path": "Ess.Str.join",
+     "sig": "Ess.Str.join"
+    },
+    {
+     "path": "Ess.Str.lines",
+     "sig": "Ess.Str.lines"
+    },
+    {
+     "path": "Ess.Str.padLeft",
+     "sig": "Ess.Str.padLeft"
+    },
+    {
+     "path": "Ess.Str.padRight",
+     "sig": "Ess.Str.padRight"
+    },
+    {
+     "path": "Ess.Str.split",
+     "sig": "Ess.Str.split"
+    },
+    {
+     "path": "Ess.Str.startsWith",
+     "sig": "Ess.Str.startsWith"
+    },
+    {
+     "path": "Ess.Str.title",
+     "sig": "Ess.Str.title"
+    },
+    {
+     "path": "Ess.Str.trim",
+     "sig": "Ess.Str.trim"
+    },
+    {
+     "path": "Ess.Str.truncate",
+     "sig": "Ess.Str.truncate"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Support",
+   "group": "Humans & combat",
+   "doc": "The iconic combat call-ins, standalone (no contract)",
+   "calls": [
+    {
+     "path": "Ess.Support.airstrike",
+     "sig": "Ess.Support.airstrike"
+    },
+    {
+     "path": "Ess.Support.artillery",
+     "sig": "Ess.Support.artillery"
+    },
+    {
+     "path": "Ess.Support.bombingrun",
+     "sig": "Ess.Support.bombingrun"
+    },
+    {
+     "path": "Ess.Support.gunship",
+     "sig": "Ess.Support.gunship"
+    },
+    {
+     "path": "Ess.Support.onMe",
+     "sig": "Ess.Support.onMe(i)"
+    },
+    {
+     "path": "Ess.Support.onTarget",
+     "sig": "Ess.Support.onTarget(i)"
+    },
+    {
+     "path": "Ess.Support.reinforce",
+     "sig": "Ess.Support.reinforce"
+    },
+    {
+     "path": "Ess.Support.shell",
+     "sig": "Ess.Support.shell"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Table",
+   "group": "Core primitives",
+   "doc": "Dense-array repair + collection helpers",
+   "calls": [
+    {
+     "path": "Ess.Table.compact",
+     "sig": "Ess.Table.compact(t)"
+    },
+    {
+     "path": "Ess.Table.contains",
+     "sig": "Ess.Table.contains"
+    },
+    {
+     "path": "Ess.Table.copy",
+     "sig": "Ess.Table.copy"
+    },
+    {
+     "path": "Ess.Table.count",
+     "sig": "Ess.Table.count"
+    },
+    {
+     "path": "Ess.Table.filter",
+     "sig": "Ess.Table.filter"
+    },
+    {
+     "path": "Ess.Table.find",
+     "sig": "Ess.Table.find"
+    },
+    {
+     "path": "Ess.Table.indexOf",
+     "sig": "Ess.Table.indexOf"
+    },
+    {
+     "path": "Ess.Table.isEmpty",
+     "sig": "Ess.Table.isEmpty"
+    },
+    {
+     "path": "Ess.Table.keys",
+     "sig": "Ess.Table.keys"
+    },
+    {
+     "path": "Ess.Table.map",
+     "sig": "Ess.Table.map"
+    },
+    {
+     "path": "Ess.Table.merge",
+     "sig": "Ess.Table.merge"
+    },
+    {
+     "path": "Ess.Table.reduce",
+     "sig": "Ess.Table.reduce"
+    },
+    {
+     "path": "Ess.Table.reverse",
+     "sig": "Ess.Table.reverse"
+    },
+    {
+     "path": "Ess.Table.slice",
+     "sig": "Ess.Table.slice"
+    },
+    {
+     "path": "Ess.Table.values",
+     "sig": "Ess.Table.values"
+    }
+   ]
+  },
+  {
+   "name": "Ess.TextConsole",
+   "group": "Timing & input",
+   "doc": "A typed-input console, no .gfx asset needed",
+   "calls": [
+    {
+     "path": "Ess.TextConsole.close",
+     "sig": "Ess.TextConsole.close()"
+    },
+    {
+     "path": "Ess.TextConsole.gfx",
+     "sig": "Ess.TextConsole.gfx"
+    },
+    {
+     "path": "Ess.TextConsole.isOpen",
+     "sig": "Ess.TextConsole.isOpen()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Time",
+   "group": "Timing & input",
+   "doc": "All wall-clock timing (survives world-pause)",
+   "calls": [
+    {
+     "path": "Ess.Time.clock",
+     "sig": "Ess.Time.clock(maxDelta)"
+    },
+    {
+     "path": "Ess.Time.cooldown",
+     "sig": "Ess.Time.cooldown(seconds)"
+    },
+    {
+     "path": "Ess.Time.elapsed",
+     "sig": "Ess.Time.elapsed(s)"
+    },
+    {
+     "path": "Ess.Time.format",
+     "sig": "Ess.Time.format(sec, tenths)"
+    },
+    {
+     "path": "Ess.Time.mark",
+     "sig": "Ess.Time.mark(s)"
+    },
+    {
+     "path": "Ess.Time.restoreScale",
+     "sig": "Ess.Time.restoreScale()"
+    },
+    {
+     "path": "Ess.Time.scale",
+     "sig": "Ess.Time.scale(n)"
+    },
+    {
+     "path": "Ess.Time.stamp",
+     "sig": "Ess.Time.stamp()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Track",
+   "group": "Tracking & cleanup",
+   "doc": "One registry for every leak-prone Add/Remove pair",
+   "calls": [
+    {
+     "path": "Ess.Track.new",
+     "sig": "Ess.Track.new()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Triggers",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".arm(spec, onFire, tracker) (stateless); .scope() \u2192 an isolated :arm/:armNamed/:gate/:declare/:markFired namespace",
+   "calls": [
+    {
+     "path": "Ess.Triggers.after",
+     "sig": "Ess.Triggers.after(seconds,fn)"
+    },
+    {
+     "path": "Ess.Triggers.arm",
+     "sig": "Ess.Triggers.arm(spec, onFire, tracker)"
+    },
+    {
+     "path": "Ess.Triggers.onDeath",
+     "sig": "Ess.Triggers.onDeath(guid,fn)"
+    },
+    {
+     "path": "Ess.Triggers.onPlayerNear",
+     "sig": "Ess.Triggers.onPlayerNear(x,y,z,r,fn)"
+    },
+    {
+     "path": "Ess.Triggers.scope",
+     "sig": "Ess.Triggers.scope()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.UI",
+   "group": "UI kit",
+   "doc": "The 9-widget kit (native port of uilib)",
+   "calls": [
+    {
+     "path": "Ess.UI.Bar",
+     "sig": "Ess.UI.Bar"
+    },
+    {
+     "path": "Ess.UI.Board",
+     "sig": "Ess.UI.Board"
+    },
+    {
+     "path": "Ess.UI.Chat",
+     "sig": "Ess.UI.Chat"
+    },
+    {
+     "path": "Ess.UI.Confirm",
+     "sig": "Ess.UI.Confirm"
+    },
+    {
+     "path": "Ess.UI.Input",
+     "sig": "Ess.UI.Input"
+    },
+    {
+     "path": "Ess.UI.List",
+     "sig": "Ess.UI.List"
+    },
+    {
+     "path": "Ess.UI.Menu",
+     "sig": "Ess.UI.Menu"
+    },
+    {
+     "path": "Ess.UI.Panel",
+     "sig": "Ess.UI.Panel"
+    },
+    {
+     "path": "Ess.UI.Toast",
+     "sig": "Ess.UI.Toast"
+    },
+    {
+     "path": "Ess.UI.comma",
+     "sig": "Ess.UI.comma"
+    },
+    {
+     "path": "Ess.UI.fmt_time",
+     "sig": "Ess.UI.fmt_time"
+    },
+    {
+     "path": "Ess.UI.wrap",
+     "sig": "Ess.UI.wrap"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Vec",
+   "group": "Core primitives",
+   "doc": "3D vector math on flat x,y,z (aim / offset / knockback)",
+   "calls": [
+    {
+     "path": "Ess.Vec.add",
+     "sig": "Ess.Vec.add"
+    },
+    {
+     "path": "Ess.Vec.dir",
+     "sig": "Ess.Vec.dir(from,to)"
+    },
+    {
+     "path": "Ess.Vec.dot",
+     "sig": "Ess.Vec.dot"
+    },
+    {
+     "path": "Ess.Vec.length",
+     "sig": "Ess.Vec.length"
+    },
+    {
+     "path": "Ess.Vec.lerp",
+     "sig": "Ess.Vec.lerp"
+    },
+    {
+     "path": "Ess.Vec.normalize",
+     "sig": "Ess.Vec.normalize"
+    },
+    {
+     "path": "Ess.Vec.scale",
+     "sig": "Ess.Vec.scale"
+    },
+    {
+     "path": "Ess.Vec.sub",
+     "sig": "Ess.Vec.sub"
+    },
+    {
+     "path": "Ess.Vec.toward",
+     "sig": "Ess.Vec.toward(from,to,dist)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Vehicle",
+   "group": "Identity & world query",
+   "doc": "Seats/riders/entry",
+   "calls": [
+    {
+     "path": "Ess.Vehicle.driver",
+     "sig": "Ess.Vehicle.driver(veh)"
+    },
+    {
+     "path": "Ess.Vehicle.enterBestSeat",
+     "sig": "Ess.Vehicle.enterBestSeat(char, veh)"
+    },
+    {
+     "path": "Ess.Vehicle.enterSeatExcluding",
+     "sig": "Ess.Vehicle.enterSeatExcluding(char, veh, excl)"
+    },
+    {
+     "path": "Ess.Vehicle.exit",
+     "sig": "Ess.Vehicle.exit(veh, char)"
+    },
+    {
+     "path": "Ess.Vehicle.flyTo",
+     "sig": "Ess.Vehicle.flyTo(heli, x,y,z, {onReady=})"
+    },
+    {
+     "path": "Ess.Vehicle.followGhost",
+     "sig": "Ess.Vehicle.followGhost(template, x,y,z)"
+    },
+    {
+     "path": "Ess.Vehicle.riders",
+     "sig": "Ess.Vehicle.riders(veh)"
+    },
+    {
+     "path": "Ess.Vehicle.seatOf",
+     "sig": "Ess.Vehicle.seatOf(char)"
+    }
+   ]
+  }
+ ],
+ "completions": [
+  "Ess",
+  "Ess.AIOrders",
+  "Ess.AIOrders.attack",
+  "Ess.AIOrders.command",
+  "Ess.AIOrders.group",
+  "Ess.AIOrders.guard",
+  "Ess.AIOrders.patrol",
+  "Ess.AIOrders.setGroup",
+  "Ess.Bones",
+  "Ess.Bones.aimVector",
+  "Ess.Bones.attachFX",
+  "Ess.Bones.detachFX",
+  "Ess.Bones.probeNames",
+  "Ess.Bones.waitForReady",
+  "Ess.Camera",
+  "Ess.Camera.beginCinematic",
+  "Ess.Camera.endCinematic",
+  "Ess.Camera.fade",
+  "Ess.Camera.followHardpoint",
+  "Ess.Camera.fov",
+  "Ess.Camera.hold",
+  "Ess.Camera.lookAtAnchor",
+  "Ess.Camera.lookAtObject",
+  "Ess.Camera.lookAtPoint",
+  "Ess.Camera.panicRevert",
+  "Ess.Camera.placeCamera",
+  "Ess.Camera.restoreFov",
+  "Ess.Camera.shake",
+  "Ess.Camera.staleAxisDecay",
+  "Ess.Camera.stopShake",
+  "Ess.Cinematic",
+  "Ess.Cinematic.define",
+  "Ess.Cinematic.isPlaying",
+  "Ess.Cinematic.play",
+  "Ess.Cinematic.playNamed",
+  "Ess.Cinematic.shot",
+  "Ess.Cinematic.skip",
+  "Ess.Cinematic.stop",
+  "Ess.Color",
+  "Ess.Color.NAMES",
+  "Ess.Color.hex",
+  "Ess.Color.hsv",
+  "Ess.Color.lerp",
+  "Ess.Color.of",
+  "Ess.Contract",
+  "Ess.Contract.Abort",
+  "Ess.Contract.Accept",
+  "Ess.Contract.Register",
+  "Ess.Contract.Status",
+  "Ess.Easy",
+  "Ess.Easy.Airstrike",
+  "Ess.Easy.Airstrike.at",
+  "Ess.Easy.Cinematic",
+  "Ess.Easy.Cinematic.play",
+  "Ess.Easy.Confirm",
+  "Ess.Easy.Console",
+  "Ess.Easy.Console.close",
+  "Ess.Easy.Console.open",
+  "Ess.Easy.Console.play",
+  "Ess.Easy.Contract",
+  "Ess.Easy.Contract.destroy",
+  "Ess.Easy.Contract.reach",
+  "Ess.Easy.Debug",
+  "Ess.Easy.Debug.hide",
+  "Ess.Easy.Debug.isOn",
+  "Ess.Easy.Debug.overlay",
+  "Ess.Easy.Fun",
+  "Ess.Easy.Fun.dance",
+  "Ess.Easy.Human",
+  "Ess.Easy.Human.giveWeapon",
+  "Ess.Easy.Impulse",
+  "Ess.Easy.Impulse.speedBoost",
+  "Ess.Easy.Mark",
+  "Ess.Easy.Mark.enemy",
+  "Ess.Easy.Mark.objective",
+  "Ess.Easy.Mark.zone",
+  "Ess.Easy.Menu",
+  "Ess.Easy.Objective",
+  "Ess.Easy.Objective.clear",
+  "Ess.Easy.Objective.destroy",
+  "Ess.Easy.Objective.reach",
+  "Ess.Easy.Objective.survive",
+  "Ess.Easy.Player",
+  "Ess.Easy.Player.giveGrapplingHook",
+  "Ess.Easy.Quest",
+  "Ess.Easy.Sound",
+  "Ess.Easy.Sound.play",
+  "Ess.Easy.Spawn",
+  "Ess.Easy.Spawn.explosion",
+  "Ess.Easy.Spawn.fx",
+  "Ess.Easy.Time",
+  "Ess.Easy.Time.slowmo",
+  "Ess.Easy.Toast",
+  "Ess.Easy.Vehicle",
+  "Ess.Easy.Vehicle.summon",
+  "Ess.Easy.World",
+  "Ess.Easy.World.hellscape",
+  "Ess.Easy.World.removeMapBoundary",
+  "Ess.Event",
+  "Ess.Event.off",
+  "Ess.Event.on",
+  "Ess.Gfx",
+  "Ess.Gfx.call",
+  "Ess.Gfx.menuNav",
+  "Ess.Gfx.onEvent",
+  "Ess.Gfx.setVisible",
+  "Ess.Gfx.warmupRerender",
+  "Ess.Gfx.widget",
+  "Ess.Guid",
+  "Ess.Hud",
+  "Ess.Hud.banner",
+  "Ess.Hud.hideHint",
+  "Ess.Hud.hint",
+  "Ess.Hud.objective",
+  "Ess.Hud.radio",
+  "Ess.Human",
+  "Ess.Human.allWeapons",
+  "Ess.Human.ammo",
+  "Ess.Human.disableWeapons",
+  "Ess.Human.doAction",
+  "Ess.Human.dropWeapon",
+  "Ess.Human.enableWeapons",
+  "Ess.Human.equipWeapon",
+  "Ess.Human.knockdown",
+  "Ess.Human.maxAmmo",
+  "Ess.Human.primaryWeapon",
+  "Ess.Human.refillAmmo",
+  "Ess.Human.reloadAll",
+  "Ess.Human.secondaryWeapon",
+  "Ess.Human.setAllWeapons",
+  "Ess.Human.setAmmo",
+  "Ess.Human.setInfiniteAmmo",
+  "Ess.Impulse",
+  "Ess.Impulse.applyAtPoint",
+  "Ess.Impulse.knockback",
+  "Ess.Impulse.launch",
+  "Ess.Impulse.mass",
+  "Ess.Impulse.spin",
+  "Ess.Input",
+  "Ess.Input.VkToChar",
+  "Ess.Input.clear",
+  "Ess.Input.hijackController",
+  "Ess.Input.poll",
+  "Ess.Input.usingController",
+  "Ess.Keys",
+  "Ess.Keys.clear",
+  "Ess.Keys.isBound",
+  "Ess.Keys.off",
+  "Ess.Keys.on",
+  "Ess.Keys.vk",
+  "Ess.Layers",
+  "Ess.Layers.add",
+  "Ess.Layers.begin",
+  "Ess.Layers.composite",
+  "Ess.Layers.current",
+  "Ess.Layers.expect",
+  "Ess.Layers.finish",
+  "Ess.Layers.isActive",
+  "Ess.Layers.isLoaded",
+  "Ess.Layers.remove",
+  "Ess.Layers.snapshot",
+  "Ess.Layers.swap",
+  "Ess.Log",
+  "Ess.Loop",
+  "Ess.Loop.isRunning",
+  "Ess.Loop.start",
+  "Ess.Loop.stop",
+  "Ess.Mark",
+  "Ess.Mark.clear",
+  "Ess.Mark.object",
+  "Ess.Mark.zone",
+  "Ess.Math",
+  "Ess.Math.angleTo",
+  "Ess.Math.approach",
+  "Ess.Math.clamp",
+  "Ess.Math.clamp01",
+  "Ess.Math.dist2D",
+  "Ess.Math.dist2DSq",
+  "Ess.Math.dist3D",
+  "Ess.Math.dist3DSq",
+  "Ess.Math.lerp",
+  "Ess.Math.lerpAngle",
+  "Ess.Math.normDeg",
+  "Ess.Math.pointAhead",
+  "Ess.Math.remap",
+  "Ess.Math.round",
+  "Ess.Math.sign",
+  "Ess.Math.smoothstep",
+  "Ess.Math.within2D",
+  "Ess.Math.within3D",
+  "Ess.Math.wrap",
+  "Ess.Name",
+  "Ess.Net",
+  "Ess.Net.Get",
+  "Ess.Net.IsAuthority",
+  "Ess.Net.IsCoop",
+  "Ess.Net.IsHost",
+  "Ess.Net.Me",
+  "Ess.Net.On",
+  "Ess.Net.OnRaw",
+  "Ess.Net.Send",
+  "Ess.Net.SendRaw",
+  "Ess.Net.Set",
+  "Ess.Net.Shared",
+  "Ess.Net.Track",
+  "Ess.Net.hijackCallback",
+  "Ess.Object",
+  "Ess.Object.addLabel",
+  "Ess.Object.alive",
+  "Ess.Object.disablePhysics",
+  "Ess.Object.displayName",
+  "Ess.Object.distance",
+  "Ess.Object.enablePhysics",
+  "Ess.Object.faceObject",
+  "Ess.Object.faceToward",
+  "Ess.Object.hasLabel",
+  "Ess.Object.heal",
+  "Ess.Object.health",
+  "Ess.Object.impulse",
+  "Ess.Object.kill",
+  "Ess.Object.maxHealth",
+  "Ess.Object.playerControlled",
+  "Ess.Object.pollVehicleChange",
+  "Ess.Object.pos",
+  "Ess.Object.remove",
+  "Ess.Object.removeLabel",
+  "Ess.Object.revive",
+  "Ess.Object.setHealth",
+  "Ess.Object.setInvincible",
+  "Ess.Object.setPos",
+  "Ess.Object.setVisible",
+  "Ess.Object.setYaw",
+  "Ess.Object.spawn",
+  "Ess.Object.spawnAhead",
+  "Ess.Object.valid",
+  "Ess.Object.vehicleOf",
+  "Ess.Object.visible",
+  "Ess.Object.yaw",
+  "Ess.Objective",
+  "Ess.On",
+  "Ess.On.death",
+  "Ess.On.enterArea",
+  "Ess.On.exitArea",
+  "Ess.On.healthBelow",
+  "Ess.On.insideArea",
+  "Ess.On.playerHurt",
+  "Ess.On.tick",
+  "Ess.On.vehicle",
+  "Ess.Override",
+  "Ess.Override.mergeIntoLiveTable",
+  "Ess.Override.wrap",
+  "Ess.Player",
+  "Ess.Player.camera",
+  "Ess.Player.character",
+  "Ess.Player.giveCash",
+  "Ess.Player.giveFuel",
+  "Ess.Player.inVehicle",
+  "Ess.Player.onFoot",
+  "Ess.Player.pose",
+  "Ess.Player.removeBoundaries",
+  "Ess.Player.rumble",
+  "Ess.Player.setInputEnabled",
+  "Ess.Player.slot",
+  "Ess.Player.targetUnderReticle",
+  "Ess.Player.teleport",
+  "Ess.Points",
+  "Ess.Points.bucket",
+  "Ess.Points.ideal",
+  "Ess.Probe",
+  "Ess.Probe.describeSafe",
+  "Ess.Probe.getFaction",
+  "Ess.Probe.nearby",
+  "Ess.Probe.nearest",
+  "Ess.Quest",
+  "Ess.RNG",
+  "Ess.RNG.new",
+  "Ess.Raw",
+  "Ess.Raw.Impulse",
+  "Ess.Raw.Impulse.apply",
+  "Ess.Raw.Mark",
+  "Ess.Raw.Mark.haltPulse",
+  "Ess.Raw.Mark.pda",
+  "Ess.Raw.Mark.pulse",
+  "Ess.Raw.Mark.radar",
+  "Ess.Raw.Mark.showPlayerMarkers",
+  "Ess.Raw.Mark.world",
+  "Ess.Raw.Mark.worldDisc",
+  "Ess.Relations",
+  "Ess.Relations.apply",
+  "Ess.Relations.getFeeling",
+  "Ess.Relations.isActive",
+  "Ess.Relations.makeAllies",
+  "Ess.Relations.makeHostile",
+  "Ess.Relations.restore",
+  "Ess.Relations.setFeeling",
+  "Ess.Relations.sideWith",
+  "Ess.Relations.war",
+  "Ess.Safe",
+  "Ess.Safe.call",
+  "Ess.Safe.quiet",
+  "Ess.Safe.string",
+  "Ess.Sandbox",
+  "Ess.Sandbox.arena",
+  "Ess.Sandbox.begin",
+  "Ess.Sandbox.done",
+  "Ess.Sandbox.finish",
+  "Ess.Sandbox.isActive",
+  "Ess.Save",
+  "Ess.Save.gate",
+  "Ess.Save.isGated",
+  "Ess.Save.ungate",
+  "Ess.SaveVar",
+  "Ess.SaveVar.ns",
+  "Ess.ScrollLog",
+  "Ess.ScrollLog.new",
+  "Ess.Sound",
+  "Ess.Sound.ambience",
+  "Ess.Sound.cue",
+  "Ess.Sound.stop",
+  "Ess.Sound.stopAmbience",
+  "Ess.Sound.volume",
+  "Ess.State",
+  "Ess.Str",
+  "Ess.Str.capitalize",
+  "Ess.Str.contains",
+  "Ess.Str.count",
+  "Ess.Str.endsWith",
+  "Ess.Str.join",
+  "Ess.Str.lines",
+  "Ess.Str.padLeft",
+  "Ess.Str.padRight",
+  "Ess.Str.split",
+  "Ess.Str.startsWith",
+  "Ess.Str.title",
+  "Ess.Str.trim",
+  "Ess.Str.truncate",
+  "Ess.Support",
+  "Ess.Support.airstrike",
+  "Ess.Support.artillery",
+  "Ess.Support.bombingrun",
+  "Ess.Support.gunship",
+  "Ess.Support.onMe",
+  "Ess.Support.onTarget",
+  "Ess.Support.reinforce",
+  "Ess.Support.shell",
+  "Ess.Table",
+  "Ess.Table.compact",
+  "Ess.Table.contains",
+  "Ess.Table.copy",
+  "Ess.Table.count",
+  "Ess.Table.filter",
+  "Ess.Table.find",
+  "Ess.Table.indexOf",
+  "Ess.Table.isEmpty",
+  "Ess.Table.keys",
+  "Ess.Table.map",
+  "Ess.Table.merge",
+  "Ess.Table.reduce",
+  "Ess.Table.reverse",
+  "Ess.Table.slice",
+  "Ess.Table.values",
+  "Ess.TextConsole",
+  "Ess.TextConsole.close",
+  "Ess.TextConsole.gfx",
+  "Ess.TextConsole.isOpen",
+  "Ess.Time",
+  "Ess.Time.clock",
+  "Ess.Time.cooldown",
+  "Ess.Time.elapsed",
+  "Ess.Time.format",
+  "Ess.Time.mark",
+  "Ess.Time.restoreScale",
+  "Ess.Time.scale",
+  "Ess.Time.stamp",
+  "Ess.Track",
+  "Ess.Track.new",
+  "Ess.Triggers",
+  "Ess.Triggers.after",
+  "Ess.Triggers.arm",
+  "Ess.Triggers.onDeath",
+  "Ess.Triggers.onPlayerNear",
+  "Ess.Triggers.scope",
+  "Ess.UI",
+  "Ess.UI.Bar",
+  "Ess.UI.Board",
+  "Ess.UI.Chat",
+  "Ess.UI.Confirm",
+  "Ess.UI.Input",
+  "Ess.UI.List",
+  "Ess.UI.Menu",
+  "Ess.UI.Panel",
+  "Ess.UI.Toast",
+  "Ess.UI.comma",
+  "Ess.UI.fmt_time",
+  "Ess.UI.wrap",
+  "Ess.Vec",
+  "Ess.Vec.add",
+  "Ess.Vec.dir",
+  "Ess.Vec.dot",
+  "Ess.Vec.length",
+  "Ess.Vec.lerp",
+  "Ess.Vec.normalize",
+  "Ess.Vec.scale",
+  "Ess.Vec.sub",
+  "Ess.Vec.toward",
+  "Ess.Vehicle",
+  "Ess.Vehicle.driver",
+  "Ess.Vehicle.enterBestSeat",
+  "Ess.Vehicle.enterSeatExcluding",
+  "Ess.Vehicle.exit",
+  "Ess.Vehicle.flyTo",
+  "Ess.Vehicle.followGhost",
+  "Ess.Vehicle.riders",
+  "Ess.Vehicle.seatOf"
+ ]
+}

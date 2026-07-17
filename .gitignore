@@ -1,0 +1,9 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# the merged build IS committed (dist/index.html) so GitHub Pages + downloads work with no build step.
+# nothing else to ignore -- no node_modules, no toolchain.

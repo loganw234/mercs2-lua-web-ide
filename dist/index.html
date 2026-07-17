@@ -1,0 +1,2986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercs2 Lua IDE</title>
+<meta name="description" content="A live in-browser Lua/Ess editor for Mercenaries 2 modding — write a script, hit Run, see the result in your running game over the lua-bridge.">
+<style>/* Mercs2 Lua IDE — all styling. Dark-first, light via prefers-color-scheme. The one subtle bit is the
+   editor: a transparent <textarea> laid exactly over a highlighted <pre>, so they MUST share identical
+   font / line-height / padding / tab-size (see --efont / --eline / --epad below and .hl/#ta). */
+:root{
+  --efont: ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --eline: 20px; --epad: 10px 12px; --efs: 13px;
+  --bg:#0b1017; --bar:#111826; --panel:#0f1626; --edge:#20293b; --edge2:#2a3550;
+  --ink:#dbe3ef; --dim:#8290a6; --accent:#5cc8ff; --go:#4ec9a0;
+  --k:#c586e0; --s:#9ece6a; --c:#5c6a82; --num:#e6b455; --b:#5cc8ff;
+  --ok:#4ec9a0; --err:#ff6b6b; --warn:#e6b455;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f5f7fb; --bar:#fff; --panel:#fff; --edge:#dde3ee; --edge2:#c6cfe0; --ink:#16202f;
+    --dim:#5b6980; --accent:#0284c7; --go:#0a9d78; --k:#8a3fb0; --s:#3f8c2f; --c:#94a1b8; --num:#b5730f; --b:#0284c7; }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+
+/* ---- top bar ---- */
+.bar{display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--bar);border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.brand{font-weight:600;letter-spacing:.2px} .brand b{color:var(--accent);font-weight:700}
+.conn{display:flex;align-items:center;gap:6px;color:var(--dim);font:12px/1 var(--efont)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:background .2s}
+.dot.open{background:var(--go)} .dot.connecting{background:var(--warn)} .dot.error,.dot.closed{background:var(--err)}
+.spacer{flex:1}
+.btn{font:inherit;color:var(--ink);background:#1a2334;border:1px solid var(--edge2);border-radius:7px;padding:6px 11px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.go{background:var(--go);color:#04120c;border-color:var(--go);font-weight:700}
+select.btn{padding:6px 8px}
+.url{font:12px/1 var(--efont);color:var(--ink);background:#0a0f18;border:1px solid var(--edge2);border-radius:7px;padding:6px 9px;width:190px}
+
+/* ---- layout ---- */
+.layout{flex:1;display:grid;grid-template-columns:250px 1fr;min-height:0}
+@media (max-width:760px){ .layout{grid-template-columns:1fr} .side{display:none} }
+.side{border-right:1px solid var(--edge);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.sidehead{padding:9px;border-bottom:1px solid var(--edge)}
+#apiSearch{width:100%;font:12px/1 var(--efont);color:var(--ink);background:#0a0f18;border:1px solid var(--edge2);border-radius:6px;padding:7px 9px}
+.apitree{flex:1;overflow-y:auto;padding:4px 0}
+.ns{padding:5px 11px;color:var(--accent);font:600 12px/1.4 var(--efont);cursor:pointer;user-select:none}
+.ns:hover{background:#141d2e} .ns .g{color:var(--dim);font-weight:400;font-size:10px;float:right}
+.call{padding:3px 11px 3px 20px;color:var(--ink);font:12px/1.4 var(--efont);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.call:hover{background:#182238;color:var(--accent)}
+.nsdoc{padding:2px 11px 7px;color:var(--dim);font-size:11px;line-height:1.4}
+
+.work{display:flex;flex-direction:column;min-width:0;min-height:0}
+
+/* ---- editor (textarea-over-pre) ---- */
+.editor{display:flex;flex:1;min-height:0;background:var(--bg)}
+.gutter{width:46px;overflow:hidden;position:relative;background:var(--panel);border-right:1px solid var(--edge)}
+#gnums{position:absolute;top:0;left:0;right:0;padding:var(--epad);text-align:right;color:var(--c);font:var(--efs)/var(--eline) var(--efont);will-change:transform}
+#gnums div{height:var(--eline)}
+.code{position:relative;flex:1;min-width:0;overflow:hidden}
+.hl,#ta{margin:0;border:0;padding:var(--epad);font:var(--efs)/var(--eline) var(--efont);white-space:pre;tab-size:2;-moz-tab-size:2;letter-spacing:0}
+.hl{position:absolute;inset:0;overflow:hidden;pointer-events:none;background:transparent}
+#hl{display:block;will-change:transform}
+#ta{position:absolute;inset:0;width:100%;height:100%;resize:none;overflow:auto;color:transparent;caret-color:var(--ink);background:transparent;outline:none}
+#ta::selection{background:rgba(92,200,255,.28)}
+.tok-k{color:var(--k)} .tok-s{color:var(--s)} .tok-c{color:var(--c);font-style:italic} .tok-n{color:var(--num)} .tok-b{color:var(--b)}
+
+/* ---- autocomplete popup ---- */
+.ac{position:absolute;z-index:20;min-width:200px;max-width:340px;max-height:220px;overflow-y:auto;background:var(--bar);border:1px solid var(--edge2);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.45);font:12px/1.4 var(--efont)}
+.ac .item{padding:4px 10px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac .item .sig{color:var(--dim)}
+.ac .item.sel{background:#1c2740;color:var(--accent)}
+
+/* ---- output ---- */
+.output{height:38%;min-height:120px;display:flex;flex-direction:column;border-top:1px solid var(--edge);background:var(--panel)}
+.tabs{display:flex;align-items:center;gap:2px;padding:5px 8px;border-bottom:1px solid var(--edge)}
+.tab{font:12px/1 var(--efont);color:var(--dim);background:transparent;border:0;border-radius:6px;padding:5px 10px;cursor:pointer}
+.tab.on{color:var(--ink);background:#182234}
+.clr{color:var(--dim);font:11px/1 var(--efont);cursor:pointer;border:1px solid var(--edge2);border-radius:5px;padding:3px 8px}
+.feed{flex:1;overflow-y:auto;padding:7px 11px}
+.feed.mono{font:12px/1.55 var(--efont)}
+.hidden{display:none}
+.row{padding:5px 0;border-bottom:1px solid var(--edge);white-space:pre-wrap;word-break:break-word}
+.row:last-child{border-bottom:0}
+.row .code{font:12px/1.5 var(--efont);color:var(--accent)} .row .code::before{content:"» ";color:var(--dim)}
+.row .res{display:block;margin-top:2px;font:12px/1.5 var(--efont)}
+.res.ok{color:var(--ok)} .res.ok::before{content:"✓ "}
+.res.err{color:var(--err)} .res.err::before{content:"⚠ "}
+.res.warn{color:var(--warn)} .res.warn::before{content:"⏱ "}
+.res.dim{color:var(--dim)} .res.dim::before{content:"· "}
+.logline{padding:1px 0;color:var(--dim);white-space:pre-wrap;word-break:break-word}
+.logline.ws{color:var(--accent)}
+
+/* ---- onboarding overlay ---- */
+.onboard{position:fixed;inset:0;background:rgba(6,10,17,.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.onboard .card{background:var(--bar);border:1px solid var(--edge2);border-radius:14px;padding:22px 26px;max-width:460px}
+.onboard h2{margin:0 0 10px;font-size:17px} .onboard p{color:var(--ink);margin:8px 0} .onboard .dim{color:var(--dim);font-size:12px}
+.onboard ol{margin:10px 0;padding-left:20px} .onboard li{margin:4px 0}
+.onboard code{background:#0a0f18;border:1px solid var(--edge);border-radius:4px;padding:1px 5px;font:12px/1 var(--efont)}
+</style>
+</head>
+<body>
+<header class="bar">
+  <span class="brand">Mercs2 <b>Lua IDE</b></span>
+  <span class="conn"><span class="dot" id="dot"></span><span id="state">offline</span></span>
+  <button class="btn go" id="run" title="Run (Ctrl/Cmd+Enter) — runs the selection if you have one, else the whole file">Run ▷</button>
+  <button class="btn" id="save" title="Save to this browser (Ctrl/Cmd+S)">Save</button>
+  <button class="btn" id="share" title="Copy a shareable link (script encoded in the URL)">Share</button>
+  <select class="btn" id="examples" title="Load an example"><option value="">Examples…</option></select>
+  <span class="spacer"></span>
+  <input id="url" class="url" value="ws://127.0.0.1:27050" spellcheck="false" title="The lua-bridge WebSocket address">
+  <button class="btn" id="connect">Connect</button>
+</header>
+
+<main class="layout">
+  <aside class="side" id="side">
+    <div class="sidehead">
+      <input id="apiSearch" placeholder="search the Ess API…" spellcheck="false">
+    </div>
+    <div class="apitree" id="apiTree"></div>
+  </aside>
+
+  <section class="work">
+    <div class="editor" id="editor">
+      <div class="gutter" id="gutter"></div>
+      <div class="code">
+        <pre class="hl"><code id="hl"></code></pre>
+        <textarea id="ta" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"></textarea>
+        <div class="ac" id="ac" hidden></div>
+      </div>
+    </div>
+    <div class="output">
+      <div class="tabs">
+        <button class="tab on" data-t="results" id="tabResults">Results</button>
+        <button class="tab" data-t="log" id="tabLog">Log &amp; telemetry</button>
+        <span class="spacer"></span>
+        <span class="clr" id="clr">clear</span>
+      </div>
+      <div class="feed" id="results"></div>
+      <div class="feed hidden mono" id="log"></div>
+    </div>
+  </section>
+</main>
+
+<div class="onboard" id="onboard" hidden>
+  <div class="card">
+    <h2>Not connected to a game</h2>
+    <p>This editor runs your Lua in a <b>live Mercenaries 2</b> session over the <code>lua-bridge</code>. To use it:</p>
+    <ol>
+      <li>Install the WebSocket-capable <code>lua-bridge</code> mod and launch the game.</li>
+      <li>Make sure it's listening (default <code>ws://127.0.0.1:27050</code>).</li>
+      <li>Hit <b>Connect</b> — the dot turns green and you're live.</li>
+    </ol>
+    <p class="dim">You can still write and save scripts offline; they'll run once you connect. Editor and API reference work with no game attached.</p>
+    <button class="btn" id="onboardClose">Got it</button>
+  </div>
+</div>
+
+<script>window.ESS_API={
+ "namespaces": [
+  {
+   "name": "Ess",
+   "group": "Core primitives",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Guid",
+     "sig": "Ess.Guid(name)"
+    },
+    {
+     "path": "Ess.Log",
+     "sig": "Ess.Log(msg)"
+    },
+    {
+     "path": "Ess.Name",
+     "sig": "Ess.Name(guid)"
+    },
+    {
+     "path": "Ess.State",
+     "sig": "Ess.State(name, defaults)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.AIOrders",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".command(guids, behavior, opts, tracker) \u2014 11 behaviors (move/patrol/defend/attack/hold/face/follow/flee/enter/deploy/animate); .setGroup/.group",
+   "calls": [
+    {
+     "path": "Ess.AIOrders.attack",
+     "sig": "Ess.AIOrders.attack(guids, target)"
+    },
+    {
+     "path": "Ess.AIOrders.command",
+     "sig": "Ess.AIOrders.command(guids, behavior, opts, tracker)"
+    },
+    {
+     "path": "Ess.AIOrders.group",
+     "sig": "Ess.AIOrders.group"
+    },
+    {
+     "path": "Ess.AIOrders.guard",
+     "sig": "Ess.AIOrders.guard(guids, at)"
+    },
+    {
+     "path": "Ess.AIOrders.patrol",
+     "sig": "Ess.AIOrders.patrol(guids, points)"
+    },
+    {
+     "path": "Ess.AIOrders.setGroup",
+     "sig": "Ess.AIOrders.setGroup"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Bones",
+   "group": "Camera, bones & spatial",
+   "doc": "The confirmed bone/hardpoint recipes",
+   "calls": [
+    {
+     "path": "Ess.Bones.aimVector",
+     "sig": "Ess.Bones.aimVector"
+    },
+    {
+     "path": "Ess.Bones.attachFX",
+     "sig": "Ess.Bones.attachFX"
+    },
+    {
+     "path": "Ess.Bones.detachFX",
+     "sig": "Ess.Bones.detachFX"
+    },
+    {
+     "path": "Ess.Bones.probeNames",
+     "sig": "Ess.Bones.probeNames"
+    },
+    {
+     "path": "Ess.Bones.waitForReady",
+     "sig": "Ess.Bones.waitForReady"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Camera",
+   "group": "Camera, bones & spatial",
+   "doc": "Camera effects (top-level Camera + Graphics.Camera + Graphics.Effect, kept clear)",
+   "calls": [
+    {
+     "path": "Ess.Camera.beginCinematic",
+     "sig": "Ess.Camera.beginCinematic"
+    },
+    {
+     "path": "Ess.Camera.endCinematic",
+     "sig": "Ess.Camera.endCinematic"
+    },
+    {
+     "path": "Ess.Camera.fade",
+     "sig": "Ess.Camera.fade(amt)"
+    },
+    {
+     "path": "Ess.Camera.followHardpoint",
+     "sig": "Ess.Camera.followHardpoint"
+    },
+    {
+     "path": "Ess.Camera.fov",
+     "sig": "Ess.Camera.fov"
+    },
+    {
+     "path": "Ess.Camera.hold",
+     "sig": "Ess.Camera.hold"
+    },
+    {
+     "path": "Ess.Camera.lookAtAnchor",
+     "sig": "Ess.Camera.lookAtAnchor"
+    },
+    {
+     "path": "Ess.Camera.lookAtObject",
+     "sig": "Ess.Camera.lookAtObject"
+    },
+    {
+     "path": "Ess.Camera.lookAtPoint",
+     "sig": "Ess.Camera.lookAtPoint"
+    },
+    {
+     "path": "Ess.Camera.panicRevert",
+     "sig": "Ess.Camera.panicRevert"
+    },
+    {
+     "path": "Ess.Camera.placeCamera",
+     "sig": "Ess.Camera.placeCamera"
+    },
+    {
+     "path": "Ess.Camera.restoreFov",
+     "sig": "Ess.Camera.restoreFov"
+    },
+    {
+     "path": "Ess.Camera.shake",
+     "sig": "Ess.Camera.shake"
+    },
+    {
+     "path": "Ess.Camera.staleAxisDecay",
+     "sig": "Ess.Camera.staleAxisDecay"
+    },
+    {
+     "path": "Ess.Camera.stopShake",
+     "sig": "Ess.Camera.stopShake"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Cinematic",
+   "group": "Camera, bones & spatial",
+   "doc": "A declarative cutscene timeline \u2014 the runtime the cinematic authoring suite feeds",
+   "calls": [
+    {
+     "path": "Ess.Cinematic.define",
+     "sig": "Ess.Cinematic.define(id, steps, opts)"
+    },
+    {
+     "path": "Ess.Cinematic.isPlaying",
+     "sig": "Ess.Cinematic.isPlaying()"
+    },
+    {
+     "path": "Ess.Cinematic.play",
+     "sig": "Ess.Cinematic.play(steps, opts)"
+    },
+    {
+     "path": "Ess.Cinematic.playNamed",
+     "sig": "Ess.Cinematic.playNamed(id)"
+    },
+    {
+     "path": "Ess.Cinematic.shot",
+     "sig": "Ess.Cinematic.shot(at, lookAt, seconds)"
+    },
+    {
+     "path": "Ess.Cinematic.skip",
+     "sig": "Ess.Cinematic.skip()"
+    },
+    {
+     "path": "Ess.Cinematic.stop",
+     "sig": "Ess.Cinematic.stop()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Color",
+   "group": "Core primitives",
+   "doc": "RGB for the rgb = {r,g,b} params (Ess.Mark / Ess.UI)",
+   "calls": [
+    {
+     "path": "Ess.Color.NAMES",
+     "sig": "Ess.Color.NAMES"
+    },
+    {
+     "path": "Ess.Color.hex",
+     "sig": "Ess.Color.hex(s)"
+    },
+    {
+     "path": "Ess.Color.hsv",
+     "sig": "Ess.Color.hsv(h,s,v)"
+    },
+    {
+     "path": "Ess.Color.lerp",
+     "sig": "Ess.Color.lerp(c1,c2,t)"
+    },
+    {
+     "path": "Ess.Color.of",
+     "sig": "Ess.Color.of(name)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Contract",
+   "group": "Missions",
+   "doc": "The full ephemeral-mission engine (native port of ContractFramework)",
+   "calls": [
+    {
+     "path": "Ess.Contract.Abort",
+     "sig": "Ess.Contract.Abort()"
+    },
+    {
+     "path": "Ess.Contract.Accept",
+     "sig": "Ess.Contract.Accept(id)"
+    },
+    {
+     "path": "Ess.Contract.Register",
+     "sig": "Ess.Contract.Register(def)"
+    },
+    {
+     "path": "Ess.Contract.Status",
+     "sig": "Ess.Contract.Status()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy",
+   "group": "UI kit",
+   "doc": "Single-call UI",
+   "calls": [
+    {
+     "path": "Ess.Easy.Confirm",
+     "sig": "Ess.Easy.Confirm(text, onYes, onNo)"
+    },
+    {
+     "path": "Ess.Easy.Menu",
+     "sig": "Ess.Easy.Menu(title, entries)"
+    },
+    {
+     "path": "Ess.Easy.Quest",
+     "sig": "Ess.Easy.Quest(steps, onComplete)"
+    },
+    {
+     "path": "Ess.Easy.Toast",
+     "sig": "Ess.Easy.Toast(msg)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Airstrike",
+   "group": "Humans & combat",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Airstrike.at",
+     "sig": "Ess.Easy.Airstrike.at(x,y,z)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Cinematic",
+   "group": "Camera, bones & spatial",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Cinematic.play",
+     "sig": "Ess.Easy.Cinematic.play(steps, onDone)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Console",
+   "group": "UI kit",
+   "doc": "In-game reference AND interactive playground",
+   "calls": [
+    {
+     "path": "Ess.Easy.Console.close",
+     "sig": "Ess.Easy.Console.close()"
+    },
+    {
+     "path": "Ess.Easy.Console.open",
+     "sig": "Ess.Easy.Console.open()"
+    },
+    {
+     "path": "Ess.Easy.Console.play",
+     "sig": "Ess.Easy.Console.play()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Contract",
+   "group": "Missions",
+   "doc": "One-call contracts",
+   "calls": [
+    {
+     "path": "Ess.Easy.Contract.destroy",
+     "sig": "Ess.Easy.Contract.destroy(title, spawns, opts)"
+    },
+    {
+     "path": "Ess.Easy.Contract.reach",
+     "sig": "Ess.Easy.Contract.reach(title, at, radius, opts)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Debug",
+   "group": "UI kit",
+   "doc": "A live dev overlay for mod authors",
+   "calls": [
+    {
+     "path": "Ess.Easy.Debug.hide",
+     "sig": "Ess.Easy.Debug.hide()"
+    },
+    {
+     "path": "Ess.Easy.Debug.isOn",
+     "sig": "Ess.Easy.Debug.isOn()"
+    },
+    {
+     "path": "Ess.Easy.Debug.overlay",
+     "sig": "Ess.Easy.Debug.overlay(opts)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Fun",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Fun.dance",
+     "sig": "Ess.Easy.Fun.dance()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Human",
+   "group": "Humans & combat",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Human.giveWeapon",
+     "sig": "Ess.Easy.Human.giveWeapon(char, templateName)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Impulse",
+   "group": "Identity & world query",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Impulse.speedBoost",
+     "sig": "Ess.Easy.Impulse.speedBoost(g)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Mark",
+   "group": "Markers",
+   "doc": ".enemy(guid) (radar+PDA), .objective(guid) (all 3), .zone(x,y,z,r) (world ring)",
+   "calls": [
+    {
+     "path": "Ess.Easy.Mark.enemy",
+     "sig": "Ess.Easy.Mark.enemy(guid)"
+    },
+    {
+     "path": "Ess.Easy.Mark.objective",
+     "sig": "Ess.Easy.Mark.objective(guid)"
+    },
+    {
+     "path": "Ess.Easy.Mark.zone",
+     "sig": "Ess.Easy.Mark.zone(x,y,z,r)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Objective",
+   "group": "Missions",
+   "doc": "The intent bundles \u2014 a goal wired to a world event + its marker, in one line",
+   "calls": [
+    {
+     "path": "Ess.Easy.Objective.clear",
+     "sig": "Ess.Easy.Objective.clear(x,y,z,r, faction, label, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Objective.destroy",
+     "sig": "Ess.Easy.Objective.destroy(guid, label, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Objective.reach",
+     "sig": "Ess.Easy.Objective.reach(x,y,z,r, label, onDone)"
+    },
+    {
+     "path": "Ess.Easy.Objective.survive",
+     "sig": "Ess.Easy.Objective.survive(seconds, label, onDone, onFail)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Player",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Player.giveGrapplingHook",
+     "sig": "Ess.Easy.Player.giveGrapplingHook()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Sound",
+   "group": "Audio & HUD",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Sound.play",
+     "sig": "Ess.Easy.Sound.play(cue)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Spawn",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Spawn.explosion",
+     "sig": "Ess.Easy.Spawn.explosion(type)"
+    },
+    {
+     "path": "Ess.Easy.Spawn.fx",
+     "sig": "Ess.Easy.Spawn.fx(t, x,y,z)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Time",
+   "group": "Timing & input",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Time.slowmo",
+     "sig": "Ess.Easy.Time.slowmo(n, seconds)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.Vehicle",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Vehicle.summon",
+     "sig": "Ess.Easy.Vehicle.summon(template)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Easy.World",
+   "group": "Instant-gratification one-liners",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.World.hellscape",
+     "sig": "Ess.Easy.World.hellscape()"
+    },
+    {
+     "path": "Ess.Easy.World.removeMapBoundary",
+     "sig": "Ess.Easy.World.removeMapBoundary()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Event",
+   "group": "Tracking & cleanup",
+   "doc": "Event.Create that logs failures + auto-tracks",
+   "calls": [
+    {
+     "path": "Ess.Event.off",
+     "sig": "Ess.Event.off(handle)"
+    },
+    {
+     "path": "Ess.Event.on",
+     "sig": "Ess.Event.on(type, args, cb, tracker)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Gfx",
+   "group": "UI kit",
+   "doc": "Raw FlashWidget primitives (the Raw tier of UI)",
+   "calls": [
+    {
+     "path": "Ess.Gfx.call",
+     "sig": "Ess.Gfx.call"
+    },
+    {
+     "path": "Ess.Gfx.menuNav",
+     "sig": "Ess.Gfx.menuNav"
+    },
+    {
+     "path": "Ess.Gfx.onEvent",
+     "sig": "Ess.Gfx.onEvent"
+    },
+    {
+     "path": "Ess.Gfx.setVisible",
+     "sig": "Ess.Gfx.setVisible"
+    },
+    {
+     "path": "Ess.Gfx.warmupRerender",
+     "sig": "Ess.Gfx.warmupRerender"
+    },
+    {
+     "path": "Ess.Gfx.widget",
+     "sig": "Ess.Gfx.widget"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Guid",
+   "group": "Core primitives",
+   "doc": "Name\u2194guid, pcall-wrapped",
+   "calls": []
+  },
+  {
+   "name": "Ess.Hud",
+   "group": "Audio & HUD",
+   "doc": "Native HUD popups",
+   "calls": [
+    {
+     "path": "Ess.Hud.banner",
+     "sig": "Ess.Hud.banner(msg)"
+    },
+    {
+     "path": "Ess.Hud.hideHint",
+     "sig": "Ess.Hud.hideHint"
+    },
+    {
+     "path": "Ess.Hud.hint",
+     "sig": "Ess.Hud.hint"
+    },
+    {
+     "path": "Ess.Hud.objective",
+     "sig": "Ess.Hud.objective(text)"
+    },
+    {
+     "path": "Ess.Hud.radio",
+     "sig": "Ess.Hud.radio(text, hold)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Human",
+   "group": "Humans & combat",
+   "doc": "Weapon/inventory/action control for a character",
+   "calls": [
+    {
+     "path": "Ess.Human.allWeapons",
+     "sig": "Ess.Human.allWeapons"
+    },
+    {
+     "path": "Ess.Human.ammo",
+     "sig": "Ess.Human.ammo"
+    },
+    {
+     "path": "Ess.Human.disableWeapons",
+     "sig": "Ess.Human.disableWeapons"
+    },
+    {
+     "path": "Ess.Human.doAction",
+     "sig": "Ess.Human.doAction"
+    },
+    {
+     "path": "Ess.Human.dropWeapon",
+     "sig": "Ess.Human.dropWeapon"
+    },
+    {
+     "path": "Ess.Human.enableWeapons",
+     "sig": "Ess.Human.enableWeapons"
+    },
+    {
+     "path": "Ess.Human.equipWeapon",
+     "sig": "Ess.Human.equipWeapon"
+    },
+    {
+     "path": "Ess.Human.knockdown",
+     "sig": "Ess.Human.knockdown"
+    },
+    {
+     "path": "Ess.Human.maxAmmo",
+     "sig": "Ess.Human.maxAmmo"
+    },
+    {
+     "path": "Ess.Human.primaryWeapon",
+     "sig": "Ess.Human.primaryWeapon"
+    },
+    {
+     "path": "Ess.Human.refillAmmo",
+     "sig": "Ess.Human.refillAmmo"
+    },
+    {
+     "path": "Ess.Human.reloadAll",
+     "sig": "Ess.Human.reloadAll"
+    },
+    {
+     "path": "Ess.Human.secondaryWeapon",
+     "sig": "Ess.Human.secondaryWeapon"
+    },
+    {
+     "path": "Ess.Human.setAllWeapons",
+     "sig": "Ess.Human.setAllWeapons"
+    },
+    {
+     "path": "Ess.Human.setAmmo",
+     "sig": "Ess.Human.setAmmo"
+    },
+    {
+     "path": "Ess.Human.setInfiniteAmmo",
+     "sig": "Ess.Human.setInfiniteAmmo"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Impulse",
+   "group": "Identity & world query",
+   "doc": "Launch / boost / knock objects around (the speed-boost effect), mass-scaling handled",
+   "calls": [
+    {
+     "path": "Ess.Impulse.applyAtPoint",
+     "sig": "Ess.Impulse.applyAtPoint"
+    },
+    {
+     "path": "Ess.Impulse.knockback",
+     "sig": "Ess.Impulse.knockback(g, from)"
+    },
+    {
+     "path": "Ess.Impulse.launch",
+     "sig": "Ess.Impulse.launch(g)"
+    },
+    {
+     "path": "Ess.Impulse.mass",
+     "sig": "Ess.Impulse.mass"
+    },
+    {
+     "path": "Ess.Impulse.spin",
+     "sig": "Ess.Impulse.spin"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Input",
+   "group": "Timing & input",
+   "doc": "The only correct key-polling shape + device query",
+   "calls": [
+    {
+     "path": "Ess.Input.VkToChar",
+     "sig": "Ess.Input.VkToChar(vk, shift)"
+    },
+    {
+     "path": "Ess.Input.clear",
+     "sig": "Ess.Input.clear()"
+    },
+    {
+     "path": "Ess.Input.hijackController",
+     "sig": "Ess.Input.hijackController(onInput)"
+    },
+    {
+     "path": "Ess.Input.poll",
+     "sig": "Ess.Input.poll()"
+    },
+    {
+     "path": "Ess.Input.usingController",
+     "sig": "Ess.Input.usingController()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Keys",
+   "group": "Timing & input",
+   "doc": "Bind several hotkeys in ONE script (a toolkit)",
+   "calls": [
+    {
+     "path": "Ess.Keys.clear",
+     "sig": "Ess.Keys.clear"
+    },
+    {
+     "path": "Ess.Keys.isBound",
+     "sig": "Ess.Keys.isBound"
+    },
+    {
+     "path": "Ess.Keys.off",
+     "sig": "Ess.Keys.off"
+    },
+    {
+     "path": "Ess.Keys.on",
+     "sig": "Ess.Keys.on(key, fn)"
+    },
+    {
+     "path": "Ess.Keys.vk",
+     "sig": "Ess.Keys.vk(name)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Layers",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "Save-clean vz_state_* layer manipulation for arenas/minigames: .begin/.add/.remove/.swap/.expect/.composite/.finish, .isActive/.isLoaded/.snapshot/.current",
+   "calls": [
+    {
+     "path": "Ess.Layers.add",
+     "sig": "Ess.Layers.add"
+    },
+    {
+     "path": "Ess.Layers.begin",
+     "sig": "Ess.Layers.begin"
+    },
+    {
+     "path": "Ess.Layers.composite",
+     "sig": "Ess.Layers.composite"
+    },
+    {
+     "path": "Ess.Layers.current",
+     "sig": "Ess.Layers.current"
+    },
+    {
+     "path": "Ess.Layers.expect",
+     "sig": "Ess.Layers.expect"
+    },
+    {
+     "path": "Ess.Layers.finish",
+     "sig": "Ess.Layers.finish"
+    },
+    {
+     "path": "Ess.Layers.isActive",
+     "sig": "Ess.Layers.isActive"
+    },
+    {
+     "path": "Ess.Layers.isLoaded",
+     "sig": "Ess.Layers.isLoaded"
+    },
+    {
+     "path": "Ess.Layers.remove",
+     "sig": "Ess.Layers.remove"
+    },
+    {
+     "path": "Ess.Layers.snapshot",
+     "sig": "Ess.Layers.snapshot"
+    },
+    {
+     "path": "Ess.Layers.swap",
+     "sig": "Ess.Layers.swap"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Log",
+   "group": "Core primitives",
+   "doc": "One line to the bridge log",
+   "calls": []
+  },
+  {
+   "name": "Ess.Loop",
+   "group": "Timing & input",
+   "doc": "The one shared reload-safe heartbeat",
+   "calls": [
+    {
+     "path": "Ess.Loop.isRunning",
+     "sig": "Ess.Loop.isRunning(id)"
+    },
+    {
+     "path": "Ess.Loop.start",
+     "sig": "Ess.Loop.start(id, interval, tickFn)"
+    },
+    {
+     "path": "Ess.Loop.stop",
+     "sig": "Ess.Loop.stop(id)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Mark",
+   "group": "Markers",
+   "doc": ".object(guid, {radar=, pda=, world=, disc=, kind=, rgb=, radius=, discAlpha=, size=, dist=}), .zone(x,y,z,r, {world=, radar=, pda=, icon=, kind=, rgb=, discAlpha=, size=, dist=}), .clear(handle) \u2014 every surface (radar / PDA / ground ring / floating icon) is an independent opt, so one call covers any combination",
+   "calls": [
+    {
+     "path": "Ess.Mark.clear",
+     "sig": "Ess.Mark.clear(handle)"
+    },
+    {
+     "path": "Ess.Mark.object",
+     "sig": "Ess.Mark.object(guid, {radar=, pda=, world=, disc=, kind=, rgb=, radius=, discAlpha=, size=, dist=})"
+    },
+    {
+     "path": "Ess.Mark.zone",
+     "sig": "Ess.Mark.zone(x,y,z,r, {world=, radar=, pda=, icon=, kind=, rgb=, discAlpha=, size=, dist=})"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Math",
+   "group": "Core primitives",
+   "doc": "Geometry/number helpers in the engine's yaw convention",
+   "calls": [
+    {
+     "path": "Ess.Math.angleTo",
+     "sig": "Ess.Math.angleTo(fx,fz,tx,tz)"
+    },
+    {
+     "path": "Ess.Math.approach",
+     "sig": "Ess.Math.approach"
+    },
+    {
+     "path": "Ess.Math.clamp",
+     "sig": "Ess.Math.clamp"
+    },
+    {
+     "path": "Ess.Math.clamp01",
+     "sig": "Ess.Math.clamp01"
+    },
+    {
+     "path": "Ess.Math.dist2D",
+     "sig": "Ess.Math.dist2D"
+    },
+    {
+     "path": "Ess.Math.dist2DSq",
+     "sig": "Ess.Math.dist2DSq"
+    },
+    {
+     "path": "Ess.Math.dist3D",
+     "sig": "Ess.Math.dist3D"
+    },
+    {
+     "path": "Ess.Math.dist3DSq",
+     "sig": "Ess.Math.dist3DSq"
+    },
+    {
+     "path": "Ess.Math.lerp",
+     "sig": "Ess.Math.lerp"
+    },
+    {
+     "path": "Ess.Math.lerpAngle",
+     "sig": "Ess.Math.lerpAngle"
+    },
+    {
+     "path": "Ess.Math.normDeg",
+     "sig": "Ess.Math.normDeg"
+    },
+    {
+     "path": "Ess.Math.pointAhead",
+     "sig": "Ess.Math.pointAhead(x,z,yaw,dist)"
+    },
+    {
+     "path": "Ess.Math.remap",
+     "sig": "Ess.Math.remap"
+    },
+    {
+     "path": "Ess.Math.round",
+     "sig": "Ess.Math.round"
+    },
+    {
+     "path": "Ess.Math.sign",
+     "sig": "Ess.Math.sign"
+    },
+    {
+     "path": "Ess.Math.smoothstep",
+     "sig": "Ess.Math.smoothstep"
+    },
+    {
+     "path": "Ess.Math.within2D",
+     "sig": "Ess.Math.within2D"
+    },
+    {
+     "path": "Ess.Math.within3D",
+     "sig": "Ess.Math.within3D"
+    },
+    {
+     "path": "Ess.Math.wrap",
+     "sig": "Ess.Math.wrap"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Name",
+   "group": "Core primitives",
+   "doc": "",
+   "calls": []
+  },
+  {
+   "name": "Ess.Net",
+   "group": "Networking",
+   "doc": "Co-op data sync (native port of ModNet)",
+   "calls": [
+    {
+     "path": "Ess.Net.Get",
+     "sig": "Ess.Net.Get"
+    },
+    {
+     "path": "Ess.Net.IsAuthority",
+     "sig": "Ess.Net.IsAuthority"
+    },
+    {
+     "path": "Ess.Net.IsCoop",
+     "sig": "Ess.Net.IsCoop"
+    },
+    {
+     "path": "Ess.Net.IsHost",
+     "sig": "Ess.Net.IsHost"
+    },
+    {
+     "path": "Ess.Net.Me",
+     "sig": "Ess.Net.Me"
+    },
+    {
+     "path": "Ess.Net.On",
+     "sig": "Ess.Net.On"
+    },
+    {
+     "path": "Ess.Net.OnRaw",
+     "sig": "Ess.Net.OnRaw"
+    },
+    {
+     "path": "Ess.Net.Send",
+     "sig": "Ess.Net.Send"
+    },
+    {
+     "path": "Ess.Net.SendRaw",
+     "sig": "Ess.Net.SendRaw"
+    },
+    {
+     "path": "Ess.Net.Set",
+     "sig": "Ess.Net.Set"
+    },
+    {
+     "path": "Ess.Net.Shared",
+     "sig": "Ess.Net.Shared(ns)"
+    },
+    {
+     "path": "Ess.Net.Track",
+     "sig": "Ess.Net.Track"
+    },
+    {
+     "path": "Ess.Net.hijackCallback",
+     "sig": "Ess.Net.hijackCallback(module, name, isMine, onMine)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Object",
+   "group": "Identity & world query",
+   "doc": "The everyday object-manipulation namespace",
+   "calls": [
+    {
+     "path": "Ess.Object.addLabel",
+     "sig": "Ess.Object.addLabel"
+    },
+    {
+     "path": "Ess.Object.alive",
+     "sig": "Ess.Object.alive"
+    },
+    {
+     "path": "Ess.Object.disablePhysics",
+     "sig": "Ess.Object.disablePhysics"
+    },
+    {
+     "path": "Ess.Object.displayName",
+     "sig": "Ess.Object.displayName"
+    },
+    {
+     "path": "Ess.Object.distance",
+     "sig": "Ess.Object.distance"
+    },
+    {
+     "path": "Ess.Object.enablePhysics",
+     "sig": "Ess.Object.enablePhysics"
+    },
+    {
+     "path": "Ess.Object.faceObject",
+     "sig": "Ess.Object.faceObject(g,target)"
+    },
+    {
+     "path": "Ess.Object.faceToward",
+     "sig": "Ess.Object.faceToward(g,x,y,z)"
+    },
+    {
+     "path": "Ess.Object.hasLabel",
+     "sig": "Ess.Object.hasLabel"
+    },
+    {
+     "path": "Ess.Object.heal",
+     "sig": "Ess.Object.heal"
+    },
+    {
+     "path": "Ess.Object.health",
+     "sig": "Ess.Object.health"
+    },
+    {
+     "path": "Ess.Object.impulse",
+     "sig": "Ess.Object.impulse"
+    },
+    {
+     "path": "Ess.Object.kill",
+     "sig": "Ess.Object.kill"
+    },
+    {
+     "path": "Ess.Object.maxHealth",
+     "sig": "Ess.Object.maxHealth"
+    },
+    {
+     "path": "Ess.Object.playerControlled",
+     "sig": "Ess.Object.playerControlled"
+    },
+    {
+     "path": "Ess.Object.pollVehicleChange",
+     "sig": "Ess.Object.pollVehicleChange"
+    },
+    {
+     "path": "Ess.Object.pos",
+     "sig": "Ess.Object.pos"
+    },
+    {
+     "path": "Ess.Object.remove",
+     "sig": "Ess.Object.remove"
+    },
+    {
+     "path": "Ess.Object.removeLabel",
+     "sig": "Ess.Object.removeLabel"
+    },
+    {
+     "path": "Ess.Object.revive",
+     "sig": "Ess.Object.revive"
+    },
+    {
+     "path": "Ess.Object.setHealth",
+     "sig": "Ess.Object.setHealth"
+    },
+    {
+     "path": "Ess.Object.setInvincible",
+     "sig": "Ess.Object.setInvincible"
+    },
+    {
+     "path": "Ess.Object.setPos",
+     "sig": "Ess.Object.setPos"
+    },
+    {
+     "path": "Ess.Object.setVisible",
+     "sig": "Ess.Object.setVisible"
+    },
+    {
+     "path": "Ess.Object.setYaw",
+     "sig": "Ess.Object.setYaw"
+    },
+    {
+     "path": "Ess.Object.spawn",
+     "sig": "Ess.Object.spawn(template, x,y,z, yaw)"
+    },
+    {
+     "path": "Ess.Object.spawnAhead",
+     "sig": "Ess.Object.spawnAhead(template, dist, height, i)"
+    },
+    {
+     "path": "Ess.Object.valid",
+     "sig": "Ess.Object.valid"
+    },
+    {
+     "path": "Ess.Object.vehicleOf",
+     "sig": "Ess.Object.vehicleOf"
+    },
+    {
+     "path": "Ess.Object.visible",
+     "sig": "Ess.Object.visible"
+    },
+    {
+     "path": "Ess.Object.yaw",
+     "sig": "Ess.Object.yaw"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Objective",
+   "group": "Missions",
+   "doc": "A single counted goal on the HUD objective line (state, no Contract)",
+   "calls": []
+  },
+  {
+   "name": "Ess.On",
+   "group": "Tracking & cleanup",
+   "doc": "Intent-named REACTIVE hooks (respond to the world)",
+   "calls": [
+    {
+     "path": "Ess.On.death",
+     "sig": "Ess.On.death(guid, fn)"
+    },
+    {
+     "path": "Ess.On.enterArea",
+     "sig": "Ess.On.enterArea"
+    },
+    {
+     "path": "Ess.On.exitArea",
+     "sig": "Ess.On.exitArea"
+    },
+    {
+     "path": "Ess.On.healthBelow",
+     "sig": "Ess.On.healthBelow(guid, pct, fn)"
+    },
+    {
+     "path": "Ess.On.insideArea",
+     "sig": "Ess.On.insideArea(x,y,z,r, fn)"
+    },
+    {
+     "path": "Ess.On.playerHurt",
+     "sig": "Ess.On.playerHurt(fn)"
+    },
+    {
+     "path": "Ess.On.tick",
+     "sig": "Ess.On.tick(iv, fn)"
+    },
+    {
+     "path": "Ess.On.vehicle",
+     "sig": "Ess.On.vehicle(fn)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Override",
+   "group": "Meta",
+   "doc": "Change engine logic without the tail-call crash",
+   "calls": [
+    {
+     "path": "Ess.Override.mergeIntoLiveTable",
+     "sig": "Ess.Override.mergeIntoLiveTable(t, key, data)"
+    },
+    {
+     "path": "Ess.Override.wrap",
+     "sig": "Ess.Override.wrap(target, name, newFn)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Player",
+   "group": "Identity & world query",
+   "doc": "Player/character identity without the 8-getter sprawl",
+   "calls": [
+    {
+     "path": "Ess.Player.camera",
+     "sig": "Ess.Player.camera(i)"
+    },
+    {
+     "path": "Ess.Player.character",
+     "sig": "Ess.Player.character(i)"
+    },
+    {
+     "path": "Ess.Player.giveCash",
+     "sig": "Ess.Player.giveCash(n)"
+    },
+    {
+     "path": "Ess.Player.giveFuel",
+     "sig": "Ess.Player.giveFuel(n)"
+    },
+    {
+     "path": "Ess.Player.inVehicle",
+     "sig": "Ess.Player.inVehicle(i)"
+    },
+    {
+     "path": "Ess.Player.onFoot",
+     "sig": "Ess.Player.onFoot(i)"
+    },
+    {
+     "path": "Ess.Player.pose",
+     "sig": "Ess.Player.pose(i)"
+    },
+    {
+     "path": "Ess.Player.removeBoundaries",
+     "sig": "Ess.Player.removeBoundaries()"
+    },
+    {
+     "path": "Ess.Player.rumble",
+     "sig": "Ess.Player.rumble(i, len)"
+    },
+    {
+     "path": "Ess.Player.setInputEnabled",
+     "sig": "Ess.Player.setInputEnabled(on, i)"
+    },
+    {
+     "path": "Ess.Player.slot",
+     "sig": "Ess.Player.slot(i)"
+    },
+    {
+     "path": "Ess.Player.targetUnderReticle",
+     "sig": "Ess.Player.targetUnderReticle(i)"
+    },
+    {
+     "path": "Ess.Player.teleport",
+     "sig": "Ess.Player.teleport(x,y,z, yaw, onDone)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Points",
+   "group": "Camera, bones & spatial",
+   "doc": "Arena spawn-point selection",
+   "calls": [
+    {
+     "path": "Ess.Points.bucket",
+     "sig": "Ess.Points.bucket(spawnList)"
+    },
+    {
+     "path": "Ess.Points.ideal",
+     "sig": "Ess.Points.ideal(pts, refX, refZ, opts)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Probe",
+   "group": "Identity & world query",
+   "doc": "Nearby-object collection, one dispatcher",
+   "calls": [
+    {
+     "path": "Ess.Probe.describeSafe",
+     "sig": "Ess.Probe.describeSafe(guid)"
+    },
+    {
+     "path": "Ess.Probe.getFaction",
+     "sig": "Ess.Probe.getFaction(guid)"
+    },
+    {
+     "path": "Ess.Probe.nearby",
+     "sig": "Ess.Probe.nearby(...)"
+    },
+    {
+     "path": "Ess.Probe.nearest",
+     "sig": "Ess.Probe.nearest(...)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Quest",
+   "group": "Missions",
+   "doc": "An ordered sequence shown one step at a time",
+   "calls": []
+  },
+  {
+   "name": "Ess.RNG",
+   "group": "Core primitives",
+   "doc": "Engine-safe RNG (avoids the 32-bit-float big-LCG trap)",
+   "calls": [
+    {
+     "path": "Ess.RNG.new",
+     "sig": "Ess.RNG.new(seed)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Raw",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "Raw.AIOrders (actor/pri/goal/haste/priorityTarget/enable), Raw.Relations (snapshot/set/restore), Raw.Triggers.arm (full condition vocabulary), Raw.Sandbox (register/gateSaves/ungateSaves)",
+   "calls": []
+  },
+  {
+   "name": "Ess.Raw.Impulse",
+   "group": "Identity & world query",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Raw.Impulse.apply",
+     "sig": "Ess.Raw.Impulse.apply"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Raw.Mark",
+   "group": "Markers",
+   "doc": ".radar/.pda/.world(guid,tex,rgb,size,dist)/.worldDisc (4 surfaces independently), .pulse/.haltPulse (flash existing), .showPlayerMarkers(on)",
+   "calls": [
+    {
+     "path": "Ess.Raw.Mark.haltPulse",
+     "sig": "Ess.Raw.Mark.haltPulse"
+    },
+    {
+     "path": "Ess.Raw.Mark.pda",
+     "sig": "Ess.Raw.Mark.pda"
+    },
+    {
+     "path": "Ess.Raw.Mark.pulse",
+     "sig": "Ess.Raw.Mark.pulse"
+    },
+    {
+     "path": "Ess.Raw.Mark.radar",
+     "sig": "Ess.Raw.Mark.radar"
+    },
+    {
+     "path": "Ess.Raw.Mark.showPlayerMarkers",
+     "sig": "Ess.Raw.Mark.showPlayerMarkers(on)"
+    },
+    {
+     "path": "Ess.Raw.Mark.world",
+     "sig": "Ess.Raw.Mark.world(guid,tex,rgb,size,dist)"
+    },
+    {
+     "path": "Ess.Raw.Mark.worldDisc",
+     "sig": "Ess.Raw.Mark.worldDisc"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Relations",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".apply(pairs, label) \u2192 handle, .restore(handle), .isActive(handle), .getFeeling/.setFeeling (per-individual)",
+   "calls": [
+    {
+     "path": "Ess.Relations.apply",
+     "sig": "Ess.Relations.apply(pairs, label)"
+    },
+    {
+     "path": "Ess.Relations.getFeeling",
+     "sig": "Ess.Relations.getFeeling"
+    },
+    {
+     "path": "Ess.Relations.isActive",
+     "sig": "Ess.Relations.isActive(handle)"
+    },
+    {
+     "path": "Ess.Relations.makeAllies",
+     "sig": "Ess.Relations.makeAllies(factions)"
+    },
+    {
+     "path": "Ess.Relations.makeHostile",
+     "sig": "Ess.Relations.makeHostile(factions)"
+    },
+    {
+     "path": "Ess.Relations.restore",
+     "sig": "Ess.Relations.restore()"
+    },
+    {
+     "path": "Ess.Relations.setFeeling",
+     "sig": "Ess.Relations.setFeeling"
+    },
+    {
+     "path": "Ess.Relations.sideWith",
+     "sig": "Ess.Relations.sideWith(friend, foe)"
+    },
+    {
+     "path": "Ess.Relations.war",
+     "sig": "Ess.Relations.war(a, b)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Safe",
+   "group": "Core primitives",
+   "doc": "The pcall-and-log idiom, once",
+   "calls": [
+    {
+     "path": "Ess.Safe.call",
+     "sig": "Ess.Safe.call(fn, ...)"
+    },
+    {
+     "path": "Ess.Safe.quiet",
+     "sig": "Ess.Safe.quiet(fn, ...)"
+    },
+    {
+     "path": "Ess.Safe.string",
+     "sig": "Ess.Safe.string(ok, val, fallback)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Sandbox",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".begin(id, providerNames, opts), .finish(id), .isActive(id) \u2014 providers: layers/economy/supports/relations, all save-gated",
+   "calls": [
+    {
+     "path": "Ess.Sandbox.arena",
+     "sig": "Ess.Sandbox.arena(id, opts)"
+    },
+    {
+     "path": "Ess.Sandbox.begin",
+     "sig": "Ess.Sandbox.begin(id, providerNames, opts)"
+    },
+    {
+     "path": "Ess.Sandbox.done",
+     "sig": "Ess.Sandbox.done(id)"
+    },
+    {
+     "path": "Ess.Sandbox.finish",
+     "sig": "Ess.Sandbox.finish(id)"
+    },
+    {
+     "path": "Ess.Sandbox.isActive",
+     "sig": "Ess.Sandbox.isActive(id)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Save",
+   "group": "Tracking & cleanup",
+   "doc": "The one shared save-gate (suppress saves during an ephemeral mode)",
+   "calls": [
+    {
+     "path": "Ess.Save.gate",
+     "sig": "Ess.Save.gate(key)"
+    },
+    {
+     "path": "Ess.Save.isGated",
+     "sig": "Ess.Save.isGated()"
+    },
+    {
+     "path": "Ess.Save.ungate",
+     "sig": "Ess.Save.ungate(key)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.SaveVar",
+   "group": "Core primitives",
+   "doc": "Namespaced persistent vars over Loader.SaveVar",
+   "calls": [
+    {
+     "path": "Ess.SaveVar.ns",
+     "sig": "Ess.SaveVar.ns(prefix)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.ScrollLog",
+   "group": "UI kit",
+   "doc": "A scrolling text log widget",
+   "calls": [
+    {
+     "path": "Ess.ScrollLog.new",
+     "sig": "Ess.ScrollLog.new(name, x,y,w,h)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Sound",
+   "group": "Audio & HUD",
+   "doc": "Direct sound/ambience cueing",
+   "calls": [
+    {
+     "path": "Ess.Sound.ambience",
+     "sig": "Ess.Sound.ambience"
+    },
+    {
+     "path": "Ess.Sound.cue",
+     "sig": "Ess.Sound.cue"
+    },
+    {
+     "path": "Ess.Sound.stop",
+     "sig": "Ess.Sound.stop"
+    },
+    {
+     "path": "Ess.Sound.stopAmbience",
+     "sig": "Ess.Sound.stopAmbience"
+    },
+    {
+     "path": "Ess.Sound.volume",
+     "sig": "Ess.Sound.volume"
+    }
+   ]
+  },
+  {
+   "name": "Ess.State",
+   "group": "Core primitives",
+   "doc": "Reload-safe _G state, field-merged",
+   "calls": []
+  },
+  {
+   "name": "Ess.Str",
+   "group": "Core primitives",
+   "doc": "The string helpers Lua 5.1 omits (all LITERAL, not patterns)",
+   "calls": [
+    {
+     "path": "Ess.Str.capitalize",
+     "sig": "Ess.Str.capitalize"
+    },
+    {
+     "path": "Ess.Str.contains",
+     "sig": "Ess.Str.contains"
+    },
+    {
+     "path": "Ess.Str.count",
+     "sig": "Ess.Str.count"
+    },
+    {
+     "path": "Ess.Str.endsWith",
+     "sig": "Ess.Str.endsWith"
+    },
+    {
+     "path": "Ess.Str.join",
+     "sig": "Ess.Str.join"
+    },
+    {
+     "path": "Ess.Str.lines",
+     "sig": "Ess.Str.lines"
+    },
+    {
+     "path": "Ess.Str.padLeft",
+     "sig": "Ess.Str.padLeft"
+    },
+    {
+     "path": "Ess.Str.padRight",
+     "sig": "Ess.Str.padRight"
+    },
+    {
+     "path": "Ess.Str.split",
+     "sig": "Ess.Str.split"
+    },
+    {
+     "path": "Ess.Str.startsWith",
+     "sig": "Ess.Str.startsWith"
+    },
+    {
+     "path": "Ess.Str.title",
+     "sig": "Ess.Str.title"
+    },
+    {
+     "path": "Ess.Str.trim",
+     "sig": "Ess.Str.trim"
+    },
+    {
+     "path": "Ess.Str.truncate",
+     "sig": "Ess.Str.truncate"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Support",
+   "group": "Humans & combat",
+   "doc": "The iconic combat call-ins, standalone (no contract)",
+   "calls": [
+    {
+     "path": "Ess.Support.airstrike",
+     "sig": "Ess.Support.airstrike"
+    },
+    {
+     "path": "Ess.Support.artillery",
+     "sig": "Ess.Support.artillery"
+    },
+    {
+     "path": "Ess.Support.bombingrun",
+     "sig": "Ess.Support.bombingrun"
+    },
+    {
+     "path": "Ess.Support.gunship",
+     "sig": "Ess.Support.gunship"
+    },
+    {
+     "path": "Ess.Support.onMe",
+     "sig": "Ess.Support.onMe(i)"
+    },
+    {
+     "path": "Ess.Support.onTarget",
+     "sig": "Ess.Support.onTarget(i)"
+    },
+    {
+     "path": "Ess.Support.reinforce",
+     "sig": "Ess.Support.reinforce"
+    },
+    {
+     "path": "Ess.Support.shell",
+     "sig": "Ess.Support.shell"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Table",
+   "group": "Core primitives",
+   "doc": "Dense-array repair + collection helpers",
+   "calls": [
+    {
+     "path": "Ess.Table.compact",
+     "sig": "Ess.Table.compact(t)"
+    },
+    {
+     "path": "Ess.Table.contains",
+     "sig": "Ess.Table.contains"
+    },
+    {
+     "path": "Ess.Table.copy",
+     "sig": "Ess.Table.copy"
+    },
+    {
+     "path": "Ess.Table.count",
+     "sig": "Ess.Table.count"
+    },
+    {
+     "path": "Ess.Table.filter",
+     "sig": "Ess.Table.filter"
+    },
+    {
+     "path": "Ess.Table.find",
+     "sig": "Ess.Table.find"
+    },
+    {
+     "path": "Ess.Table.indexOf",
+     "sig": "Ess.Table.indexOf"
+    },
+    {
+     "path": "Ess.Table.isEmpty",
+     "sig": "Ess.Table.isEmpty"
+    },
+    {
+     "path": "Ess.Table.keys",
+     "sig": "Ess.Table.keys"
+    },
+    {
+     "path": "Ess.Table.map",
+     "sig": "Ess.Table.map"
+    },
+    {
+     "path": "Ess.Table.merge",
+     "sig": "Ess.Table.merge"
+    },
+    {
+     "path": "Ess.Table.reduce",
+     "sig": "Ess.Table.reduce"
+    },
+    {
+     "path": "Ess.Table.reverse",
+     "sig": "Ess.Table.reverse"
+    },
+    {
+     "path": "Ess.Table.slice",
+     "sig": "Ess.Table.slice"
+    },
+    {
+     "path": "Ess.Table.values",
+     "sig": "Ess.Table.values"
+    }
+   ]
+  },
+  {
+   "name": "Ess.TextConsole",
+   "group": "Timing & input",
+   "doc": "A typed-input console, no .gfx asset needed",
+   "calls": [
+    {
+     "path": "Ess.TextConsole.close",
+     "sig": "Ess.TextConsole.close()"
+    },
+    {
+     "path": "Ess.TextConsole.gfx",
+     "sig": "Ess.TextConsole.gfx"
+    },
+    {
+     "path": "Ess.TextConsole.isOpen",
+     "sig": "Ess.TextConsole.isOpen()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Time",
+   "group": "Timing & input",
+   "doc": "All wall-clock timing (survives world-pause)",
+   "calls": [
+    {
+     "path": "Ess.Time.clock",
+     "sig": "Ess.Time.clock(maxDelta)"
+    },
+    {
+     "path": "Ess.Time.cooldown",
+     "sig": "Ess.Time.cooldown(seconds)"
+    },
+    {
+     "path": "Ess.Time.elapsed",
+     "sig": "Ess.Time.elapsed(s)"
+    },
+    {
+     "path": "Ess.Time.format",
+     "sig": "Ess.Time.format(sec, tenths)"
+    },
+    {
+     "path": "Ess.Time.mark",
+     "sig": "Ess.Time.mark(s)"
+    },
+    {
+     "path": "Ess.Time.restoreScale",
+     "sig": "Ess.Time.restoreScale()"
+    },
+    {
+     "path": "Ess.Time.scale",
+     "sig": "Ess.Time.scale(n)"
+    },
+    {
+     "path": "Ess.Time.stamp",
+     "sig": "Ess.Time.stamp()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Track",
+   "group": "Tracking & cleanup",
+   "doc": "One registry for every leak-prone Add/Remove pair",
+   "calls": [
+    {
+     "path": "Ess.Track.new",
+     "sig": "Ess.Track.new()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Triggers",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".arm(spec, onFire, tracker) (stateless); .scope() \u2192 an isolated :arm/:armNamed/:gate/:declare/:markFired namespace",
+   "calls": [
+    {
+     "path": "Ess.Triggers.after",
+     "sig": "Ess.Triggers.after(seconds,fn)"
+    },
+    {
+     "path": "Ess.Triggers.arm",
+     "sig": "Ess.Triggers.arm(spec, onFire, tracker)"
+    },
+    {
+     "path": "Ess.Triggers.onDeath",
+     "sig": "Ess.Triggers.onDeath(guid,fn)"
+    },
+    {
+     "path": "Ess.Triggers.onPlayerNear",
+     "sig": "Ess.Triggers.onPlayerNear(x,y,z,r,fn)"
+    },
+    {
+     "path": "Ess.Triggers.scope",
+     "sig": "Ess.Triggers.scope()"
+    }
+   ]
+  },
+  {
+   "name": "Ess.UI",
+   "group": "UI kit",
+   "doc": "The 9-widget kit (native port of uilib)",
+   "calls": [
+    {
+     "path": "Ess.UI.Bar",
+     "sig": "Ess.UI.Bar"
+    },
+    {
+     "path": "Ess.UI.Board",
+     "sig": "Ess.UI.Board"
+    },
+    {
+     "path": "Ess.UI.Chat",
+     "sig": "Ess.UI.Chat"
+    },
+    {
+     "path": "Ess.UI.Confirm",
+     "sig": "Ess.UI.Confirm"
+    },
+    {
+     "path": "Ess.UI.Input",
+     "sig": "Ess.UI.Input"
+    },
+    {
+     "path": "Ess.UI.List",
+     "sig": "Ess.UI.List"
+    },
+    {
+     "path": "Ess.UI.Menu",
+     "sig": "Ess.UI.Menu"
+    },
+    {
+     "path": "Ess.UI.Panel",
+     "sig": "Ess.UI.Panel"
+    },
+    {
+     "path": "Ess.UI.Toast",
+     "sig": "Ess.UI.Toast"
+    },
+    {
+     "path": "Ess.UI.comma",
+     "sig": "Ess.UI.comma"
+    },
+    {
+     "path": "Ess.UI.fmt_time",
+     "sig": "Ess.UI.fmt_time"
+    },
+    {
+     "path": "Ess.UI.wrap",
+     "sig": "Ess.UI.wrap"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Vec",
+   "group": "Core primitives",
+   "doc": "3D vector math on flat x,y,z (aim / offset / knockback)",
+   "calls": [
+    {
+     "path": "Ess.Vec.add",
+     "sig": "Ess.Vec.add"
+    },
+    {
+     "path": "Ess.Vec.dir",
+     "sig": "Ess.Vec.dir(from,to)"
+    },
+    {
+     "path": "Ess.Vec.dot",
+     "sig": "Ess.Vec.dot"
+    },
+    {
+     "path": "Ess.Vec.length",
+     "sig": "Ess.Vec.length"
+    },
+    {
+     "path": "Ess.Vec.lerp",
+     "sig": "Ess.Vec.lerp"
+    },
+    {
+     "path": "Ess.Vec.normalize",
+     "sig": "Ess.Vec.normalize"
+    },
+    {
+     "path": "Ess.Vec.scale",
+     "sig": "Ess.Vec.scale"
+    },
+    {
+     "path": "Ess.Vec.sub",
+     "sig": "Ess.Vec.sub"
+    },
+    {
+     "path": "Ess.Vec.toward",
+     "sig": "Ess.Vec.toward(from,to,dist)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Vehicle",
+   "group": "Identity & world query",
+   "doc": "Seats/riders/entry",
+   "calls": [
+    {
+     "path": "Ess.Vehicle.driver",
+     "sig": "Ess.Vehicle.driver(veh)"
+    },
+    {
+     "path": "Ess.Vehicle.enterBestSeat",
+     "sig": "Ess.Vehicle.enterBestSeat(char, veh)"
+    },
+    {
+     "path": "Ess.Vehicle.enterSeatExcluding",
+     "sig": "Ess.Vehicle.enterSeatExcluding(char, veh, excl)"
+    },
+    {
+     "path": "Ess.Vehicle.exit",
+     "sig": "Ess.Vehicle.exit(veh, char)"
+    },
+    {
+     "path": "Ess.Vehicle.flyTo",
+     "sig": "Ess.Vehicle.flyTo(heli, x,y,z, {onReady=})"
+    },
+    {
+     "path": "Ess.Vehicle.followGhost",
+     "sig": "Ess.Vehicle.followGhost(template, x,y,z)"
+    },
+    {
+     "path": "Ess.Vehicle.riders",
+     "sig": "Ess.Vehicle.riders(veh)"
+    },
+    {
+     "path": "Ess.Vehicle.seatOf",
+     "sig": "Ess.Vehicle.seatOf(char)"
+    }
+   ]
+  }
+ ],
+ "completions": [
+  "Ess",
+  "Ess.AIOrders",
+  "Ess.AIOrders.attack",
+  "Ess.AIOrders.command",
+  "Ess.AIOrders.group",
+  "Ess.AIOrders.guard",
+  "Ess.AIOrders.patrol",
+  "Ess.AIOrders.setGroup",
+  "Ess.Bones",
+  "Ess.Bones.aimVector",
+  "Ess.Bones.attachFX",
+  "Ess.Bones.detachFX",
+  "Ess.Bones.probeNames",
+  "Ess.Bones.waitForReady",
+  "Ess.Camera",
+  "Ess.Camera.beginCinematic",
+  "Ess.Camera.endCinematic",
+  "Ess.Camera.fade",
+  "Ess.Camera.followHardpoint",
+  "Ess.Camera.fov",
+  "Ess.Camera.hold",
+  "Ess.Camera.lookAtAnchor",
+  "Ess.Camera.lookAtObject",
+  "Ess.Camera.lookAtPoint",
+  "Ess.Camera.panicRevert",
+  "Ess.Camera.placeCamera",
+  "Ess.Camera.restoreFov",
+  "Ess.Camera.shake",
+  "Ess.Camera.staleAxisDecay",
+  "Ess.Camera.stopShake",
+  "Ess.Cinematic",
+  "Ess.Cinematic.define",
+  "Ess.Cinematic.isPlaying",
+  "Ess.Cinematic.play",
+  "Ess.Cinematic.playNamed",
+  "Ess.Cinematic.shot",
+  "Ess.Cinematic.skip",
+  "Ess.Cinematic.stop",
+  "Ess.Color",
+  "Ess.Color.NAMES",
+  "Ess.Color.hex",
+  "Ess.Color.hsv",
+  "Ess.Color.lerp",
+  "Ess.Color.of",
+  "Ess.Contract",
+  "Ess.Contract.Abort",
+  "Ess.Contract.Accept",
+  "Ess.Contract.Register",
+  "Ess.Contract.Status",
+  "Ess.Easy",
+  "Ess.Easy.Airstrike",
+  "Ess.Easy.Airstrike.at",
+  "Ess.Easy.Cinematic",
+  "Ess.Easy.Cinematic.play",
+  "Ess.Easy.Confirm",
+  "Ess.Easy.Console",
+  "Ess.Easy.Console.close",
+  "Ess.Easy.Console.open",
+  "Ess.Easy.Console.play",
+  "Ess.Easy.Contract",
+  "Ess.Easy.Contract.destroy",
+  "Ess.Easy.Contract.reach",
+  "Ess.Easy.Debug",
+  "Ess.Easy.Debug.hide",
+  "Ess.Easy.Debug.isOn",
+  "Ess.Easy.Debug.overlay",
+  "Ess.Easy.Fun",
+  "Ess.Easy.Fun.dance",
+  "Ess.Easy.Human",
+  "Ess.Easy.Human.giveWeapon",
+  "Ess.Easy.Impulse",
+  "Ess.Easy.Impulse.speedBoost",
+  "Ess.Easy.Mark",
+  "Ess.Easy.Mark.enemy",
+  "Ess.Easy.Mark.objective",
+  "Ess.Easy.Mark.zone",
+  "Ess.Easy.Menu",
+  "Ess.Easy.Objective",
+  "Ess.Easy.Objective.clear",
+  "Ess.Easy.Objective.destroy",
+  "Ess.Easy.Objective.reach",
+  "Ess.Easy.Objective.survive",
+  "Ess.Easy.Player",
+  "Ess.Easy.Player.giveGrapplingHook",
+  "Ess.Easy.Quest",
+  "Ess.Easy.Sound",
+  "Ess.Easy.Sound.play",
+  "Ess.Easy.Spawn",
+  "Ess.Easy.Spawn.explosion",
+  "Ess.Easy.Spawn.fx",
+  "Ess.Easy.Time",
+  "Ess.Easy.Time.slowmo",
+  "Ess.Easy.Toast",
+  "Ess.Easy.Vehicle",
+  "Ess.Easy.Vehicle.summon",
+  "Ess.Easy.World",
+  "Ess.Easy.World.hellscape",
+  "Ess.Easy.World.removeMapBoundary",
+  "Ess.Event",
+  "Ess.Event.off",
+  "Ess.Event.on",
+  "Ess.Gfx",
+  "Ess.Gfx.call",
+  "Ess.Gfx.menuNav",
+  "Ess.Gfx.onEvent",
+  "Ess.Gfx.setVisible",
+  "Ess.Gfx.warmupRerender",
+  "Ess.Gfx.widget",
+  "Ess.Guid",
+  "Ess.Hud",
+  "Ess.Hud.banner",
+  "Ess.Hud.hideHint",
+  "Ess.Hud.hint",
+  "Ess.Hud.objective",
+  "Ess.Hud.radio",
+  "Ess.Human",
+  "Ess.Human.allWeapons",
+  "Ess.Human.ammo",
+  "Ess.Human.disableWeapons",
+  "Ess.Human.doAction",
+  "Ess.Human.dropWeapon",
+  "Ess.Human.enableWeapons",
+  "Ess.Human.equipWeapon",
+  "Ess.Human.knockdown",
+  "Ess.Human.maxAmmo",
+  "Ess.Human.primaryWeapon",
+  "Ess.Human.refillAmmo",
+  "Ess.Human.reloadAll",
+  "Ess.Human.secondaryWeapon",
+  "Ess.Human.setAllWeapons",
+  "Ess.Human.setAmmo",
+  "Ess.Human.setInfiniteAmmo",
+  "Ess.Impulse",
+  "Ess.Impulse.applyAtPoint",
+  "Ess.Impulse.knockback",
+  "Ess.Impulse.launch",
+  "Ess.Impulse.mass",
+  "Ess.Impulse.spin",
+  "Ess.Input",
+  "Ess.Input.VkToChar",
+  "Ess.Input.clear",
+  "Ess.Input.hijackController",
+  "Ess.Input.poll",
+  "Ess.Input.usingController",
+  "Ess.Keys",
+  "Ess.Keys.clear",
+  "Ess.Keys.isBound",
+  "Ess.Keys.off",
+  "Ess.Keys.on",
+  "Ess.Keys.vk",
+  "Ess.Layers",
+  "Ess.Layers.add",
+  "Ess.Layers.begin",
+  "Ess.Layers.composite",
+  "Ess.Layers.current",
+  "Ess.Layers.expect",
+  "Ess.Layers.finish",
+  "Ess.Layers.isActive",
+  "Ess.Layers.isLoaded",
+  "Ess.Layers.remove",
+  "Ess.Layers.snapshot",
+  "Ess.Layers.swap",
+  "Ess.Log",
+  "Ess.Loop",
+  "Ess.Loop.isRunning",
+  "Ess.Loop.start",
+  "Ess.Loop.stop",
+  "Ess.Mark",
+  "Ess.Mark.clear",
+  "Ess.Mark.object",
+  "Ess.Mark.zone",
+  "Ess.Math",
+  "Ess.Math.angleTo",
+  "Ess.Math.approach",
+  "Ess.Math.clamp",
+  "Ess.Math.clamp01",
+  "Ess.Math.dist2D",
+  "Ess.Math.dist2DSq",
+  "Ess.Math.dist3D",
+  "Ess.Math.dist3DSq",
+  "Ess.Math.lerp",
+  "Ess.Math.lerpAngle",
+  "Ess.Math.normDeg",
+  "Ess.Math.pointAhead",
+  "Ess.Math.remap",
+  "Ess.Math.round",
+  "Ess.Math.sign",
+  "Ess.Math.smoothstep",
+  "Ess.Math.within2D",
+  "Ess.Math.within3D",
+  "Ess.Math.wrap",
+  "Ess.Name",
+  "Ess.Net",
+  "Ess.Net.Get",
+  "Ess.Net.IsAuthority",
+  "Ess.Net.IsCoop",
+  "Ess.Net.IsHost",
+  "Ess.Net.Me",
+  "Ess.Net.On",
+  "Ess.Net.OnRaw",
+  "Ess.Net.Send",
+  "Ess.Net.SendRaw",
+  "Ess.Net.Set",
+  "Ess.Net.Shared",
+  "Ess.Net.Track",
+  "Ess.Net.hijackCallback",
+  "Ess.Object",
+  "Ess.Object.addLabel",
+  "Ess.Object.alive",
+  "Ess.Object.disablePhysics",
+  "Ess.Object.displayName",
+  "Ess.Object.distance",
+  "Ess.Object.enablePhysics",
+  "Ess.Object.faceObject",
+  "Ess.Object.faceToward",
+  "Ess.Object.hasLabel",
+  "Ess.Object.heal",
+  "Ess.Object.health",
+  "Ess.Object.impulse",
+  "Ess.Object.kill",
+  "Ess.Object.maxHealth",
+  "Ess.Object.playerControlled",
+  "Ess.Object.pollVehicleChange",
+  "Ess.Object.pos",
+  "Ess.Object.remove",
+  "Ess.Object.removeLabel",
+  "Ess.Object.revive",
+  "Ess.Object.setHealth",
+  "Ess.Object.setInvincible",
+  "Ess.Object.setPos",
+  "Ess.Object.setVisible",
+  "Ess.Object.setYaw",
+  "Ess.Object.spawn",
+  "Ess.Object.spawnAhead",
+  "Ess.Object.valid",
+  "Ess.Object.vehicleOf",
+  "Ess.Object.visible",
+  "Ess.Object.yaw",
+  "Ess.Objective",
+  "Ess.On",
+  "Ess.On.death",
+  "Ess.On.enterArea",
+  "Ess.On.exitArea",
+  "Ess.On.healthBelow",
+  "Ess.On.insideArea",
+  "Ess.On.playerHurt",
+  "Ess.On.tick",
+  "Ess.On.vehicle",
+  "Ess.Override",
+  "Ess.Override.mergeIntoLiveTable",
+  "Ess.Override.wrap",
+  "Ess.Player",
+  "Ess.Player.camera",
+  "Ess.Player.character",
+  "Ess.Player.giveCash",
+  "Ess.Player.giveFuel",
+  "Ess.Player.inVehicle",
+  "Ess.Player.onFoot",
+  "Ess.Player.pose",
+  "Ess.Player.removeBoundaries",
+  "Ess.Player.rumble",
+  "Ess.Player.setInputEnabled",
+  "Ess.Player.slot",
+  "Ess.Player.targetUnderReticle",
+  "Ess.Player.teleport",
+  "Ess.Points",
+  "Ess.Points.bucket",
+  "Ess.Points.ideal",
+  "Ess.Probe",
+  "Ess.Probe.describeSafe",
+  "Ess.Probe.getFaction",
+  "Ess.Probe.nearby",
+  "Ess.Probe.nearest",
+  "Ess.Quest",
+  "Ess.RNG",
+  "Ess.RNG.new",
+  "Ess.Raw",
+  "Ess.Raw.Impulse",
+  "Ess.Raw.Impulse.apply",
+  "Ess.Raw.Mark",
+  "Ess.Raw.Mark.haltPulse",
+  "Ess.Raw.Mark.pda",
+  "Ess.Raw.Mark.pulse",
+  "Ess.Raw.Mark.radar",
+  "Ess.Raw.Mark.showPlayerMarkers",
+  "Ess.Raw.Mark.world",
+  "Ess.Raw.Mark.worldDisc",
+  "Ess.Relations",
+  "Ess.Relations.apply",
+  "Ess.Relations.getFeeling",
+  "Ess.Relations.isActive",
+  "Ess.Relations.makeAllies",
+  "Ess.Relations.makeHostile",
+  "Ess.Relations.restore",
+  "Ess.Relations.setFeeling",
+  "Ess.Relations.sideWith",
+  "Ess.Relations.war",
+  "Ess.Safe",
+  "Ess.Safe.call",
+  "Ess.Safe.quiet",
+  "Ess.Safe.string",
+  "Ess.Sandbox",
+  "Ess.Sandbox.arena",
+  "Ess.Sandbox.begin",
+  "Ess.Sandbox.done",
+  "Ess.Sandbox.finish",
+  "Ess.Sandbox.isActive",
+  "Ess.Save",
+  "Ess.Save.gate",
+  "Ess.Save.isGated",
+  "Ess.Save.ungate",
+  "Ess.SaveVar",
+  "Ess.SaveVar.ns",
+  "Ess.ScrollLog",
+  "Ess.ScrollLog.new",
+  "Ess.Sound",
+  "Ess.Sound.ambience",
+  "Ess.Sound.cue",
+  "Ess.Sound.stop",
+  "Ess.Sound.stopAmbience",
+  "Ess.Sound.volume",
+  "Ess.State",
+  "Ess.Str",
+  "Ess.Str.capitalize",
+  "Ess.Str.contains",
+  "Ess.Str.count",
+  "Ess.Str.endsWith",
+  "Ess.Str.join",
+  "Ess.Str.lines",
+  "Ess.Str.padLeft",
+  "Ess.Str.padRight",
+  "Ess.Str.split",
+  "Ess.Str.startsWith",
+  "Ess.Str.title",
+  "Ess.Str.trim",
+  "Ess.Str.truncate",
+  "Ess.Support",
+  "Ess.Support.airstrike",
+  "Ess.Support.artillery",
+  "Ess.Support.bombingrun",
+  "Ess.Support.gunship",
+  "Ess.Support.onMe",
+  "Ess.Support.onTarget",
+  "Ess.Support.reinforce",
+  "Ess.Support.shell",
+  "Ess.Table",
+  "Ess.Table.compact",
+  "Ess.Table.contains",
+  "Ess.Table.copy",
+  "Ess.Table.count",
+  "Ess.Table.filter",
+  "Ess.Table.find",
+  "Ess.Table.indexOf",
+  "Ess.Table.isEmpty",
+  "Ess.Table.keys",
+  "Ess.Table.map",
+  "Ess.Table.merge",
+  "Ess.Table.reduce",
+  "Ess.Table.reverse",
+  "Ess.Table.slice",
+  "Ess.Table.values",
+  "Ess.TextConsole",
+  "Ess.TextConsole.close",
+  "Ess.TextConsole.gfx",
+  "Ess.TextConsole.isOpen",
+  "Ess.Time",
+  "Ess.Time.clock",
+  "Ess.Time.cooldown",
+  "Ess.Time.elapsed",
+  "Ess.Time.format",
+  "Ess.Time.mark",
+  "Ess.Time.restoreScale",
+  "Ess.Time.scale",
+  "Ess.Time.stamp",
+  "Ess.Track",
+  "Ess.Track.new",
+  "Ess.Triggers",
+  "Ess.Triggers.after",
+  "Ess.Triggers.arm",
+  "Ess.Triggers.onDeath",
+  "Ess.Triggers.onPlayerNear",
+  "Ess.Triggers.scope",
+  "Ess.UI",
+  "Ess.UI.Bar",
+  "Ess.UI.Board",
+  "Ess.UI.Chat",
+  "Ess.UI.Confirm",
+  "Ess.UI.Input",
+  "Ess.UI.List",
+  "Ess.UI.Menu",
+  "Ess.UI.Panel",
+  "Ess.UI.Toast",
+  "Ess.UI.comma",
+  "Ess.UI.fmt_time",
+  "Ess.UI.wrap",
+  "Ess.Vec",
+  "Ess.Vec.add",
+  "Ess.Vec.dir",
+  "Ess.Vec.dot",
+  "Ess.Vec.length",
+  "Ess.Vec.lerp",
+  "Ess.Vec.normalize",
+  "Ess.Vec.scale",
+  "Ess.Vec.sub",
+  "Ess.Vec.toward",
+  "Ess.Vehicle",
+  "Ess.Vehicle.driver",
+  "Ess.Vehicle.enterBestSeat",
+  "Ess.Vehicle.enterSeatExcluding",
+  "Ess.Vehicle.exit",
+  "Ess.Vehicle.flyTo",
+  "Ess.Vehicle.followGhost",
+  "Ess.Vehicle.riders",
+  "Ess.Vehicle.seatOf"
+ ]
+};</script>
+<script>/* ess-bridge.js -- a tiny, dependency-free browser client for the Mercenaries 2 lua-bridge over WebSocket.
+ * Connect straight from a web page to the live game -- no Python/relay -- once the bridge speaks WS
+ * (see BRIDGE_WEBSOCKET.md for exactly what the bridge needs).
+ *
+ * WHY RESULTS WORK THE WAY THEY DO (read this -- it's the whole design):
+ *   The bridge runs your Lua whenever the engine next drives its pump -- and the pump rides on the game's own
+ *   (noop'd) native debug-print, which every stock script calls constantly, so chunks run promptly and
+ *   reliably (driven overnight at 200-300k executed calls/sec). Results ride a tagged line back to us, exactly
+ *   like tools/lua_repl.py -- but over a HIDDEN channel, not the log: this client wraps each chunk to
+ *   `Loader.WsSend("<tag>"..result)`. Loader.WsSend is a bridge global that broadcasts to WS clients ONLY and
+ *   never writes the log file, so result/plumbing traffic stays invisible to lua_loader_printf.log. The bridge
+ *   delivers two feeds: {type:"ws"} (Loader.WsSend -- hidden, carries our tagged results + any mod telemetry)
+ *   and {type:"log"} (Loader.Printf -- the real log, mirrored as the live console). No correlation plumbing in
+ *   the bridge's C either -- the id lives in Lua.
+ *
+ *   You get TWO signals per run():
+ *     * ACK    -- the bridge received + queued your chunk (immediate, reliable).
+ *     * RESULT -- the tagged {type:"ws"} line came back. Reliable in practice (the pump fires constantly). If
+ *                 none arrives within resultTimeout, run() resolves { timedOut:true } instead of hanging -- a
+ *                 rare safety net (a dropped/slow line), not the norm; the chunk almost certainly ran.
+ *
+ *   Set onData for un-tagged {type:"ws"} pushes (a mod streaming telemetry via Loader.WsSend), and onLog for
+ *   the {type:"log"} console feed.
+ *
+ * USAGE
+ *   const bridge = new EssBridge("ws://127.0.0.1:27050");
+ *   bridge.onLog = (line) => appendToConsole(line);          // the LIVE game log feed
+ *   bridge.onStatus = (s) => setDot(s);                      // "connecting" | "open" | "closed" | "error"
+ *   await bridge.connect();
+ *   const r = await bridge.run('return Ess.VERSION');        // { ok:true, value:"0.2.1", acked:true }
+ *   bridge.run('Ess.Player.giveCash(100000)');               // fire-and-forget is fine (still resolves)
+ *
+ * Works in any browser (native WebSocket). In Node, pass an impl: new EssBridge(url, { WebSocketImpl: require('ws') }).
+ */
+(function (root) {
+  "use strict";
+
+  var _seq = 0;
+  function nextId() { return "q" + (++_seq).toString(36) + Date.now().toString(36); }
+
+  // Wrap user code so it emits a single, nonce-tagged result line on the HIDDEN channel (Loader.WsSend --
+  // WS-only, never logged), so result plumbing doesn't pollute lua_loader_printf.log. pcall the body so the
+  // line ALWAYS fires (success OR error). Single line only -- a tostring() with its own newline truncates at
+  // the first, fine for scalars / coords / short strings.
+  function wrap(code, tag) {
+    return "local __ok, __r = pcall(function()\n" + code + "\nend)\n" +
+           "Loader.WsSend('" + tag + "' .. (__ok and 'OK\\t' or 'ERR\\t') .. tostring(__r))\n";
+  }
+
+  function EssBridge(url, opts) {
+    opts = opts || {};
+    this.url = url || "ws://127.0.0.1:27050";
+    this.resultTimeout = opts.resultTimeout || 8000;    // ms to wait for the tagged RESULT line
+    this.autoReconnect = opts.autoReconnect !== false;  // default on
+    this._WS = opts.WebSocketImpl || root.WebSocket;
+    this.ws = null;
+    this.state = "closed";
+    this._pending = {};        // id -> { tag, resolve, timer, acked, onAck }
+    this._reconnectDelay = 1000;
+    this.onLog = opts.onLog || function () {};       // (line) the {type:"log"} console feed (Loader.Printf)
+    this.onData = opts.onData || function () {};     // (line) un-tagged {type:"ws"} pushes (mod telemetry)
+    this.onStatus = opts.onStatus || function () {}; // (state)
+  }
+
+  EssBridge.prototype._set = function (s) { this.state = s; try { this.onStatus(s); } catch (e) {} };
+
+  EssBridge.prototype.connect = function () {
+    var self = this;
+    return new Promise(function (resolve, reject) {
+      if (!self._WS) { reject(new Error("no WebSocket implementation available")); return; }
+      self._set("connecting");
+      var ws;
+      try { ws = new self._WS(self.url); } catch (e) { self._set("error"); reject(e); return; }
+      self.ws = ws;
+      ws.onopen = function () { self._reconnectDelay = 1000; self._set("open"); resolve(); };
+      ws.onerror = function () { self._set("error"); /* onclose follows */ };
+      ws.onclose = function () {
+        self._set("closed");
+        self._failAll("connection closed");
+        if (self.autoReconnect) {
+          setTimeout(function () { self.connect().catch(function () {}); }, self._reconnectDelay);
+          self._reconnectDelay = Math.min(self._reconnectDelay * 1.7, 15000);
+        }
+      };
+      ws.onmessage = function (ev) { self._onMessage(ev.data); };
+    });
+  };
+
+  EssBridge.prototype.close = function () {
+    this.autoReconnect = false;
+    if (this.ws) { try { this.ws.close(); } catch (e) {} }
+  };
+
+  /* run(code, opts) -> Promise<{ ok, value, acked, timedOut, error? }>
+   * Resolves on the tagged RESULT line, or after resultTimeout with { timedOut:true }. Always resolves
+   * (never rejects) so fire-and-forget calls can't throw an unhandled rejection. */
+  EssBridge.prototype.run = function (code, opts) {
+    opts = opts || {};
+    var self = this;
+    return new Promise(function (resolve) {
+      if (self.state !== "open" || !self.ws) { resolve({ ok: false, acked: false, error: "not connected" }); return; }
+      var id = nextId();
+      var tag = "<<<WSR:" + id + ">>>";
+      var entry = { tag: tag, acked: false, onAck: opts.onAck || null, resolve: resolve };
+      entry.timer = setTimeout(function () {
+        delete self._pending[id];
+        // no tagged line in the window -- rare (the pump fires constantly); the chunk most likely ran, the
+        // line was just slow/lost. A never-hang safety net, not "it didn't execute".
+        resolve({ ok: undefined, value: null, acked: entry.acked, timedOut: true });
+      }, opts.resultTimeout || self.resultTimeout);
+      self._pending[id] = entry;
+      try { self.ws.send(JSON.stringify({ id: id, code: wrap(String(code), tag) })); }
+      catch (e) { clearTimeout(entry.timer); delete self._pending[id]; resolve({ ok: false, acked: false, error: String(e) }); }
+    });
+  };
+
+  EssBridge.prototype._onMessage = function (data) {
+    var msg;
+    try { msg = JSON.parse(data); } catch (e) { return; }   // ignore non-JSON control frames
+
+    if (msg.type === "ack") {
+      var e = this._pending[msg.id];
+      if (e) { e.acked = (msg.status === "queued"); if (e.onAck) { try { e.onAck(msg); } catch (x) {} } }
+      return;
+    }
+
+    if (msg.type === "ws") {
+      // the HIDDEN channel (Loader.WsSend). Our tagged RESULT lines ride here; everything else is a mod push.
+      var wline = msg.line == null ? "" : String(msg.line);
+      for (var id in this._pending) {
+        var p = this._pending[id];
+        var at = wline.indexOf(p.tag);
+        if (at !== -1) {
+          var rest = wline.slice(at + p.tag.length);
+          var ok = rest.indexOf("OK\t") === 0;
+          var value = rest.slice(rest.indexOf("\t") + 1);
+          clearTimeout(p.timer); delete this._pending[id];
+          p.resolve({ ok: ok, value: value, acked: true, timedOut: false });
+          return;
+        }
+      }
+      try { this.onData(wline); } catch (x) {}   // un-tagged -> a mod streaming telemetry
+      return;
+    }
+
+    if (msg.type === "log") {   // the real Loader.Printf log, mirrored as the live console feed
+      try { this.onLog(msg.line == null ? "" : String(msg.line)); } catch (x) {}
+      return;
+    }
+  };
+
+  EssBridge.prototype._failAll = function (why) {
+    for (var id in this._pending) {
+      var e = this._pending[id];
+      clearTimeout(e.timer);
+      e.resolve({ ok: false, value: null, acked: e.acked, timedOut: false, error: why });
+    }
+    this._pending = {};
+  };
+
+  root.EssBridge = EssBridge;
+  if (typeof module !== "undefined" && module.exports) module.exports = EssBridge;
+})(typeof self !== "undefined" ? self : this);
+
+/* ==== 00_state.js ==== */
+/* 00_state.js -- the shared IDE namespace, config, a $() helper, and a tiny pub/sub bus.
+   Every module attaches to window.IDE; they're merged into one <script> at build time. */
+window.IDE = window.IDE || {};
+IDE.cfg = { wsKey: "m2ide.ws", scriptKey: "m2ide.script", defaultWs: "ws://127.0.0.1:27050" };
+IDE.$ = function (id) { return document.getElementById(id); };
+IDE.bus = (function () {
+  var m = {};
+  return {
+    on: function (e, f) { (m[e] = m[e] || []).push(f); },
+    emit: function (e, d) { (m[e] || []).forEach(function (f) { try { f(d); } catch (x) { console.error(x); } }); }
+  };
+})();
+
+/* ==== 10_bridge.js ==== */
+/* 10_bridge.js -- wraps the vendored EssBridge WS client and re-broadcasts its events on IDE.bus.
+   status -> "connecting"|"open"|"closed"|"error"; log -> {kind:"log"|"ws", line}. */
+(function () {
+  var IDE = window.IDE, B = null, state = "closed";
+  IDE.bridge = {
+    state: function () { return state; },
+    connected: function () { return state === "open"; },
+    connect: function (url) {
+      if (B) { try { B.close(); } catch (e) {} B = null; }
+      if (typeof EssBridge === "undefined") { state = "error"; IDE.bus.emit("status", "error"); return; }
+      B = new EssBridge(url || IDE.cfg.defaultWs, {
+        onStatus: function (s) { state = s; IDE.bus.emit("status", s); },
+        onLog: function (l) { IDE.bus.emit("log", { kind: "log", line: l }); },
+        onData: function (l) { IDE.bus.emit("log", { kind: "ws", line: l }); }
+      });
+      B.connect().catch(function () {});
+    },
+    disconnect: function () { if (B) { B.close(); B = null; } state = "closed"; IDE.bus.emit("status", "closed"); },
+    run: function (code) { return (B && state === "open") ? B.run(code) : Promise.resolve({ ok: false, error: "not connected" }); }
+  };
+})();
+
+/* ==== 20_editor.js ==== */
+/* 20_editor.js -- a dependency-free code editor: a transparent <textarea> over a highlighted <pre>, plus a
+   line-number gutter, Lua syntax highlighting, tab/indent handling, and an Ess.* autocomplete popup.
+   Exposes IDE.editor { get, set, selection, focus, insertSnippet }. */
+(function () {
+  var IDE = window.IDE, ta = IDE.$("ta"), hl = IDE.$("hl"), gutter = IDE.$("gutter"), code = ta.parentElement, ac = IDE.$("ac");
+  var gnums = document.createElement("div"); gnums.id = "gnums"; gutter.appendChild(gnums);
+
+  /* ---- Lua highlighter (single pass -> spans) ---- */
+  var KW = {}; "and break do else elseif end false for function goto if in local nil not or repeat return then true until while".split(" ").forEach(function (k) { KW[k] = 1; });
+  var GLOB = {}; "Ess Loader Object Player Pg Camera Ai Vehicle Human Hud Sys Net Event Graphics Airstrike Gui Junk Weapon".split(" ").forEach(function (g) { GLOB[g] = 1; });
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function highlight(src) {
+    var out = "", i = 0, n = src.length, m;
+    while (i < n) {
+      var c = src[i];
+      if (c === "-" && src[i + 1] === "-") {
+        var lb = /^--\[(=*)\[/.exec(src.slice(i, i + 8));
+        if (lb) { var cl = "]" + lb[1] + "]"; var e = src.indexOf(cl, i); e = e < 0 ? n : e + cl.length; out += '<span class="tok-c">' + esc(src.slice(i, e)) + "</span>"; i = e; continue; }
+        var e2 = src.indexOf("\n", i); e2 = e2 < 0 ? n : e2; out += '<span class="tok-c">' + esc(src.slice(i, e2)) + "</span>"; i = e2; continue;
+      }
+      if (c === "[" && (src[i + 1] === "[" || src[i + 1] === "=")) {
+        var ls = /^\[(=*)\[/.exec(src.slice(i, i + 8));
+        if (ls) { var cl2 = "]" + ls[1] + "]"; var e3 = src.indexOf(cl2, i); e3 = e3 < 0 ? n : e3 + cl2.length; out += '<span class="tok-s">' + esc(src.slice(i, e3)) + "</span>"; i = e3; continue; }
+      }
+      if (c === '"' || c === "'") {
+        var j = i + 1; while (j < n && src[j] !== c) { if (src[j] === "\\") j++; j++; } j = Math.min(j + 1, n);
+        out += '<span class="tok-s">' + esc(src.slice(i, j)) + "</span>"; i = j; continue;
+      }
+      if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(src[i + 1] || ""))) {
+        m = /^(0[xX][0-9a-fA-F]+|[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/.exec(src.slice(i));
+        if (m) { out += '<span class="tok-n">' + esc(m[0]) + "</span>"; i += m[0].length; continue; }
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        var id = /^[A-Za-z_]\w*/.exec(src.slice(i))[0];
+        var cls = KW[id] ? "tok-k" : (GLOB[id] ? "tok-b" : null);
+        out += cls ? '<span class="' + cls + '">' + id + "</span>" : id;
+        i += id.length; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+
+  function render() {
+    var v = ta.value;
+    hl.innerHTML = highlight(v) + "\n";
+    var lines = v.split("\n").length;
+    if (gnums.childElementCount !== lines) {
+      var s = ""; for (var k = 1; k <= lines; k++) s += "<div>" + k + "</div>"; gnums.innerHTML = s;
+    }
+    IDE.bus.emit("editorchange");
+  }
+  function sync() {
+    hl.style.transform = "translate(" + (-ta.scrollLeft) + "px," + (-ta.scrollTop) + "px)";
+    gnums.style.transform = "translateY(" + (-ta.scrollTop) + "px)";
+  }
+
+  /* ---- token under caret + snippet insertion ---- */
+  function currentToken() {
+    var upto = ta.value.slice(0, ta.selectionStart);
+    var m = /[A-Za-z_][\w.]*$/.exec(upto);
+    return m ? { text: m[0], start: ta.selectionStart - m[0].length } : { text: "", start: ta.selectionStart };
+  }
+  function replaceRange(start, end, text) {
+    var v = ta.value; ta.value = v.slice(0, start) + text + v.slice(end);
+    var caret = start + text.length; ta.selectionStart = ta.selectionEnd = caret;
+    render(); sync();
+  }
+  function insertSnippet(text) { replaceRange(ta.selectionStart, ta.selectionEnd, text); ta.focus(); }
+
+  /* ---- autocomplete ---- */
+  var acItems = [], acSel = 0;
+  function caretXY() {
+    var mirror = document.createElement("div"), st = getComputedStyle(ta);
+    ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight", "tabSize"].forEach(function (p) { mirror.style[p] = st[p]; });
+    mirror.style.position = "absolute"; mirror.style.visibility = "hidden"; mirror.style.whiteSpace = "pre";
+    mirror.textContent = ta.value.slice(0, ta.selectionStart);
+    var mark = document.createElement("span"); mark.textContent = "​"; mirror.appendChild(mark);
+    code.appendChild(mirror);
+    var x = mark.offsetLeft - ta.scrollLeft, y = mark.offsetTop - ta.scrollTop + parseInt(st.lineHeight, 10);
+    code.removeChild(mirror);
+    return { x: x, y: y };
+  }
+  function hideAC() { ac.hidden = true; acItems = []; }
+  function showAC() {
+    if (!IDE.api) return hideAC();
+    var tok = currentToken();
+    if (tok.text.length < 2 || tok.text.indexOf(".") < 0 && tok.text.slice(0, 3).toLowerCase() !== "ess") return hideAC();
+    var q = tok.text.toLowerCase();
+    acItems = IDE.api.completions().filter(function (c) { return c.toLowerCase().indexOf(q) === 0; }).slice(0, 60);
+    if (!acItems.length) return hideAC();
+    acSel = 0; acTok = tok;
+    ac.innerHTML = acItems.map(function (c, i) {
+      var rest = c.slice(tok.text.length);
+      return '<div class="item' + (i === 0 ? " sel" : "") + '" data-i="' + i + '">' + c.slice(0, tok.text.length) + '<span class="sig">' + rest + "</span></div>";
+    }).join("");
+    var xy = caretXY();
+    ac.style.left = Math.min(xy.x, code.clientWidth - 220) + "px";
+    ac.style.top = Math.min(xy.y + 2, code.clientHeight - 40) + "px";
+    ac.hidden = false;
+  }
+  var acTok = null;
+  function acAccept() {
+    if (ac.hidden || !acItems.length) return false;
+    replaceRange(acTok.start, ta.selectionStart, acItems[acSel]);
+    hideAC(); return true;
+  }
+  function acMove(d) {
+    acSel = (acSel + d + acItems.length) % acItems.length;
+    Array.prototype.forEach.call(ac.children, function (el, i) { el.classList.toggle("sel", i === acSel); });
+    var sel = ac.children[acSel]; if (sel) sel.scrollIntoView({ block: "nearest" });
+  }
+  ac.addEventListener("mousedown", function (e) {
+    var it = e.target.closest(".item"); if (!it) return;
+    e.preventDefault(); acSel = +it.dataset.i; acAccept();
+  });
+
+  /* ---- keys ---- */
+  ta.addEventListener("keydown", function (e) {
+    if (!ac.hidden) {
+      if (e.key === "ArrowDown") { e.preventDefault(); return acMove(1); }
+      if (e.key === "ArrowUp") { e.preventDefault(); return acMove(-1); }
+      if (e.key === "Enter" || e.key === "Tab") { if (acAccept()) { e.preventDefault(); return; } }
+      if (e.key === "Escape") { e.preventDefault(); return hideAC(); }
+    }
+    var mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key === "Enter") { e.preventDefault(); return IDE.bus.emit("run"); }
+    if (mod && (e.key === "s" || e.key === "S")) { e.preventDefault(); return IDE.bus.emit("save"); }
+    if (mod && e.key === " ") { e.preventDefault(); return showAC(); }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      var s = ta.selectionStart, en = ta.selectionEnd;
+      if (s === en) { replaceRange(s, en, "  "); }
+      else { // indent/dedent selected lines
+        var v = ta.value, ls = v.lastIndexOf("\n", s - 1) + 1;
+        var block = v.slice(ls, en), lines = block.split("\n");
+        var nb = lines.map(function (l) { return e.shiftKey ? l.replace(/^ {1,2}/, "") : "  " + l; }).join("\n");
+        ta.value = v.slice(0, ls) + nb + v.slice(en); ta.selectionStart = ls; ta.selectionEnd = ls + nb.length; render(); sync();
+      }
+    }
+  });
+  ta.addEventListener("input", function () { render(); sync(); try { showAC(); } catch (x) { hideAC(); } });
+  ta.addEventListener("scroll", sync);
+  ta.addEventListener("blur", function () { setTimeout(hideAC, 120); });
+  window.addEventListener("resize", sync);
+
+  IDE.editor = {
+    get: function () { return ta.value; },
+    set: function (v) { ta.value = v; render(); sync(); },
+    selection: function () { return ta.value.slice(ta.selectionStart, ta.selectionEnd); },
+    focus: function () { ta.focus(); },
+    insertSnippet: insertSnippet
+  };
+  render(); sync();
+})();
+
+/* ==== 30_run.js ==== */
+/* 30_run.js -- run the selection (if any) or the whole file, and route the result to the Results panel. */
+(function () {
+  var IDE = window.IDE;
+  function run() {
+    var code = (IDE.editor.selection() || IDE.editor.get()).trim();
+    if (!code) return;
+    IDE.console.pending(code);
+    IDE.bridge.run(code).then(function (r) { IDE.console.result(r); });
+  }
+  IDE.run = run;
+  IDE.bus.on("run", run);
+})();
+
+/* ==== 40_console.js ==== */
+/* 40_console.js -- the two output panels: Results (your runs) and Log & telemetry (the live {type:log}/{ws}
+   feed). Result shapes come from ess-bridge.run(): {ok, value, timedOut, error}. */
+(function () {
+  var IDE = window.IDE, results = IDE.$("results"), log = IDE.$("log"), pendingRow = null;
+  function auto(el) { el.scrollTop = el.scrollHeight; }
+
+  function pending(codeText) {
+    var row = document.createElement("div"); row.className = "row";
+    var c = document.createElement("span"); c.className = "code";
+    c.textContent = codeText.length > 220 ? codeText.slice(0, 220) + "…" : codeText;
+    var r = document.createElement("span"); r.className = "res dim"; r.textContent = "running…";
+    row.appendChild(c); row.appendChild(r); results.appendChild(row); pendingRow = r; auto(results);
+  }
+  function result(o) {
+    var r = pendingRow; pendingRow = null; if (!r) return;
+    if (o.error) { r.className = "res err"; r.textContent = o.error; }
+    else if (o.timedOut) { r.className = "res warn"; r.textContent = "no result within timeout (chunk likely still ran)"; }
+    else if (o.ok === false) { r.className = "res err"; r.textContent = "runtime error: " + o.value; }
+    else { r.className = "res ok"; r.textContent = (o.value === "" || o.value == null) ? "(no return value)" : o.value; }
+    auto(results);
+  }
+  IDE.bus.on("log", function (d) {
+    var el = document.createElement("div"); el.className = "logline" + (d.kind === "ws" ? " ws" : "");
+    el.textContent = d.line; log.appendChild(el);
+    while (log.childElementCount > 600) log.removeChild(log.firstChild);
+    auto(log);
+  });
+
+  IDE.console = { pending: pending, result: result, clear: function (which) { (which === "log" ? log : results).innerHTML = ""; } };
+})();
+
+/* ==== 50_api.js ==== */
+/* 50_api.js -- the Ess API reference sidebar (from window.ESS_API, generated off CAPABILITIES.md) and the
+   flat completion list the editor's autocomplete consumes. Click any call to insert it at the caret. */
+(function () {
+  var IDE = window.IDE, data = window.ESS_API || { namespaces: [], completions: [] };
+  var tree = IDE.$("apiTree"), search = IDE.$("apiSearch");
+
+  function build(filter) {
+    filter = (filter || "").trim().toLowerCase();
+    tree.innerHTML = "";
+    data.namespaces.forEach(function (ns) {
+      var nsHit = ns.name.toLowerCase().indexOf(filter) >= 0;
+      var calls = ns.calls.filter(function (c) { return !filter || nsHit || c.path.toLowerCase().indexOf(filter) >= 0; });
+      if (filter && !nsHit && !calls.length) return;
+
+      var open = !!filter;
+      var nsEl = document.createElement("div"); nsEl.className = "ns";
+      nsEl.innerHTML = ns.name + '<span class="g">' + (ns.group || "") + "</span>";
+      var wrap = document.createElement("div");
+      function paint() {
+        wrap.innerHTML = "";
+        if (!open) return;
+        if (ns.doc) { var d = document.createElement("div"); d.className = "nsdoc"; d.textContent = ns.doc; wrap.appendChild(d); }
+        (filter ? calls : ns.calls).forEach(function (c) {
+          var el = document.createElement("div"); el.className = "call";
+          el.textContent = c.sig.replace(/^Ess\./, ""); el.title = c.sig;
+          el.onclick = function () { IDE.editor.insertSnippet(insertForm(c)); };
+          wrap.appendChild(el);
+        });
+      }
+      nsEl.onclick = function () { open = !open; paint(); };
+      tree.appendChild(nsEl); tree.appendChild(wrap); paint();
+    });
+    if (!tree.childElementCount) { var e = document.createElement("div"); e.className = "nsdoc"; e.textContent = "no matches"; tree.appendChild(e); }
+  }
+
+  // insert the call with empty parens + caret-friendly form (drop the arg names, keep the parens)
+  function insertForm(c) {
+    var hasArgs = /\([^)]/.test(c.sig);
+    return c.path + (c.sig.indexOf("(") >= 0 ? (hasArgs ? "()" : "()") : "");
+  }
+
+  search.addEventListener("input", function () { build(search.value); });
+  IDE.api = { completions: function () { return data.completions; }, build: build };
+  build("");
+})();
+
+/* ==== 60_ui.js ==== */
+/* 60_ui.js -- toolbar wiring: connect/disconnect, run/save/share, examples, output tabs, onboarding,
+   status dot, and autosave to localStorage. */
+(function () {
+  var IDE = window.IDE, $ = IDE.$;
+
+  var EXAMPLES = {
+    "Hello - engine version": "-- confirm you're connected\nreturn Ess.VERSION",
+    "Spawn a car and hop in": 'Ess.Easy.Vehicle.summon("Veyron")',
+    "Airstrike on your reticle": "Ess.Easy.Airstrike.onTarget(0)",
+    "Give cash + a weapon": 'Ess.Player.giveCash(100000)\nEss.Easy.Human.giveWeapon(Ess.Player.character(0), "RPG")',
+    "Toast + HUD banner": 'Ess.UI.Toast("hello from the web IDE")\nEss.Hud.banner("WEB IDE")',
+    "A repeating tick (F-free)": 'Ess.Loop.start("demo", 1, function()\n  Ess.UI.Toast("tick "..tostring(os and os.time and os.time() or "?"))\n  return true\nend)\n-- stop with:  Ess.Loop.stop("demo")'
+  };
+  var sel = $("examples");
+  Object.keys(EXAMPLES).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = k; sel.appendChild(o); });
+  sel.onchange = function () { if (EXAMPLES[sel.value]) { IDE.editor.set(EXAMPLES[sel.value]); save(); } sel.value = ""; IDE.editor.focus(); };
+
+  function flash(btn, msg) { var o = btn.textContent; btn.textContent = msg; setTimeout(function () { btn.textContent = o; }, 1100); }
+  function save() { try { localStorage.setItem(IDE.cfg.scriptKey, IDE.editor.get()); } catch (e) {} }
+
+  IDE.bus.on("status", function (s) {
+    $("dot").className = "dot " + s; $("state").textContent = s;
+    $("connect").textContent = (s === "open" || s === "connecting") ? "Disconnect" : "Connect";
+    if (s === "open") $("onboard").hidden = true;
+  });
+
+  $("connect").onclick = function () {
+    var st = IDE.bridge.state();
+    if (st === "open" || st === "connecting") { IDE.bridge.disconnect(); }
+    else { try { localStorage.setItem(IDE.cfg.wsKey, $("url").value); } catch (e) {} IDE.bridge.connect($("url").value); }
+  };
+  $("run").onclick = function () { IDE.run(); };
+  $("save").onclick = function () { save(); flash($("save"), "Saved"); };
+  IDE.bus.on("save", function () { save(); flash($("save"), "Saved"); });
+  $("share").onclick = function () {
+    var url = location.origin + location.pathname + "#s=" + encodeURIComponent(IDE.editor.get());
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { flash($("share"), "Link copied"); }, function () { prompt("Copy this link:", url); });
+    else prompt("Copy this link:", url);
+  };
+
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
+    t.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (x) { x.classList.remove("on"); });
+      t.classList.add("on");
+      var which = t.getAttribute("data-t");
+      $("results").classList.toggle("hidden", which !== "results");
+      $("log").classList.toggle("hidden", which !== "log");
+    };
+  });
+  $("clr").onclick = function () { var on = document.querySelector(".tab.on").getAttribute("data-t"); IDE.console.clear(on); };
+  $("onboardClose").onclick = function () { $("onboard").hidden = true; };
+
+  var t = null;
+  IDE.bus.on("editorchange", function () { clearTimeout(t); t = setTimeout(save, 700); });
+
+  IDE.ui = { flash: flash, save: save };
+})();
+
+/* ==== 99_main.js ==== */
+/* 99_main.js -- bootstrap. Restore the saved WS url + script (or a #s= share link, or a starter), connect,
+   and pop the onboarding card if we're not live shortly after load. */
+(function () {
+  var IDE = window.IDE, $ = IDE.$;
+
+  var savedWs = null; try { savedWs = localStorage.getItem(IDE.cfg.wsKey); } catch (e) {}
+  if (savedWs) $("url").value = savedWs;
+
+  var script = null, h = /[#&]s=([^&]+)/.exec(location.hash || "");
+  if (h) { try { script = decodeURIComponent(h[1]); } catch (e) {} }
+  if (script == null) { try { script = localStorage.getItem(IDE.cfg.scriptKey); } catch (e) {} }
+  if (script == null) {
+    script = "-- Mercs2 Lua IDE - write Lua, hit Run (Ctrl/Cmd+Enter).\n" +
+             "-- Type \"Ess.\" for autocomplete; browse the full API on the left.\n\n" +
+             "return Ess.VERSION\n";
+  }
+  IDE.editor.set(script);
+
+  IDE.bridge.connect($("url").value);
+  setTimeout(function () { if (IDE.bridge.state() !== "open") $("onboard").hidden = false; }, 2500);
+  IDE.editor.focus();
+})();
+</script>
+</body>
+</html>

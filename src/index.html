@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercs2 Lua IDE</title>
+<meta name="description" content="A live in-browser Lua/Ess editor for Mercenaries 2 modding — write a script, hit Run, see the result in your running game over the lua-bridge.">
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<header class="bar">
+  <span class="brand">Mercs2 <b>Lua IDE</b></span>
+  <span class="conn"><span class="dot" id="dot"></span><span id="state">offline</span></span>
+  <button class="btn go" id="run" title="Run (Ctrl/Cmd+Enter) — runs the selection if you have one, else the whole file">Run ▷</button>
+  <button class="btn" id="save" title="Save to this browser (Ctrl/Cmd+S)">Save</button>
+  <button class="btn" id="share" title="Copy a shareable link (script encoded in the URL)">Share</button>
+  <select class="btn" id="examples" title="Load an example"><option value="">Examples…</option></select>
+  <span class="spacer"></span>
+  <input id="url" class="url" value="ws://127.0.0.1:27050" spellcheck="false" title="The lua-bridge WebSocket address">
+  <button class="btn" id="connect">Connect</button>
+</header>
+
+<main class="layout">
+  <aside class="side" id="side">
+    <div class="sidehead">
+      <input id="apiSearch" placeholder="search the Ess API…" spellcheck="false">
+    </div>
+    <div class="apitree" id="apiTree"></div>
+  </aside>
+
+  <section class="work">
+    <div class="editor" id="editor">
+      <div class="gutter" id="gutter"></div>
+      <div class="code">
+        <pre class="hl"><code id="hl"></code></pre>
+        <textarea id="ta" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"></textarea>
+        <div class="ac" id="ac" hidden></div>
+      </div>
+    </div>
+    <div class="output">
+      <div class="tabs">
+        <button class="tab on" data-t="results" id="tabResults">Results</button>
+        <button class="tab" data-t="log" id="tabLog">Log &amp; telemetry</button>
+        <span class="spacer"></span>
+        <span class="clr" id="clr">clear</span>
+      </div>
+      <div class="feed" id="results"></div>
+      <div class="feed hidden mono" id="log"></div>
+    </div>
+  </section>
+</main>
+
+<div class="onboard" id="onboard" hidden>
+  <div class="card">
+    <h2>Not connected to a game</h2>
+    <p>This editor runs your Lua in a <b>live Mercenaries 2</b> session over the <code>lua-bridge</code>. To use it:</p>
+    <ol>
+      <li>Install the WebSocket-capable <code>lua-bridge</code> mod and launch the game.</li>
+      <li>Make sure it's listening (default <code>ws://127.0.0.1:27050</code>).</li>
+      <li>Hit <b>Connect</b> — the dot turns green and you're live.</li>
+    </ol>
+    <p class="dim">You can still write and save scripts offline; they'll run once you connect. Editor and API reference work with no game attached.</p>
+    <button class="btn" id="onboardClose">Got it</button>
+  </div>
+</div>
+
+<script>/*__API__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

@@ -3,10 +3,10 @@
    Counts failed reconnect cycles; resets on a successful open or a fresh Connect click. */
 (function () {
   var IDE = window.IDE, $ = IDE.$;
-  var THRESHOLD = 10, fails = 0, shown = false;
+  var THRESHOLD = 10, fails = 0, shown = false, snoozed = false;
 
   function show() {
-    if (shown) return; shown = true;
+    if (shown || snoozed) return; shown = true;
     try { $("blockedUrl").textContent = $("url").value || IDE.cfg.defaultWs; } catch (e) {}
     $("onboard").hidden = true;          // supersede the generic onboarding card
     $("blocked").hidden = false;
@@ -14,9 +14,12 @@
   function hide() { shown = false; $("blocked").hidden = true; }
 
   IDE.bus.on("status", function (s) {
-    if (s === "open") { fails = 0; hide(); }
+    if (s === "open") { fails = 0; snoozed = false; hide(); }   // a real connect re-arms the hint for next time
     else if (s === "closed") { fails++; if (fails >= THRESHOLD) show(); }
   });
+
+  // "The game's just closed right now" -- not a browser problem, stop offering fixes this session
+  $("blockedSnooze").onclick = function () { snoozed = true; hide(); };
 
   // a fresh Connect click = "try again" -> reset the counter and dismiss the card
   var cbtn = $("connect");

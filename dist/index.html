@@ -105,8 +105,10 @@ select.btn{padding:6px 8px}
 .work{display:flex;flex-direction:column;min-width:0;min-height:0}
 
 /* ---- editor (CodeMirror) ---- */
-.editor{flex:1;min-height:0;position:relative;background:var(--bg)}
-#editor .cm-editor{position:absolute;inset:0}
+/* NB: CM's base theme pins .cm-editor to position:relative with !important, so absolute-inset sizing
+   silently fails -- the supported shape is height:100% inside a fixed-height box, scroller scrolls. */
+.editor{flex:1;min-height:0;position:relative;overflow:hidden;background:var(--bg)}
+#editor .cm-editor{height:100%}
 #editor .cm-editor.cm-focused{outline:none}
 #editor .cm-scroller{font:var(--efs)/var(--eline) var(--efont);overflow:auto}
 #editor .cm-content{padding:8px 0;caret-color:var(--ink)}
@@ -259,6 +261,7 @@ a.btn{text-decoration:none;display:inline-block}
     <div class="dlrow">
       <a class="btn go" id="dlRelease" href="https://github.com/loganw234/mercs2-lua-web-ide/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the editor</a>
       <button class="btn" id="dlSelf">Save this page instead</button>
+      <button class="btn" id="blockedSnooze">The game's just closed right now</button>
       <button class="btn ghost" id="blockedClose">Keep trying</button>
     </div>
   </div>
@@ -8646,10 +8649,10 @@ IDE.bus = (function () {
    Counts failed reconnect cycles; resets on a successful open or a fresh Connect click. */
 (function () {
   var IDE = window.IDE, $ = IDE.$;
-  var THRESHOLD = 10, fails = 0, shown = false;
+  var THRESHOLD = 10, fails = 0, shown = false, snoozed = false;
 
   function show() {
-    if (shown) return; shown = true;
+    if (shown || snoozed) return; shown = true;
     try { $("blockedUrl").textContent = $("url").value || IDE.cfg.defaultWs; } catch (e) {}
     $("onboard").hidden = true;          // supersede the generic onboarding card
     $("blocked").hidden = false;
@@ -8657,9 +8660,12 @@ IDE.bus = (function () {
   function hide() { shown = false; $("blocked").hidden = true; }
 
   IDE.bus.on("status", function (s) {
-    if (s === "open") { fails = 0; hide(); }
+    if (s === "open") { fails = 0; snoozed = false; hide(); }   // a real connect re-arms the hint for next time
     else if (s === "closed") { fails++; if (fails >= THRESHOLD) show(); }
   });
+
+  // "The game's just closed right now" -- not a browser problem, stop offering fixes this session
+  $("blockedSnooze").onclick = function () { snoozed = true; hide(); };
 
   // a fresh Connect click = "try again" -> reset the counter and dismiss the card
   var cbtn = $("connect");

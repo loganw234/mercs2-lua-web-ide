@@ -1,0 +1,34 @@
+name: Publish standalone build to a rolling release
+
+# Keeps a "latest" GitHub Release whose asset is the single-file standalone editor, so the in-app
+# "browser is blocking it — download instead" button always has a clean, current file to hand out:
+#   https://github.com/loganw234/mercs2-lua-web-ide/releases/latest/download/mercs2-lua-ide.html
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.x" }
+      - name: Build the standalone
+        run: |
+          python tools/gen_api.py
+          python build.py
+          cp dist/index.html mercs2-lua-ide.html
+      - name: Update the "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest standalone build
+          body: "The single-file Mercs2 Lua IDE. Download `mercs2-lua-ide.html` and open it in any browser — it works offline and connects to your local lua-bridge with no cross-origin restrictions."
+          files: mercs2-lua-ide.html
+          make_latest: "true"

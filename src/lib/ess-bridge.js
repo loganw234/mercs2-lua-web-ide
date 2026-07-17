@@ -79,7 +79,7 @@
         self._failAll("connection closed");
         if (self.autoReconnect) {
           setTimeout(function () { self.connect().catch(function () {}); }, self._reconnectDelay);
-          self._reconnectDelay = Math.min(self._reconnectDelay * 1.7, 15000);
+          self._reconnectDelay = Math.min(self._reconnectDelay * 1.7, 3000);  /* IDE: cap low so the block-hint's ~10-try threshold trips in ~25s, and reconnects feel snappy */
         }
       };
       ws.onmessage = function (ev) { self._onMessage(ev.data); };

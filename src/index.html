@@ -64,6 +64,23 @@
   </div>
 </div>
 
+<div class="onboard" id="blocked" hidden>
+  <div class="card">
+    <h2>Still can't reach the game</h2>
+    <p>After several tries the editor can't connect to <code id="blockedUrl">ws://127.0.0.1:27050</code>. Two common reasons:</p>
+    <ul>
+      <li><b>The game or the lua-bridge isn't running</b> — start them and this connects on its own.</li>
+      <li><b>Your browser is blocking it</b> — some browsers refuse a hosted (<code>https</code>) page talking to <code>127.0.0.1</code>. Chrome asks once and works if you click <b>Allow</b>; others block it outright.</li>
+    </ul>
+    <p><b>The fix that always works: download the editor and open it from your disk.</b> Same app, offline, no browser restrictions.</p>
+    <div class="dlrow">
+      <a class="btn go" id="dlRelease" href="https://github.com/loganw234/mercs2-lua-web-ide/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the editor</a>
+      <button class="btn" id="dlSelf">Save this page instead</button>
+      <button class="btn ghost" id="blockedClose">Keep trying</button>
+    </div>
+  </div>
+</div>
+
 <script>/*__API__*/</script>
 <script>/*__APP__*/</script>
 </body>

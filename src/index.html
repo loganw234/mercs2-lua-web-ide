@@ -147,16 +147,28 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
 <div class="tutorial hidden" id="tutorial">
   <div class="tuthead">
     <span class="tutstepno" id="tutStep"></span>
-    <button class="updx" id="tutClose" title="Skip tutorial">×</button>
+    <span class="tutnav">
+      <button class="tutarrow" id="tutBack" title="Previous step">‹</button>
+      <button class="tutarrow" id="tutFwd" title="Next step (only steps you've reached)">›</button>
+      <button class="updx" id="tutClose" title="Pause tutorial — the 🎓 button resumes right here">×</button>
+    </span>
   </div>
   <div class="tutdots" id="tutDots"></div>
   <h3 id="tutTitle"></h3>
   <p id="tutBody"></p>
+  <ul class="tutexplain hidden" id="tutExplain"></ul>
   <div class="tuttoast hidden" id="tutToast"></div>
   <div class="tuthint hidden" id="tutHint"></div>
   <div class="tutdone hidden" id="tutDone">
-    <p><b>That's a real taxi-fare minigame</b>, built and deployed by you. Press the key you bound it to
-    in-game any time you want a new fare.</p>
+    <p><b>That's a real taxi-fare minigame</b>, built, edited, and deployed by you. Press the key you bound
+    it to in-game any time you want a new fare.</p>
+    <p class="tutchal">Where to go from here:</p>
+    <ul class="tutexplain">
+      <li><code>Ess.Player.giveCash(500)</code> — pay yourself when a ride's done</li>
+      <li><code>Ess.Easy.Toast("...")</code> — announce the fare on screen</li>
+      <li>the <b>Examples</b> tab — 45 more working scripts to pull apart</li>
+      <li>hover any <code>Ess.*</code> call in your code — the docs come to you</li>
+    </ul>
     <button class="btn small go" id="tutDoneClose">Nice</button>
   </div>
 </div>

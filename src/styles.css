@@ -267,6 +267,22 @@ select.btn{padding:6px 8px}
   border:1px solid var(--edge2);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .tutorial.hidden{display:none}
 .tuthead{display:flex;align-items:center;justify-content:space-between}
+.tutnav{display:flex;align-items:center;gap:2px}
+.tutarrow{font:600 14px/1 var(--efont);color:var(--dim);background:transparent;border:1px solid transparent;border-radius:5px;padding:2px 7px;cursor:pointer}
+.tutarrow:hover:not(:disabled){color:var(--ink);border-color:var(--edge2)}
+.tutarrow:disabled{opacity:.3;cursor:default}
+.tutexplain{margin:8px 0 0;padding:0 0 0 2px;list-style:none}
+.tutexplain li{color:var(--dim);font-size:11.5px;line-height:1.5;margin:4px 0;padding-left:10px;text-indent:-10px}
+.tutexplain li::before{content:"· ";color:var(--accent)}
+.tutorial code{color:var(--ink);background:var(--inbg);border:1px solid var(--edge);border-radius:4px;padding:0 4px;font:11px/1.4 var(--efont)}
+.tutexplain.hidden{display:none}
+.tutchal{margin-top:10px !important;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+/* the element the current step needs, pulsing */
+.tutglow{animation:tutpulse 1.5s ease-in-out infinite;position:relative}
+@keyframes tutpulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(92,200,255,.65)}
+  50%{box-shadow:0 0 0 7px rgba(92,200,255,0)}
+}
 .tutstepno{color:var(--dim);font:11px/1 var(--efont);text-transform:uppercase;letter-spacing:.04em}
 .tutdots{display:flex;gap:4px;margin:8px 0}
 .tutdot{width:7px;height:7px;border-radius:50%;background:var(--edge2)}

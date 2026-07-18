@@ -136,6 +136,42 @@ setTimeout(() => {
   ok("log filter + latest chip present", !!w.document.getElementById("logFilter") && !!w.document.getElementById("latest"));
 
   // ---- update check (fetch stubbed to a future commit above) ----
+  // ---- tutorial: walk it end to end on simulated game signals ----
+  const T = w.IDE.tutorial, bus = w.IDE.bus;
+  const ranOk = (code, value) => bus.emit("ran", { code, result: { ok: true, value } });
+  const stepTitle = () => w.document.getElementById("tutTitle").textContent;
+  T.start();
+  ok("tutorial: starts on connect step", T._state().idx === 0 && /Connect/.test(stepTitle()));
+  ok("tutorial: connect button glows", w.document.getElementById("connect").classList.contains("tutglow"));
+  bus.emit("status", "open");
+  ok("tutorial: real connect advances", T._state().idx === 1);
+  ranOk("print('hi')", '"x"');
+  ok("tutorial: unrelated run ignored (need marker)", T._state().idx === 1);
+  ranOk("return Ess.VERSION", '"0.2.1"');
+  ok("tutorial: typed hello advances", T._state().idx === 2);
+  ok("tutorial: taxi code loaded into own script", w.IDE.store.active().name === "Tutorial: Taxi Fare" && /summon/.test(w.IDE.editor.get()));
+  ranOk(w.IDE.editor.get(), '"your taxi\'s here"');
+  ranOk(w.IDE.editor.get(), '"found a fare: Pedestrian"');
+  ok("tutorial: at the your-turn radius step", T._state().idx === 4);
+  ranOk('... Ess.Probe.nearby(px, py, pz, 150, "humans") ...', '"found a fare: x"');
+  ok("tutorial: unedited radius does NOT advance, coaching shown", T._state().idx === 4 && !w.document.getElementById("tutHint").classList.contains("hidden"));
+  ranOk('... Ess.Probe.nearby(px, py, pz, 300, "humans") ...', '"found a fare: x"');
+  ok("tutorial: edited radius advances + sticks", T._state().idx === 5 && T._state().radius === 300);
+  ok("tutorial: later steps keep the learner's radius", /nearby\(px, py, pz, 300,/.test(w.IDE.editor.get()));
+  ranOk(w.IDE.editor.get(), '"they\'re waiting for you now"');
+  ranOk(w.IDE.editor.get(), '"fare marked, destination ring dropped -- go pick them up!"');
+  ok("tutorial: at the your-turn drop-off step", T._state().idx === 7);
+  ranOk('... Ess.Easy.Mark.zone(fx + 80, fy, fz + 80, 8) ...', '"fare marked, destination ring dropped -- go pick them up!"');
+  ok("tutorial: drop-off edit advances", T._state().idx === 8 && T._state().drop === 80);
+  ok("tutorial: progress persisted for resume", (JSON.parse(w.localStorage.getItem("m2ide.tutorial.v1")) || {}).idx === 8);
+  const back = w.document.getElementById("tutBack"), fwd = w.document.getElementById("tutFwd");
+  back.click();
+  ok("tutorial: back revisits a step", T._state().idx === 7);
+  fwd.click();
+  ok("tutorial: forward returns (capped at reached)", T._state().idx === 8 && fwd.disabled);
+  bus.emit("deployed", { name: "x" });
+  ok("tutorial: deploy finishes + clears saved progress", !w.document.getElementById("tutDone").classList.contains("hidden") && !w.localStorage.getItem("m2ide.tutorial.v1"));
+
   ok("build stamped with a git sha", /^[0-9a-f]{7}$/.test((w.IDE_BUILD || {}).sha), JSON.stringify(w.IDE_BUILD));
   const updbar = w.document.getElementById("updbar");
   ok("update bar shown for a newer remote commit", !updbar.classList.contains("hidden"));

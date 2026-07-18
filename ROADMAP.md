@@ -58,17 +58,21 @@ Rest of Tier 2 (all but the tutorial), same session:
   mismatch. Dismissing remembers that exact (reference, game) pair, not "forever".
 
 - **Interactive first-script tutorial** — a floating, non-blocking guided panel (`78_tutorial.js`): connect
-  → say hello (`return Ess.VERSION`) → summon a taxi → find a nearby civilian fare → hold them → mark the
-  pickup and drop a "go here" ring → deploy as OnKey. One script, additively built in place across all six
-  steps (each step's code is the FULL accumulated script so far, so it's always immediately re-runnable),
-  living in its own dedicated "Tutorial: Taxi Fare" library entry so it never clobbers whatever was already
-  open. Every step advances off a real signal from the game (a new `"ran"` bus event carrying the actual
-  bridge result, plus existing `"status"`/new `"deployed"` events) — never a bare "Next" click. All six
-  code steps were live-verified against a running game while building this: `Ess.Probe.nearby(..., "humans")`
-  + `Ess.Probe.getFaction(g) == "Civ"` finds a civilian (the "Civ" faction abbreviation itself was confirmed
-  live, not guessed), `Ess.AIOrders.command({g}, "hold")` needs no extra opts, and `Ess.Mark.object` +
-  `Ess.Easy.Mark.zone` place the pickup/drop-off markers. By the end the player has an actual working
-  taxi-fare minigame, not a demo — and it's real because they built it.
+  → TYPE `return Ess.VERSION` yourself → summon a taxi → find a nearby civilian fare → **your turn: widen
+  the search radius** → hold them → mark the pickup + drop a "go here" ring → **your turn: place the
+  drop-off** → deploy as OnKey. One script, additively built in place, living in its own dedicated
+  "Tutorial: Taxi Fare" library entry (with a guard that switches back to it before writing, so wandering
+  to another script mid-tutorial can never get that script clobbered). Every step advances off a real
+  signal from the game (`"ran"` carries the code AND the bridge result; `"status"`/`"deployed"` for the
+  ends) — never a bare "Next" click — and a per-step `need` marker means unrelated REPL runs can't
+  advance or fail a step. The two "your turn" steps verify the learner's own edit by inspecting the code
+  that actually ran, and the accumulated script is templated on their values (radius, drop-off distance),
+  so nothing they change is ever silently reverted. Polish: each step diff-selects its newly added lines
+  in the editor, explains its new calls line by line, pulses the exact button it needs (`.tutglow`),
+  coaches failures with step-specific hints, supports ‹ › step revisiting, and survives a reload (the 🎓
+  button becomes "Resume tutorial"). The finish panel hands out graduation challenges (giveCash the fare,
+  toast the pickup) instead of just closing. All Lua live-verified against a running game (incl. the
+  "Civ" faction string); the whole flow is also walked end-to-end in `smoke.js` on simulated signals.
 
 ## Tier 2 — ambitious / speculative
 

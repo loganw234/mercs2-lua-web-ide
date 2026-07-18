@@ -41,18 +41,28 @@
 
   /* "grab what I'm aiming at" -- one click instead of a docs hunt for "how do I get a guid". Not routed
      through IDE.runCode: this is a fixed, trusted snippet, not user code, so it skips the lint gate and
-     just needs the connected check that gate would otherwise provide. */
+     just needs the connected check that gate would otherwise provide.
+
+     A guid is Lua userdata -- tostring()-ing it directly gives an opaque, non-reusable "userdata: 0x...".
+     Ess.Name(uGuid) (pcall-wrapped Sys.GuidToString) gives the real portable form, "0x0012B69E", and
+     Sys.StringToGuid("0x0012B69E") reconstructs the identical handle (live-confirmed: same Ess.Object.health
+     before/after) -- so what actually gets inserted is that reconstruct call, ready to paste straight into
+     another Ess.Object.* / Ess.Probe.* call. Returns a table, not a tab-joined string: the bridge's
+     serializer %q-quotes string returns, and %q escapes tabs into literal "\9" text, so a hand tab-joined
+     string can never be split back apart client-side (see 05_lua.js). */
   $("grabTarget").onclick = function () {
     if (!IDE.bridge.connected()) { flash($("grabTarget"), "not connected"); return; }
     IDE.bridge.run(
       'local uGuid = Ess.Player.targetUnderReticle(0)\n' +
       'if not uGuid then return nil end\n' +
-      'return tostring(uGuid) .. "\\t" .. Ess.Probe.describeSafe(uGuid)'
+      'local descOk, desc = pcall(Ess.Probe.describeSafe, uGuid)\n' +
+      'return { hex = Ess.Name(uGuid), desc = (descOk and desc) or nil }'
     ).then(function (r) {
-      if (!r.ok || r.value == null) { flash($("grabTarget"), "nothing aimed at"); return; }
-      var parts = String(r.value).split("\t");
-      IDE.editor.insertSnippet(parts[0]);
-      flash($("grabTarget"), parts[1] ? (parts[1].length > 34 ? parts[1].slice(0, 34) + "…" : parts[1]) : "grabbed");
+      if (!r.ok || r.value == null || r.value === "nil") { flash($("grabTarget"), "nothing aimed at"); return; }
+      var obj = IDE.lua.parseTable(String(r.value));
+      if (!obj.hex) { flash($("grabTarget"), "couldn't name that guid"); return; }
+      IDE.editor.insertSnippet('Sys.StringToGuid(' + IDE.lua.quote(obj.hex) + ')');
+      flash($("grabTarget"), obj.desc ? (obj.desc.length > 34 ? obj.desc.slice(0, 34) + "…" : obj.desc) : "grabbed");
     });
   };
 

@@ -79,13 +79,20 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
       <div class="apitree" id="tplTree"></div>
     </div>
     <div class="spanel hidden" id="panelInspect">
+      <div class="watchadd">
+        <button class="btn small" id="inspectGrab" title="Grab what you're aiming at in-game and inspect it">🎯 Grab target</button>
+      </div>
+      <div class="watchadd">
+        <input id="inspectInput" placeholder="…or a guid/expression" spellcheck="false">
+        <button class="btn small" id="inspectGo" title="Inspect this">Inspect</button>
+      </div>
       <div class="inspecthead hidden" id="inspectHead">
         <span class="inspectexpr" id="inspectExpr"></span>
         <button class="btn small" id="inspectClose" title="Stop inspecting">✕</button>
       </div>
       <div class="inspectbody">
-        <div class="inspectempty" id="inspectEmpty">Click 🔍 on a Results value to inspect it here as a
-          live object — name, position, health, faction and more, refreshing while connected.</div>
+        <div class="inspectempty" id="inspectEmpty">Grab your target above, type a guid, or click 🔍 on a
+          Results value — see it live: name, position, health, faction and more, refreshing while connected.</div>
         <div class="inspectfields hidden" id="inspectFields"></div>
       </div>
     </div>

@@ -224,7 +224,7 @@ select.btn{padding:6px 8px}
 .watchpanel{flex:1;display:flex;flex-direction:column;min-height:0}
 .watchpanel.hidden{display:none}
 .watchadd{display:flex;gap:6px;padding:7px 11px;border-bottom:1px solid var(--edge);flex:none}
-#watchExpr{flex:1;min-width:0;font:12px/1 var(--efont);color:var(--ink);background:var(--inbg);border:1px solid var(--edge2);border-radius:6px;padding:6px 8px}
+#watchExpr,#inspectInput{flex:1;min-width:0;font:12px/1 var(--efont);color:var(--ink);background:var(--inbg);border:1px solid var(--edge2);border-radius:6px;padding:6px 8px}
 .watchlist{flex:1;overflow-y:auto;padding:4px 0}
 .watchrow{display:flex;align-items:center;gap:8px;padding:6px 11px;border-bottom:1px solid var(--edge)}
 .watchrow:last-child{border-bottom:0}

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""gen_templates.py -- build the template-name autocomplete/browser data from Logan's own spawn-menu
+"""gen_templates.py -- build the template-name autocomplete/browser data from community-built spawn-menu
 scripts, the highest-confidence source there is: every string in them was put there because someone
-confirmed it actually spawns in-game (AllInOneSpawnMenu.lua's own comments even flag the couple of
-DLC entries that DON'T spawn, which is what lets this script tell "confirmed" from "on this list but
-known broken").
+manually confirmed it actually spawns in-game. Credit where it's due: the two primary sources below are
+the hand-found work of community members @Ferdilanz and @Cosmic76Guardian, who built and maintained these
+spawn menus (AllInOneSpawnMenu.lua's own comments even flag the couple of DLC entries that DON'T spawn,
+which is what lets this script tell "confirmed" from "on this list but known broken").
 
 Primary sources (real, hand-curated spawn menus):
   - wad_reference/AllInOneSpawnMenu.lua  -- Ess.UI.Menu tree, ~500 vehicles + weapons + pickups +
@@ -292,10 +293,11 @@ def main():
     total = sum(len(v) for v in categories.values())
     data = {
         "_source": (
-            "AllInOneSpawnMenu.lua + CommonSpawnMenu.lua (Logan's hand-curated OnKey spawn menus) "
-            "+ wiki spawn-reference/pg-spawn-calls.md + weapons.md (Skins/FX/extra-weapon supplement), "
-            "%d confirmed names as of 2026-07-18" % total
+            "AllInOneSpawnMenu.lua + CommonSpawnMenu.lua (hand-found and maintained by community members "
+            "@Ferdilanz and @Cosmic76Guardian) + wiki spawn-reference/pg-spawn-calls.md + weapons.md "
+            "(Skins/FX/extra-weapon supplement), %d confirmed names as of 2026-07-18" % total
         ),
+        "_credit": "Template names hand-found by @Ferdilanz and @Cosmic76Guardian's spawn-menu scripts.",
         "categories": [{"name": name, "items": items} for name, items in categories.items() if items],
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

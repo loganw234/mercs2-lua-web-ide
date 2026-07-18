@@ -1,5 +1,6 @@
 {
- "_source": "AllInOneSpawnMenu.lua + CommonSpawnMenu.lua (Logan's hand-curated OnKey spawn menus) + wiki spawn-reference/pg-spawn-calls.md + weapons.md (Skins/FX/extra-weapon supplement), 667 confirmed names as of 2026-07-18",
+ "_source": "AllInOneSpawnMenu.lua + CommonSpawnMenu.lua (hand-found and maintained by community members @Ferdilanz and @Cosmic76Guardian) + wiki spawn-reference/pg-spawn-calls.md + weapons.md (Skins/FX/extra-weapon supplement), 667 confirmed names as of 2026-07-18",
+ "_credit": "Template names hand-found by @Ferdilanz and @Cosmic76Guardian's spawn-menu scripts.",
  "categories": [
   {
    "name": "Vehicles",

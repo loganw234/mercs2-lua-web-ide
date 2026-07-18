@@ -1,12 +1,14 @@
 /* 52_templates.js -- the Templates sidebar tab: browse every confirmed spawnable template name
-   (window.MERCS_TEMPLATES, scraped by tools/gen_templates.py from Logan's own curated spawn menus) by
-   category. Click a name to insert it as a quoted string at the caret -- the same one-click pattern the
-   API panel's "Insert into script" button uses, just for magic strings instead of calls. This data is
-   also the source behind the editor's in-string autocomplete (20_editor.js) and the linter's
-   unknown-template warning (25_lint.js). */
+   (window.MERCS_TEMPLATES, scraped by tools/gen_templates.py from community-built spawn menus -- see the
+   credit line below) by category. Click a name to insert it as a quoted string at the caret -- the same
+   one-click pattern the API panel's "Insert into script" button uses, just for magic strings instead of
+   calls. This data is also the source behind the editor's in-string autocomplete (20_editor.js) and the
+   linter's unknown-template warning (25_lint.js). */
 (function () {
   var IDE = window.IDE, data = window.MERCS_TEMPLATES || { categories: [] };
-  var tree = IDE.$("tplTree"), search = IDE.$("tplSearch");
+  var tree = IDE.$("tplTree"), search = IDE.$("tplSearch"), credit = IDE.$("tplCredit");
+
+  if (data._credit) credit.textContent = data._credit;
 
   function build(filter) {
     filter = (filter || "").trim().toLowerCase();

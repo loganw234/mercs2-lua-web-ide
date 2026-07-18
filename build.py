@@ -9,10 +9,23 @@ the output is a single self-contained file with zero external requests. That one
 
 Edit files under src/ (or regenerate the API with tools/gen_api.py), then re-run:  python build.py
 """
+import json
 import pathlib
+import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent
 SRC = ROOT / "src"
+
+
+def build_info():
+    """The build's identity: the git commit it was built from. The downloaded copy compares this against
+    the repo's current HEAD (75_update.js) to offer updates. Falls back to "dev" outside a git checkout."""
+    try:
+        sha = subprocess.check_output(["git", "rev-parse", "--short=7", "HEAD"], cwd=ROOT, text=True).strip()
+        date = subprocess.check_output(["git", "show", "-s", "--format=%cI", "HEAD"], cwd=ROOT, text=True).strip()
+        return {"sha": sha, "date": date}
+    except Exception:
+        return {"sha": "dev", "date": ""}
 
 
 def guard(s):
@@ -38,6 +51,7 @@ def main():
             .replace("/*__API__*/", "window.ESS_API=" + guard(api) + ";")
             .replace("/*__NATIVES__*/", "window.MERCS_NATIVES=" + guard(natives) + ";")
             .replace("/*__EXAMPLES__*/", "window.ESS_EXAMPLES=" + guard(examples) + ";")
+            .replace("/*__BUILD__*/", "window.IDE_BUILD=" + json.dumps(build_info()) + ";")
             .replace("/*__APP__*/", guard(app)))
 
     out = ROOT / "dist" / "index.html"

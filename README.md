@@ -49,6 +49,9 @@ You can still write, save, and browse everything with no game attached — only 
   `Loader.WsSend` telemetry feed with timestamps, a substring filter, and smart follow (scroll up to pause
   autoscroll, "↓ latest" to jump back).
 - **Comfort** — dark/light/auto theme toggle (bottom right), draggable sidebar + output splits, all persisted.
+- **Update check** — the *downloaded* (and bridge-served) copy quietly asks GitHub about once a day whether
+  a newer build exists (its git commit is stamped in at build time) and offers the release download in a
+  dismissible bar. The hosted Pages copy is always current, so it never checks. Offline? Nothing happens.
 - Zero external requests at runtime — one file, fully offline-capable.
 
 ## Build

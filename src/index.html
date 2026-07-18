@@ -23,6 +23,13 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
   <button class="btn" id="connect">Connect</button>
 </header>
 
+<div class="updbar hidden" id="updbar">
+  <span>A newer build of the IDE is available.</span>
+  <a class="btn small go" id="updGet" href="https://github.com/loganw234/mercs2-lua-web-ide/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the update</a>
+  <button class="btn small ghost" id="updSkip" title="Don't mention this version again">Skip this one</button>
+  <button class="updx" id="updClose" title="Dismiss">×</button>
+</div>
+
 <main class="layout">
   <aside class="side" id="side">
     <div class="sidetabs">
@@ -114,6 +121,7 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
 <script>/*__API__*/</script>
 <script>/*__NATIVES__*/</script>
 <script>/*__EXAMPLES__*/</script>
+<script>/*__BUILD__*/</script>
 <script>/*__APP__*/</script>
 </body>
 </html>

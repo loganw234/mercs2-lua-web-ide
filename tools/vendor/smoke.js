@@ -31,6 +31,11 @@ const dom = new JSDOM(html, {
       constructor() { setTimeout(() => this.onclose && this.onclose({}), 5); }
       send() {} close() {}
     };
+    // update check: pretend origin/master has a newer commit -> the update bar should appear
+    window.fetch = () => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ sha: "fffffff0000000", commit: { committer: { date: "2999-01-01T00:00:00Z" } } }),
+    });
   },
 });
 
@@ -129,6 +134,14 @@ setTimeout(() => {
   // ---- layout + log chrome present ----
   ok("splitters present", !!w.document.getElementById("hsplit") && !!w.document.getElementById("vsplit"));
   ok("log filter + latest chip present", !!w.document.getElementById("logFilter") && !!w.document.getElementById("latest"));
+
+  // ---- update check (fetch stubbed to a future commit above) ----
+  ok("build stamped with a git sha", /^[0-9a-f]{7}$/.test((w.IDE_BUILD || {}).sha), JSON.stringify(w.IDE_BUILD));
+  const updbar = w.document.getElementById("updbar");
+  ok("update bar shown for a newer remote commit", !updbar.classList.contains("hidden"));
+  w.document.getElementById("updSkip").click();
+  ok("skip hides + remembers the sha", updbar.classList.contains("hidden") &&
+     JSON.parse(w.localStorage.getItem("m2ide.update.v1")).skip === "fffffff");
 
   console.log(fail ? "\n" + fail + " FAILED, " + pass + " passed" : "\nall " + pass + " passed");
   process.exit(fail ? 1 : 0);

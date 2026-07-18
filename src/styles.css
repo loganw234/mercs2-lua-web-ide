@@ -37,6 +37,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 system-ui,-app
 select.btn{padding:6px 8px}
 .url{font:12px/1 var(--efont);color:var(--ink);background:var(--inbg);border:1px solid var(--edge2);border-radius:7px;padding:6px 9px;width:190px}
 
+/* ---- update bar (downloaded/bridge-served copies only) ---- */
+.updbar{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--hov);border-bottom:1px solid var(--edge2);font-size:12px}
+.updbar.hidden{display:none}
+.updx{margin-left:auto;font:15px/1 var(--efont);color:var(--dim);background:transparent;border:0;cursor:pointer}
+.updx:hover{color:var(--ink)}
+
 /* ---- layout (both splits draggable -- 62_layout.js persists --sidew / --outh) ---- */
 .layout{flex:1;display:grid;grid-template-columns:var(--sidew,265px) 5px 1fr;min-height:0}
 @media (max-width:760px){ .layout{grid-template-columns:1fr} .side,.hsplit{display:none} }

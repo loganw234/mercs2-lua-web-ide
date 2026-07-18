@@ -1464,7 +1464,12 @@ a.btn{text-decoration:none;display:inline-block}
    "name": "Ess.Objective",
    "group": "Missions",
    "doc": "A single counted goal on the HUD objective line (state, no Contract)",
-   "calls": []
+   "calls": [
+    {
+     "path": "Ess.Objective.new",
+     "sig": "Ess.Objective.new{label, target, slot, onComplete, onProgress, onFail, id}"
+    }
+   ]
   },
   {
    "name": "Ess.On",
@@ -1621,7 +1626,12 @@ a.btn{text-decoration:none;display:inline-block}
    "name": "Ess.Quest",
    "group": "Missions",
    "doc": "An ordered sequence shown one step at a time",
-   "calls": []
+   "calls": [
+    {
+     "path": "Ess.Quest.new",
+     "sig": "Ess.Quest.new{steps, slot, showCounter, onStep, onComplete}"
+    }
+   ]
   },
   {
    "name": "Ess.RNG",
@@ -2034,6 +2044,10 @@ a.btn{text-decoration:none;display:inline-block}
     {
      "path": "Ess.TextConsole.isOpen",
      "sig": "Ess.TextConsole.isOpen()"
+    },
+    {
+     "path": "Ess.TextConsole.open",
+     "sig": "Ess.TextConsole.open{ onSubmit=, \u2026 }"
     }
    ]
   },
@@ -2506,6 +2520,7 @@ a.btn{text-decoration:none;display:inline-block}
   "Ess.Object.visible",
   "Ess.Object.yaw",
   "Ess.Objective",
+  "Ess.Objective.new",
   "Ess.On",
   "Ess.On.death",
   "Ess.On.enterArea",
@@ -2541,6 +2556,7 @@ a.btn{text-decoration:none;display:inline-block}
   "Ess.Probe.nearby",
   "Ess.Probe.nearest",
   "Ess.Quest",
+  "Ess.Quest.new",
   "Ess.RNG",
   "Ess.RNG.new",
   "Ess.Raw",
@@ -2633,6 +2649,7 @@ a.btn{text-decoration:none;display:inline-block}
   "Ess.TextConsole.close",
   "Ess.TextConsole.gfx",
   "Ess.TextConsole.isOpen",
+  "Ess.TextConsole.open",
   "Ess.Time",
   "Ess.Time.clock",
   "Ess.Time.cooldown",
@@ -8028,7 +8045,10 @@ IDE.bus = (function () {
     if (!args.length) return path + "(${})";
     return path + "(" + args.map(function (a) { return "${" + a + "}"; }).join(", ") + ")";
   }
-  IDE.callTemplate = function (c) { return callTemplate(c.path, sigArgs(c.sig)); };   // 50_api reuses this
+  function braceCall(sig) { return /^[^(]*\{/.test(sig || ""); }   // Ess.TextConsole.open{ ... } table-call style
+  IDE.callTemplate = function (c) {                                // 50_api reuses this
+    return braceCall(c.sig) ? c.path + "{ ${} }" : callTemplate(c.path, sigArgs(c.sig));
+  };
 
   var LUA_SNIPPETS = [
     { label: "function", tpl: "function ${name}(${args})\n\t${}\nend", detail: "function … end" },
@@ -8049,13 +8069,13 @@ IDE.bus = (function () {
       var easy = ns.name.indexOf("Ess.Easy") === 0;
       out.push({ label: ns.name, type: "class", info: ns.doc || undefined, boost: easy ? 2 : 0 });
       ns.calls.forEach(function (c) {
-        var args = sigArgs(c.sig);
+        var brace = braceCall(c.sig), args = sigArgs(c.sig);
         out.push({
           label: c.path, type: "function",
-          detail: "(" + args.join(", ") + ")",
+          detail: brace ? (/\{[^}]*\}/.exec(c.sig) || ["{…}"])[0] : "(" + args.join(", ") + ")",
           info: ns.doc || undefined,
           boost: c.path.indexOf("Ess.Easy.") === 0 ? 2 : 0,
-          apply: CM.snippet(callTemplate(c.path, args))
+          apply: CM.snippet(brace ? c.path + "{ ${} }" : callTemplate(c.path, args))
         });
       });
     });

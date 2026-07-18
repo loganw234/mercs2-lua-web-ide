@@ -39,7 +39,10 @@
     if (!args.length) return path + "(${})";
     return path + "(" + args.map(function (a) { return "${" + a + "}"; }).join(", ") + ")";
   }
-  IDE.callTemplate = function (c) { return callTemplate(c.path, sigArgs(c.sig)); };   // 50_api reuses this
+  function braceCall(sig) { return /^[^(]*\{/.test(sig || ""); }   // Ess.TextConsole.open{ ... } table-call style
+  IDE.callTemplate = function (c) {                                // 50_api reuses this
+    return braceCall(c.sig) ? c.path + "{ ${} }" : callTemplate(c.path, sigArgs(c.sig));
+  };
 
   var LUA_SNIPPETS = [
     { label: "function", tpl: "function ${name}(${args})\n\t${}\nend", detail: "function … end" },
@@ -60,13 +63,13 @@
       var easy = ns.name.indexOf("Ess.Easy") === 0;
       out.push({ label: ns.name, type: "class", info: ns.doc || undefined, boost: easy ? 2 : 0 });
       ns.calls.forEach(function (c) {
-        var args = sigArgs(c.sig);
+        var brace = braceCall(c.sig), args = sigArgs(c.sig);
         out.push({
           label: c.path, type: "function",
-          detail: "(" + args.join(", ") + ")",
+          detail: brace ? (/\{[^}]*\}/.exec(c.sig) || ["{…}"])[0] : "(" + args.join(", ") + ")",
           info: ns.doc || undefined,
           boost: c.path.indexOf("Ess.Easy.") === 0 ? 2 : 0,
-          apply: CM.snippet(callTemplate(c.path, args))
+          apply: CM.snippet(brace ? c.path + "{ ${} }" : callTemplate(c.path, args))
         });
       });
     });

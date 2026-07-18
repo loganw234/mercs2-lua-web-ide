@@ -18,8 +18,9 @@ OUT = ROOT / "src" / "data" / "ess-api.json"
 
 BACKTICK = re.compile(r"`([^`]+)`")
 NS_RE = re.compile(r"^Ess(?:\.Raw|\.Easy)?\.[A-Z][A-Za-z]+$")          # Ess.Player, Ess.Easy.Airstrike
-CALL_RE = re.compile(r"^(Ess(?:\.[A-Za-z_]\w*)+)(\([^)]*\))?$")         # Ess.X.y(args)
-METHOD_RE = re.compile(r"^(\.[A-Za-z_]\w*)(\([^)]*\))?$")               # .method(args)
+# arg lists come in TWO shapes: (args) and Lua's table-call sugar {fields} (Ess.TextConsole.open{...})
+CALL_RE = re.compile(r"^(Ess(?:\.[A-Za-z_]\w*)+)\s*(\([^)]*\)|\{[^}]*\})?$")   # Ess.X.y(args) / Ess.X.y{...}
+METHOD_RE = re.compile(r"^(\.[A-Za-z_]\w*)\s*(\([^)]*\)|\{[^}]*\})?$")         # .method(args) / .method{...}
 
 
 def clean_doc(cell):

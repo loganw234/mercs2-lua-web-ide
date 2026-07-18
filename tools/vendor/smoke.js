@@ -73,6 +73,7 @@ setTimeout(() => {
   ok("lint: Ess typo did-you-mean", /summon/.test((IDE.lint.validate('Ess.Easy.Vehicle.sumon("V")').warnings[0] || {}).message));
   ok("lint: freeze loop flagged", IDE.lint.validate("while true do end").warnings.some(d => /FREEZE/.test(d.message)));
   ok("lint: clean code is clean", IDE.lint.validate('Ess.Player.giveCash(1000)').warnings.length === 0);
+  ok("lint: table-call style accepted", IDE.lint.validate('Ess.TextConsole.open{ onSubmit = function(t) end }').warnings.length === 0);
 
   // ---- run gating (not connected; syntax error must block before the bridge) ----
   IDE.editor.set("function broken(");

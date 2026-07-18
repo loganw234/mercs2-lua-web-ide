@@ -84,6 +84,40 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   };
 
+  /* ---- deploy as OnKey: bridges "ran it once in the IDE" to "it's a real mod now". Wraps the open
+     script in the exact guard/state/action shape every Ess OnKey mod uses (samples/OnKey/StarterMod.lua),
+     named after the script, ready to drop in scripts/OnKey/ and bind in lua_loader.ini. ---- */
+  function onKeyWrap(modName, code) {
+    return (
+      "-- " + modName + ".lua -- exported from the Mercs2 Lua IDE. Bind it to a key in lua_loader.ini to\n" +
+      "-- run it in-game:\n" +
+      "--     [OnKey]\n" +
+      "--     " + modName + ".lua=F5\n" +
+      "-- ...then press that key in-game (pick any free key instead of F5). Needs Ess (1_Ess.lua) already\n" +
+      "-- loaded as an OnLoad script.\n\n" +
+      "-- GUARD -- bail cleanly if Ess isn't loaded (wrong load order, or not installed). Always first.\n" +
+      "if not _G.Ess then Loader.Printf(\"" + modName + ": load Ess first (1_Ess.lua in scripts/OnLoad)\") return end\n\n" +
+      "-- STATE -- an OnKey script re-runs top-to-bottom on EVERY keypress; this table survives across\n" +
+      "-- those re-runs if your script needs to remember anything (a toggle, a counter, ...). Safe to\n" +
+      "-- leave unused if it doesn't.\n" +
+      "local S = Ess.State(\"" + modName + "\", {})\n\n" +
+      "-- ACTION -- your script from the IDE, unchanged below this line.\n" +
+      code
+    );
+  }
+  $("scDeploy").onclick = function () {
+    var s = IDE.store.active();
+    var modName = s.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "MyMod";
+    var wrapped = onKeyWrap(modName, IDE.editor.get());
+    var blob = new Blob([wrapped], { type: "text/x-lua" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = modName + ".lua";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    IDE.ui.flash($("scDeploy"), "Downloaded — bind it in lua_loader.ini");
+  };
+
   /* ---- whole-library backup / restore -- the seatbelt against "clear browsing data" ---- */
   $("scBackup").onclick = function () {
     var blob = new Blob([IDE.store.exportAll()], { type: "application/json" });

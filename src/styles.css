@@ -63,7 +63,7 @@ select.btn{padding:6px 8px}
 .scriptname{color:var(--dim);font:12px/1 var(--efont);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* the Scripts panel */
-.scriptshead{display:flex;gap:6px}
+.scriptshead{display:flex;gap:6px;flex-wrap:wrap}
 .sclist{flex:1;overflow-y:auto;padding:4px 0}
 .scrow{display:flex;align-items:center;padding:6px 8px 6px 11px;cursor:pointer;border-left:2px solid transparent}
 .scrow:hover{background:var(--hov)}
@@ -183,6 +183,7 @@ select.btn{padding:6px 8px}
 .res.err{color:var(--err)} .res.err::before{content:"⚠ "}
 .res.warn{color:var(--warn)} .res.warn::before{content:"⏱ "}
 .res.dim{color:var(--dim)} .res.dim::before{content:"· "}
+.explain{margin-top:2px;color:var(--dim);font:11.5px/1.5 system-ui,sans-serif;font-style:italic}
 .logline{padding:1px 0;color:var(--dim);white-space:pre-wrap;word-break:break-word}
 .logline.ws{color:var(--accent)}
 .logline .lt{color:var(--c);font-size:10px;margin-right:7px;user-select:none}
@@ -220,12 +221,24 @@ select.btn{padding:6px 8px}
 .watchrm{flex:none;font:12px/1 var(--efont);color:var(--dim);background:transparent;border:0;cursor:pointer;padding:2px 5px}
 .watchrm:hover{color:var(--err)}
 
+/* object-mode watch rows (the object inspector -- 🔍 from a Results row) */
+.watchrow.watchobj{border-bottom:0}
+.watchobjsum{border-bottom:1px dotted var(--dim)}
+.watchfields{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:0 11px 8px 11px;border-bottom:1px solid var(--edge)}
+.watchfields.hidden{display:none}
+.watchfield{display:flex;gap:6px;font:11px/1.5 var(--efont);overflow:hidden}
+.wfk{color:var(--dim);flex:none;width:60px}
+.wfv{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* row re-run + the feed area wrapper with its "jump to latest" chip */
 .feedwrap{flex:1;position:relative;display:flex;flex-direction:column;min-height:0}
-.row{position:relative;padding-right:26px}
+.row{position:relative;padding-right:48px}
 .rerun{position:absolute;right:2px;top:5px;font:12px/1 var(--efont);color:var(--dim);background:transparent;border:1px solid transparent;border-radius:5px;padding:3px 6px;cursor:pointer;opacity:0}
 .row:hover .rerun{opacity:1}
 .rerun:hover{color:var(--accent);border-color:var(--edge2)}
+.inspect{position:absolute;right:24px;top:5px;font:11px/1 var(--efont);background:transparent;border:1px solid transparent;border-radius:5px;padding:3px 5px;cursor:pointer;opacity:0}
+.row:hover .inspect{opacity:1}
+.inspect:hover{border-color:var(--edge2)}
 .latest{position:absolute;right:12px;bottom:8px;z-index:5;font:11px/1 var(--efont);color:var(--ink);background:var(--bar);border:1px solid var(--edge2);border-radius:20px;padding:6px 11px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .latest:hover{border-color:var(--accent)}
 .latest.hidden{display:none}

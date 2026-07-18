@@ -16,6 +16,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "data" / "CAPABILITIES.md"
 OUT = ROOT / "src" / "data" / "ess-api.json"
 CALL_DOCS = ROOT / "src" / "data" / "call_docs.json"   # {"ess": {path: doc}, "natives": {...}} -- see its own header
+DEFAULT_ESS_CORE = r"C:\Users\logan\source\repos\mercs2-lua-essentials\src\00_core.lua"
+VERSION_RE = re.compile(r'Ess\.VERSION\s*=\s*"([^"]+)"')
 
 BACKTICK = re.compile(r"`([^`]+)`")
 NS_RE = re.compile(r"^Ess(?:\.Raw|\.Easy)?\.[A-Z][A-Za-z]+$")          # Ess.Player, Ess.Easy.Airstrike
@@ -135,10 +137,19 @@ def main():
         for c in calls:
             completions.add(c["path"])
 
-    data = {"namespaces": out_ns, "completions": sorted(completions)}
+    # the Ess.VERSION this data was generated against -- 75_versioncheck.js compares it to the live
+    # game's own Ess.VERSION on connect, so a stale reference doesn't silently mislead anyone.
+    ess_version = None
+    core_path = pathlib.Path(DEFAULT_ESS_CORE)
+    if core_path.exists():
+        m = VERSION_RE.search(core_path.read_text(encoding="utf-8"))
+        if m:
+            ess_version = m.group(1)
+
+    data = {"namespaces": out_ns, "completions": sorted(completions), "essVersion": ess_version}
     OUT.write_text(json.dumps(data, indent=1), encoding="utf-8")
-    print("[gen_api] wrote %s -- %d namespaces, %d completions, %d calls with a real per-call doc"
-          % (OUT.name, len(out_ns), len(completions), doc_hits))
+    print("[gen_api] wrote %s -- %d namespaces, %d completions, %d calls with a real per-call doc, Ess %s"
+          % (OUT.name, len(out_ns), len(completions), doc_hits, ess_version or "?"))
     return 0
 
 

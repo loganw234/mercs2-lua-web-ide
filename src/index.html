@@ -31,6 +31,11 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
   <button class="updx" id="updClose" title="Dismiss">×</button>
 </div>
 
+<div class="updbar hidden" id="verbar">
+  <span id="verText"></span>
+  <button class="updx" id="verClose" title="Dismiss">×</button>
+</div>
+
 <main class="layout">
   <aside class="side" id="side">
     <div class="sidetabs">
@@ -48,6 +53,7 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
         <button class="btn small" id="scBackup" title="Download your whole script library as one JSON file">Backup</button>
         <button class="btn small" id="scRestore" title="Restore scripts from a library JSON file — adds to your library, never overwrites">Restore</button>
         <input type="file" id="scRestoreFile" accept=".json" hidden>
+        <button class="btn small go" id="scDeploy" title="Wrap this script in real OnKey mod boilerplate (guard/state/action) and download it, ready to bind in lua_loader.ini">⬇ Deploy as OnKey</button>
       </div>
       <div class="sclist" id="scList"></div>
     </div>
@@ -81,7 +87,7 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
         <button class="tab" data-t="log" id="tabLog">Log &amp; telemetry</button>
         <button class="tab" data-t="watch" id="tabWatch">Watch</button>
         <span class="spacer"></span>
-        <input id="logFilter" class="hidden" placeholder="filter the log…" spellcheck="false">
+        <input id="logFilter" placeholder="filter results…" spellcheck="false">
         <button class="clr hidden" id="hlRules" title="Manage log highlight rules">🎨 rules</button>
         <span class="clr" id="clr">clear</span>
       </div>

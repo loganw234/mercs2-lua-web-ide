@@ -29,27 +29,38 @@ All of former Tier 1, built, smoke-tested, and browser-verified in one session:
   `#z=` links carry `{name, code}` LZ-string-compressed, `#s=` (the old, name-less, uncompressed form)
   still parses forever as the fallback.
 
+Also fixed the same day, found while using the above: a pre-existing bug where `Ess.*`/native calls never
+got their special editor coloring (CodeMirror lexes a dotted chain as one token; the check only ever
+compared the whole token, never matching past the first dot), a stale-data bug in the Ess repo's
+`CAPABILITIES.md` that silently invented non-existent Core-tier methods while omitting their real
+`Ess.Easy.*` equivalents, and real per-call documentation (`src/data/call_docs.json`, 346 Ess + 487 native
+calls) mined from the wiki to replace the generic namespace-level blurb every hover/API-panel doc used to
+show.
+
+Rest of Tier 2 (all but the tutorial), same session:
+
+- **Object inspector** — a 🔍 button on any simple (non-table) `ok` Results value adds an "object watch"
+  row to the Watch tab: one round-trip pcall-reads name/pos/health/maxHealth/faction/alive +
+  `Ess.Probe.describeSafe`, rendered as a small collapsible field list, refreshing on the same 2s poll
+  every other watch row uses.
+- **Deploy as OnKey** — a Scripts-panel button wraps the open script in the real guard/state/action shape
+  every Ess OnKey mod uses (`samples/OnKey/StarterMod.lua`'s own pattern), named after the script, and
+  downloads it ready to drop in `scripts/OnKey/` with a `lua_loader.ini` binding comment baked in.
+- **Runtime-error explainer** — 11 common Lua runtime error patterns ("attempt to index/call a nil value",
+  "bad argument #N", arithmetic/concat/compare on nil) mapped to a plain-English cause, shown as a second
+  line under the red result. Persists with the row in run history.
+- **Persistent run history** — the Results feed survives reload (last 100, localStorage); the existing log
+  filter box now doubles as a Results filter, shown for whichever tab is active.
+- **Ess-version drift warning** — `tools/gen_api.py` stamps in the `Ess.VERSION` the data was generated
+  against; on every connect the IDE asks the game its real version and shows one dismissible line on a
+  mismatch. Dismissing remembers that exact (reference, game) pair, not "forever".
+
 ## Tier 2 — worth planning (medium effort, big payoff)
 
 - **Interactive first-script tutorial** (L) — a guided overlay: connect → run `return Ess.VERSION` → toast
   → spawn a car → bind a hotkey loop. Each step advances only when the *real result* comes back from the
   game (the bridge tells us), so completing it means the user has actually done the loop, not read about
   it. The examples gallery provides the material; the missing piece is the step-runner + progress UI.
-- **Object inspector** (M) — any guid in Results becomes clickable: drill into a live object
-  (name/template/pos/health/faction/labels via `Ess.Probe.describeSafe` + `Ess.Object.*` getters) in a
-  collapsible tree, with per-field refresh. Pairs naturally with the watch panel.
-- **Deploy as OnKey** (M) — "Export for the game" wraps the current script in the OnKey boilerplate
-  (guard / state / action, per the Ess `StarterMod` pattern), names it, and downloads it with a note about
-  `lua_loader.ini` binding. Bridges the gap between "ran it once in the IDE" and "it's a real mod now".
-- **Runtime-error explainer** (M) — the lint layer catches mistakes *before* the run; this catches them
-  *after*: map common runtime errors ("attempt to index a nil value", bad guid patterns) to plain-English
-  causes and next steps, shown under the red result line. Grows a case at a time; even 10 mappings cover
-  most beginner pain.
-- **Persistent run history** (S) — the Results feed survives reload (last ~100 rows, localStorage), with a
-  "history" view searchable like the log. Beginners re-find "the thing that worked yesterday".
-- **Ess-version drift warning** (S) — on connect, compare `Ess.VERSION` against the version the API data
-  was generated from; if they differ, one dismissible line ("reference is from 0.2.1, game runs 0.3.0 —
-  some calls may differ"). Kills a whole class of silent confusion.
 
 ## Tier 3 — ambitious / speculative
 

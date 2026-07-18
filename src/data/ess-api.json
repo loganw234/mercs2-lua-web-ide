@@ -2790,5 +2790,6 @@
   "Ess.Vehicle.followGhost",
   "Ess.Vehicle.riders",
   "Ess.Vehicle.seatOf"
- ]
+ ],
+ "essVersion": "0.2.1"
 }

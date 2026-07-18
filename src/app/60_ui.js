@@ -77,7 +77,8 @@
       var which = t.getAttribute("data-t");
       $("results").classList.toggle("hidden", which !== "results");
       $("log").classList.toggle("hidden", which !== "log");
-      $("logFilter").classList.toggle("hidden", which !== "log");
+      $("logFilter").classList.toggle("hidden", which !== "log" && which !== "results");
+      $("logFilter").placeholder = which === "results" ? "filter results…" : "filter the log…";
       $("hlRules").classList.toggle("hidden", which !== "log");
       $("watchPanel").classList.toggle("hidden", which !== "watch");
       if (which !== "log") $("hlPanel").classList.add("hidden");

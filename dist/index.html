@@ -72,7 +72,7 @@ select.btn{padding:6px 8px}
 .scriptname{color:var(--dim);font:12px/1 var(--efont);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* the Scripts panel */
-.scriptshead{display:flex;gap:6px}
+.scriptshead{display:flex;gap:6px;flex-wrap:wrap}
 .sclist{flex:1;overflow-y:auto;padding:4px 0}
 .scrow{display:flex;align-items:center;padding:6px 8px 6px 11px;cursor:pointer;border-left:2px solid transparent}
 .scrow:hover{background:var(--hov)}
@@ -192,6 +192,7 @@ select.btn{padding:6px 8px}
 .res.err{color:var(--err)} .res.err::before{content:"⚠ "}
 .res.warn{color:var(--warn)} .res.warn::before{content:"⏱ "}
 .res.dim{color:var(--dim)} .res.dim::before{content:"· "}
+.explain{margin-top:2px;color:var(--dim);font:11.5px/1.5 system-ui,sans-serif;font-style:italic}
 .logline{padding:1px 0;color:var(--dim);white-space:pre-wrap;word-break:break-word}
 .logline.ws{color:var(--accent)}
 .logline .lt{color:var(--c);font-size:10px;margin-right:7px;user-select:none}
@@ -229,12 +230,24 @@ select.btn{padding:6px 8px}
 .watchrm{flex:none;font:12px/1 var(--efont);color:var(--dim);background:transparent;border:0;cursor:pointer;padding:2px 5px}
 .watchrm:hover{color:var(--err)}
 
+/* object-mode watch rows (the object inspector -- 🔍 from a Results row) */
+.watchrow.watchobj{border-bottom:0}
+.watchobjsum{border-bottom:1px dotted var(--dim)}
+.watchfields{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:0 11px 8px 11px;border-bottom:1px solid var(--edge)}
+.watchfields.hidden{display:none}
+.watchfield{display:flex;gap:6px;font:11px/1.5 var(--efont);overflow:hidden}
+.wfk{color:var(--dim);flex:none;width:60px}
+.wfv{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* row re-run + the feed area wrapper with its "jump to latest" chip */
 .feedwrap{flex:1;position:relative;display:flex;flex-direction:column;min-height:0}
-.row{position:relative;padding-right:26px}
+.row{position:relative;padding-right:48px}
 .rerun{position:absolute;right:2px;top:5px;font:12px/1 var(--efont);color:var(--dim);background:transparent;border:1px solid transparent;border-radius:5px;padding:3px 6px;cursor:pointer;opacity:0}
 .row:hover .rerun{opacity:1}
 .rerun:hover{color:var(--accent);border-color:var(--edge2)}
+.inspect{position:absolute;right:24px;top:5px;font:11px/1 var(--efont);background:transparent;border:1px solid transparent;border-radius:5px;padding:3px 5px;cursor:pointer;opacity:0}
+.row:hover .inspect{opacity:1}
+.inspect:hover{border-color:var(--edge2)}
 .latest{position:absolute;right:12px;bottom:8px;z-index:5;font:11px/1 var(--efont);color:var(--ink);background:var(--bar);border:1px solid var(--edge2);border-radius:20px;padding:6px 11px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .latest:hover{border-color:var(--accent)}
 .latest.hidden{display:none}
@@ -286,6 +299,11 @@ a.btn{text-decoration:none;display:inline-block}
   <button class="updx" id="updClose" title="Dismiss">×</button>
 </div>
 
+<div class="updbar hidden" id="verbar">
+  <span id="verText"></span>
+  <button class="updx" id="verClose" title="Dismiss">×</button>
+</div>
+
 <main class="layout">
   <aside class="side" id="side">
     <div class="sidetabs">
@@ -303,6 +321,7 @@ a.btn{text-decoration:none;display:inline-block}
         <button class="btn small" id="scBackup" title="Download your whole script library as one JSON file">Backup</button>
         <button class="btn small" id="scRestore" title="Restore scripts from a library JSON file — adds to your library, never overwrites">Restore</button>
         <input type="file" id="scRestoreFile" accept=".json" hidden>
+        <button class="btn small go" id="scDeploy" title="Wrap this script in real OnKey mod boilerplate (guard/state/action) and download it, ready to bind in lua_loader.ini">⬇ Deploy as OnKey</button>
       </div>
       <div class="sclist" id="scList"></div>
     </div>
@@ -336,7 +355,7 @@ a.btn{text-decoration:none;display:inline-block}
         <button class="tab" data-t="log" id="tabLog">Log &amp; telemetry</button>
         <button class="tab" data-t="watch" id="tabWatch">Watch</button>
         <span class="spacer"></span>
-        <input id="logFilter" class="hidden" placeholder="filter the log…" spellcheck="false">
+        <input id="logFilter" placeholder="filter results…" spellcheck="false">
         <button class="clr hidden" id="hlRules" title="Manage log highlight rules">🎨 rules</button>
         <span class="clr" id="clr">clear</span>
       </div>
@@ -3194,7 +3213,8 @@ a.btn{text-decoration:none;display:inline-block}
   "Ess.Vehicle.followGhost",
   "Ess.Vehicle.riders",
   "Ess.Vehicle.seatOf"
- ]
+ ],
+ "essVersion": "0.2.1"
 };</script>
 <script>window.MERCS_NATIVES={
  "source": "C:\\Users\\logan\\Desktop\\Mercs2_Decompiled_Lua\\docs\\mercs2-luacd\\src",
@@ -11335,7 +11355,7 @@ a.btn{text-decoration:none;display:inline-block}
   }
  ]
 };</script>
-<script>window.IDE_BUILD={"sha": "e51966c", "date": "2026-07-18T05:26:09-07:00"};</script>
+<script>window.IDE_BUILD={"sha": "d98ee78", "date": "2026-07-18T05:57:56-07:00"};</script>
 <script>/* vendor.js -- GENERATED by tools/vendor (npm run build). CodeMirror 6 + luaparse, exposed as window.CM. Do not edit. */
 var CM=(()=>{var _p=Object.create;var os=Object.defineProperty;var Yp=Object.getOwnPropertyDescriptor;var Jp=Object.getOwnPropertyNames;var Xp=Object.getPrototypeOf,Qp=Object.prototype.hasOwnProperty;var ph=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),Zp=(n,e)=>{for(var t in e)os(n,t,{get:e[t],enumerable:!0})},mh=(n,e,t,i)=>{if(e&&typeof e=="object"||typeof e=="function")for(let s of Jp(e))!Qp.call(n,s)&&s!==t&&os(n,s,{get:()=>e[s],enumerable:!(i=Yp(e,s))||i.enumerable});return n};var gh=(n,e,t)=>(t=n!=null?_p(Xp(n)):{},mh(e||!n||!n.__esModule?os(t,"default",{value:n,enumerable:!0}):t,n)),em=n=>mh(os({},"__esModule",{value:!0}),n);var up=ph((nn,is)=>{(function(n,e,t){"use strict";var i={function:!0,object:!0},s=i[typeof nn]&&nn&&!nn.nodeType&&nn,r=i[typeof is]&&is&&!is.nodeType&&is,o=s&&r&&typeof global=="object"&&global,l=r&&r.exports===s&&s;o&&(o.global===o||o.window===o||o.self===o)&&(n=o),typeof define=="function"&&typeof define.amd=="object"&&define.amd?(define(["exports"],t),s&&l&&t(r.exports)):t(s&&r?l?r.exports:s:n[e]={})})(nn,"luaparse",function(n){"use strict";n.version="0.3.1";var e,t,i,s,r,o=n.defaultOptions={wait:!1,comments:!0,scope:!1,locations:!1,ranges:!1,onCreateNode:null,onCreateScope:null,onDestroyScope:null,onLocalDeclaration:null,luaVersion:"5.1",encodingMode:"none"};function l(u,g){return g=g||0,u<128?String.fromCharCode(u):u<2048?String.fromCharCode(g|192|u>>6,g|128|u&63):u<65536?String.fromCharCode(g|224|u>>12,g|128|u>>6&63,g|128|u&63):u<1114112?String.fromCharCode(g|240|u>>18,g|128|u>>12&63,g|128|u>>6&63,g|128|u&63):null}function a(u,g){for(var w=u.toString(16);w.length<g;)w="0"+w;return w}function h(u){return function(g){var w=u.exec(g);if(!w)return g;F(null,S.invalidCodeUnit,a(w[0].charCodeAt(0),4).toUpperCase())}}var c={"pseudo-latin1":{fixup:h(/[^\x00-\xff]/),encodeByte:function(u){return u===null?"":String.fromCharCode(u)},encodeUTF8:function(u){return l(u)}},"x-user-defined":{fixup:h(/[^\x00-\x7f\uf780-\uf7ff]/),encodeByte:function(u){return u===null?"":u>=128?String.fromCharCode(u|63232):String.fromCharCode(u)},encodeUTF8:function(u){return l(u,63232)}},none:{discardStrings:!0,fixup:function(u){return u},encodeByte:function(u){return""},encodeUTF8:function(u){return""}}},f=1,d=2,p=4,m=8,y=16,b=32,k=64,C=128,M=256;n.tokenTypes={EOF:f,StringLiteral:d,Keyword:p,Identifier:m,NumericLiteral:y,Punctuator:b,BooleanLiteral:k,NilLiteral:C,VarargLiteral:M};var S=n.errors={unexpected:"unexpected %1 '%2' near '%3'",unexpectedEOF:"unexpected symbol near '<eof>'",expected:"'%1' expected near '%2'",expectedToken:"%1 expected near '%2'",unfinishedString:"unfinished string near '%1'",malformedNumber:"malformed number near '%1'",decimalEscapeTooLarge:"decimal escape too large near '%1'",invalidEscape:"invalid escape sequence near '%1'",hexadecimalDigitExpected:"hexadecimal digit expected near '%1'",braceExpected:"missing '%1' near '%2'",tooLargeCodepoint:"UTF-8 value too large near '%1'",unfinishedLongString:"unfinished long string (starting at line %1) near '%2'",unfinishedLongComment:"unfinished long comment (starting at line %1) near '%2'",ambiguousSyntax:"ambiguous syntax (function call x new statement) near '%1'",noLoopToBreak:"no loop to break near '%1'",labelAlreadyDefined:"label '%1' already defined on line %2",labelNotVisible:"no visible label '%1' for <goto>",gotoJumpInLocalScope:"<goto %1> jumps into the scope of local '%2'",cannotUseVararg:"cannot use '...' outside a vararg function near '%1'",invalidCodeUnit:"code unit U+%1 is not allowed in the current encoding mode"},x=n.ast={labelStatement:function(u){return{type:"LabelStatement",label:u}},breakStatement:function(){return{type:"BreakStatement"}},gotoStatement:function(u){return{type:"GotoStatement",label:u}},returnStatement:function(u){return{type:"ReturnStatement",arguments:u}},ifStatement:function(u){return{type:"IfStatement",clauses:u}},ifClause:function(u,g){return{type:"IfClause",condition:u,body:g}},elseifClause:function(u,g){return{type:"ElseifClause",condition:u,body:g}},elseClause:function(u){return{type:"ElseClause",body:u}},whileStatement:function(u,g){return{type:"WhileStatement",condition:u,body:g}},doStatement:function(u){return{type:"DoStatement",body:u}},repeatStatement:function(u,g){return{type:"RepeatStatement",condition:u,body:g}},localStatement:function(u,g){return{type:"LocalStatement",variables:u,init:g}},assignmentStatement:function(u,g){return{type:"AssignmentStatement",variables:u,init:g}},callStatement:function(u){return{type:"CallStatement",expression:u}},functionStatement:function(u,g,w,D){return{type:"FunctionDeclaration",identifier:u,isLocal:w,parameters:g,body:D}},forNumericStatement:function(u,g,w,D,B){return{type:"ForNumericStatement",variable:u,start:g,end:w,step:D,body:B}},forGenericStatement:function(u,g,w){return{type:"ForGenericStatement",variables:u,iterators:g,body:w}},chunk:function(u){return{type:"Chunk",body:u}},identifier:function(u){return{type:"Identifier",name:u}},literal:function(u,g,w){return u=u===d?"StringLiteral":u===y?"NumericLiteral":u===k?"BooleanLiteral":u===C?"NilLiteral":"VarargLiteral",{type:u,value:g,raw:w}},tableKey:function(u,g){return{type:"TableKey",key:u,value:g}},tableKeyString:function(u,g){return{type:"TableKeyString",key:u,value:g}},tableValue:function(u){return{type:"TableValue",value:u}},tableConstructorExpression:function(u){return{type:"TableConstructorExpression",fields:u}},binaryExpression:function(u,g,w){var D=u==="and"||u==="or"?"LogicalExpression":"BinaryExpression";return{type:D,operator:u,left:g,right:w}},unaryExpression:function(u,g){return{type:"UnaryExpression",operator:u,argument:g}},memberExpression:function(u,g,w){return{type:"MemberExpression",indexer:g,identifier:w,base:u}},indexExpression:function(u,g){return{type:"IndexExpression",base:u,index:g}},callExpression:function(u,g){return{type:"CallExpression",base:u,arguments:g}},tableCallExpression:function(u,g){return{type:"TableCallExpression",base:u,arguments:g}},stringCallExpression:function(u,g){return{type:"StringCallExpression",base:u,argument:g}},comment:function(u,g){return{type:"Comment",value:u,raw:g}}};function A(u){if(Ae){var g=Ge.pop();g.complete(),g.bless(u)}return t.onCreateNode&&t.onCreateNode(u),u}var T=Array.prototype.slice,z=Object.prototype.toString,j=function(u,g){for(var w=0,D=u.length;w<D;++w)if(u[w]===g)return w;return-1};Array.prototype.indexOf&&(j=function(u,g){return u.indexOf(g)});function Z(u,g,w){for(var D=0,B=u.length;D<B;++D)if(u[D][g]===w)return D;return-1}function q(u){var g=T.call(arguments,1);return u=u.replace(/%(\d)/g,function(w,D){return""+g[D-1]||""}),u}var V=function(u){for(var g=T.call(arguments,1),w,D,B=0,U=g.length;B<U;++B){w=g[B];for(D in w)Object.prototype.hasOwnProperty.call(w,D)&&(u[D]=w[D])}return u};Object.assign&&(V=Object.assign),n.SyntaxError=SyntaxError;function _(u){return Object.create?Object.create(u,{line:{writable:!0,value:u.line},index:{writable:!0,value:u.index},column:{writable:!0,value:u.column}}):u}function F(u){var g=q.apply(null,T.call(arguments,1)),w,D;throw u===null||typeof u.line>"u"?(D=v-ge+1,w=_(new SyntaxError(q("[%1:%2] %3",ce,D,g))),w.index=v,w.line=ce,w.column=D):(D=u.range[0]-u.lineStart,w=_(new SyntaxError(q("[%1:%2] %3",u.line,D,g))),w.line=u.line,w.index=u.range[0],w.column=D),w}function Y(u){var g=e.slice(u.range[0],u.range[1]);return g||u.value}function pe(u,g){F(g,S.expectedToken,u,Y(g))}function we(u){var g=Y(Oe);if(typeof u.type<"u"){var w;switch(u.type){case d:w="string";break;case p:w="keyword";break;case m:w="identifier";break;case y:w="number";break;case b:w="symbol";break;case k:w="boolean";break;case C:return F(u,S.unexpected,"symbol","nil",g);case f:return F(u,S.unexpectedEOF)}return F(u,S.unexpected,w,Y(u),g)}return F(u,S.unexpected,"symbol",u,g)}var v,L,le,Oe,Re,J,ce,ge;n.lex=It;function It(){for(Qr();e.charCodeAt(v)===45&&e.charCodeAt(v+1)===45;)Mp(),Qr();if(v>=i)return{type:f,value:"<eof>",line:ce,lineStart:ge,range:[v,v]};var u=e.charCodeAt(v),g=e.charCodeAt(v+1);if(J=v,Dp(u))return gp();switch(u){case 39:case 34:return bp();case 48:case 49:case 50:case 51:case 52:case 53:case 54:case 55:case 56:case 57:return nh();case 46:return Nt(g)?nh():g===46?e.charCodeAt(v+2)===46?yp():Ce(".."):Ce(".");case 61:return Ce(g===61?"==":"=");case 62:return s.bitwiseOperators&&g===62?Ce(">>"):Ce(g===61?">=":">");case 60:return s.bitwiseOperators&&g===60?Ce("<<"):Ce(g===61?"<=":"<");case 126:if(g===61)return Ce("~=");if(!s.bitwiseOperators)break;return Ce("~");case 58:return s.labels&&g===58?Ce("::"):Ce(":");case 91:return g===91||g===61?xp():Ce("[");case 47:return s.integerDivision&&g===47?Ce("//"):Ce("/");case 38:case 124:if(!s.bitwiseOperators)break;case 42:case 94:case 37:case 44:case 123:case 125:case 93:case 40:case 41:case 59:case 35:case 45:case 43:return Ce(e.charAt(v))}return we(e.charAt(v))}function Zt(){var u=e.charCodeAt(v),g=e.charCodeAt(v+1);return sn(u)?(u===10&&g===13&&++v,u===13&&g===10&&++v,++ce,ge=++v,!0):!1}function Qr(){for(;v<i;){var u=e.charCodeAt(v);if(Tp(u))++v;else if(!Zt())break}}function gp(){for(var u,g;Op(e.charCodeAt(++v)););return u=r.fixup(e.slice(J,v)),Lp(u)?g=p:u==="true"||u==="false"?(g=k,u=u==="true"):u==="nil"?(g=C,u=null):g=m,{type:g,value:u,line:ce,lineStart:ge,range:[J,v]}}function Ce(u){return v+=u.length,{type:b,value:u,line:ce,lineStart:ge,range:[J,v]}}function yp(){return v+=3,{type:M,value:"...",line:ce,lineStart:ge,range:[J,v]}}function bp(){for(var u=e.charCodeAt(v++),g=ce,w=ge,D=v,B=r.discardStrings?null:"",U;U=e.charCodeAt(v++),u!==U;)if((v>i||sn(U))&&(B+=e.slice(D,v-1),F(null,S.unfinishedString,e.slice(J,v-1))),U===92){if(!r.discardStrings){var ie=e.slice(D,v-1);B+=r.fixup(ie)}var ye=Ap();r.discardStrings||(B+=ye),D=v}return r.discardStrings||(B+=r.encodeByte(null),B+=r.fixup(e.slice(D,v-1))),{type:d,value:B,line:g,lineStart:w,lastLine:ce,lastLineStart:ge,range:[J,v]}}function xp(){var u=ce,g=ge,w=sh(!1);return w===!1&&F(L,S.expected,"[",Y(L)),{type:d,value:r.discardStrings?null:r.fixup(w),line:u,lineStart:g,lastLine:ce,lastLineStart:ge,range:[J,v]}}function nh(){var u=e.charAt(v),g=e.charAt(v+1),w=u==="0"&&"xX".indexOf(g||null)>=0?Sp():kp(),D=vp(),B=wp();return B&&(D||w.hasFractionPart)&&F(null,S.malformedNumber,e.slice(J,v)),{type:y,value:w.value,line:ce,lineStart:ge,range:[J,v]}}function vp(){if(s.imaginaryNumbers)return"iI".indexOf(e.charAt(v)||null)>=0?(++v,!0):!1}function wp(){if(s.integerSuffixes){if("uU".indexOf(e.charAt(v)||null)>=0)if(++v,"lL".indexOf(e.charAt(v)||null)>=0){if(++v,"lL".indexOf(e.charAt(v)||null)>=0)return++v,"ULL";F(null,S.malformedNumber,e.slice(J,v))}else F(null,S.malformedNumber,e.slice(J,v));else if("lL".indexOf(e.charAt(v)||null)>=0){if(++v,"lL".indexOf(e.charAt(v)||null)>=0)return++v,"LL";F(null,S.malformedNumber,e.slice(J,v))}}}function Sp(){var u=0,g=1,w=1,D,B,U,ie;for(ie=v+=2,ei(e.charCodeAt(v))||F(null,S.malformedNumber,e.slice(J,v));ei(e.charCodeAt(v));)++v;D=parseInt(e.slice(ie,v),16);var ye=!1;if(e.charAt(v)==="."){for(ye=!0,B=++v;ei(e.charCodeAt(v));)++v;u=e.slice(B,v),u=B===v?0:parseInt(u,16)/Math.pow(16,v-B)}var ln=!1;if("pP".indexOf(e.charAt(v)||null)>=0){for(ln=!0,++v,"+-".indexOf(e.charAt(v)||null)>=0&&(w=e.charAt(v++)==="+"?1:-1),U=v,Nt(e.charCodeAt(v))||F(null,S.malformedNumber,e.slice(J,v));Nt(e.charCodeAt(v));)++v;g=e.slice(U,v),g=Math.pow(2,g*w)}return{value:(D+u)*g,hasFractionPart:ye||ln}}function kp(){for(;Nt(e.charCodeAt(v));)++v;var u=!1;if(e.charAt(v)===".")for(u=!0,++v;Nt(e.charCodeAt(v));)++v;var g=!1;if("eE".indexOf(e.charAt(v)||null)>=0)for(g=!0,++v,"+-".indexOf(e.charAt(v)||null)>=0&&++v,Nt(e.charCodeAt(v))||F(null,S.malformedNumber,e.slice(J,v));Nt(e.charCodeAt(v));)++v;return{value:parseFloat(e.slice(J,v)),hasFractionPart:u||g}}function Cp(){var u=v++;for(e.charAt(v++)!=="{"&&F(null,S.braceExpected,"{","\\"+e.slice(u,v)),ei(e.charCodeAt(v))||F(null,S.hexadecimalDigitExpected,"\\"+e.slice(u,v));e.charCodeAt(v)===48;)++v;for(var g=v;ei(e.charCodeAt(v));)++v,v-g>6&&F(null,S.tooLargeCodepoint,"\\"+e.slice(u,v));var w=e.charAt(v++);w!=="}"&&(w==='"'||w==="'"?F(null,S.braceExpected,"}","\\"+e.slice(u,v--)):F(null,S.hexadecimalDigitExpected,"\\"+e.slice(u,v)));var D=parseInt(e.slice(g,v-1)||"0",16),B="\\"+e.slice(u,v);return D>1114111&&F(null,S.tooLargeCodepoint,B),r.encodeUTF8(D,B)}function Ap(){var u=v;switch(e.charAt(v)){case"a":return++v,"\x07";case"n":return++v,`
 `;case"r":return++v,"\r";case"t":return++v,"	";case"v":return++v,"\v";case"b":return++v,"\b";case"f":return++v,"\f";case"\r":case`
@@ -12287,27 +12307,113 @@ IDE.bus = (function () {
     latest.classList.add("hidden");
   };
 
-  /* ---- results ---- */
-  function pending(codeText) {
+  /* ---- results, persisted (last 100 survive a reload -- "the thing that worked yesterday") ---- */
+  var HISTKEY = "m2ide.history.v1", MAXHIST = 100, pendingCode = null;
+  var hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HISTKEY)) || []; } catch (e) {}
+  function persistHist() { try { localStorage.setItem(HISTKEY, JSON.stringify(hist.slice(-MAXHIST))); } catch (e) {} }
+  /* ---- runtime-error explainer: the lint layer (25_lint.js) catches mistakes BEFORE the run; this
+     catches the common ones AFTER, once the game's own Lua error comes back. A small, hand-grown list --
+     not an attempt to cover every possible Lua error, just the handful that account for most beginner
+     "why did this fail" moments. Shown as a second line under the red result, never blocks anything. */
+  var RUNTIME_EXPLAIN = [
+    { test: /attempt to index a nil value \(global '([^']+)'\)/,
+      explain: function (m) { return "\"" + m[1] + "\" is nil — that global was never set, or whatever sets it didn't run first. Check the spelling."; } },
+    { test: /attempt to index a nil value \(local '([^']+)'\)/,
+      explain: function (m) { return "\"" + m[1] + "\" is nil where you tried to use it — likely a spawn/lookup that returned nil (a bad template name, a guid that doesn't exist) and the result got used without checking for nil first."; } },
+    { test: /attempt to index a nil value \(upvalue '([^']+)'\)/,
+      explain: function (m) { return "\"" + m[1] + "\" (captured from an outer scope) is nil — check where it's set before this part runs."; } },
+    { test: /attempt to index a nil value \(field '([^']+)'\)/,
+      explain: function (m) { return "There's no \"" + m[1] + "\" field on that table — check the spelling, or that the table is actually what you think it is."; } },
+    { test: /attempt to call a nil value \(global '([^']+)'\)/,
+      explain: function (m) { return "\"" + m[1] + "\" isn't a real function — Ess.*/native calls are case-sensitive, double check the exact spelling in the sidebar (or hover it)."; } },
+    { test: /attempt to call a nil value \(method '([^']+)'\)/,
+      explain: function (m) { return "There's no method \"" + m[1] + "\" on that value — likely a typo, or a : where a . belongs (or the reverse)."; } },
+    { test: /attempt to call a nil value \(field '([^']+)'\)/,
+      explain: function (m) { return "\"" + m[1] + "\" isn't a real function on that table — check the spelling in the sidebar."; } },
+    { test: /attempt to perform arithmetic on a nil value/,
+      explain: function () { return "One side of a math operation (+ - * /) is nil — probably a variable that was never set, or a lookup that came back empty."; } },
+    { test: /attempt to concatenate a nil value/,
+      explain: function () { return "Trying to join text (..) with something that's nil — wrap it in tostring(...) first, or find out why it's nil."; } },
+    { test: /attempt to compare (?:nil with|.* with nil)/,
+      explain: function () { return "Comparing a nil value against something else — probably a variable that was never set."; } },
+    { test: /bad argument #(\d+) to '([^']+)'/,
+      explain: function (m) { return "Argument #" + m[1] + " to " + m[2] + " is the wrong type — check what you're passing (e.g. a number where a guid/string was expected, or the reverse)."; } }
+  ];
+  function explainRuntime(msg) {
+    for (var i = 0; i < RUNTIME_EXPLAIN.length; i++) {
+      var m = RUNTIME_EXPLAIN[i].test.exec(msg);
+      if (m) return RUNTIME_EXPLAIN[i].explain(m);
+    }
+    return null;
+  }
+
+  function classify(o) {
+    if (o.error) return { cls: "err", text: o.error };
+    if (o.timedOut) return { cls: "warn", text: "no result within timeout (chunk likely still ran)" };
+    if (o.ok === false) return { cls: "err", text: "runtime error: " + o.value, explain: explainRuntime(String(o.value)) };
+    return { cls: "ok", text: (o.value === "" || o.value == null) ? "(no return value)" : o.value };
+  }
+  function renderExplain(row, explain) {
+    var old = row.querySelector(".explain"); if (old) old.remove();
+    if (!explain) return;
+    var ex = document.createElement("div"); ex.className = "explain"; ex.textContent = "» " + explain;
+    row.appendChild(ex);
+  }
+  /* a "🔍 inspect" button on any simple (non-table, non-empty) ok result -- re-evaluates that value as a
+     guid via the object inspector (45_watch.js's object-mode watch). Not shown for table literals (a
+     guid is never displayed as "{...}") or an empty/error result -- nothing sensible to inspect there. */
+  function inspectable(outcome) {
+    return outcome && outcome.cls === "ok" && outcome.text && outcome.text !== "(no return value)" &&
+      outcome.text.charAt(0) !== "{";
+  }
+  function renderInspectBtn(row, r, outcome) {
+    var old = row.querySelector(".inspect"); if (old) old.remove();
+    if (!inspectable(outcome)) return;
+    var ins = document.createElement("button"); ins.className = "inspect"; ins.textContent = "🔍"; ins.title = "Inspect this as a live object";
+    ins.onclick = function () { IDE.watch.addObject(outcome.text); };
+    row.insertBefore(ins, r);
+  }
+  function makeRow(codeText, outcome) {
     var row = document.createElement("div"); row.className = "row";
     row.dataset.code = codeText;
     var c = document.createElement("span"); c.className = "code";
     c.textContent = codeText.length > 220 ? codeText.slice(0, 220) + "…" : codeText;
     var rr = document.createElement("button"); rr.className = "rerun"; rr.textContent = "↺"; rr.title = "Run this again";
     rr.onclick = function () { IDE.runCode(row.dataset.code); };
-    var r = document.createElement("span"); r.className = "res dim"; r.textContent = "running…";
-    row.appendChild(c); row.appendChild(rr); row.appendChild(r); results.appendChild(row);
-    while (results.childElementCount > 200) results.removeChild(results.firstChild);
-    pendingRow = r; auto(results);
+    var r = document.createElement("span");
+    if (outcome) { r.className = "res " + outcome.cls; r.textContent = outcome.text; }
+    else { r.className = "res dim"; r.textContent = "running…"; }
+    row.appendChild(c); row.appendChild(rr); row.appendChild(r);
+    if (outcome) { renderInspectBtn(row, r, outcome); renderExplain(row, outcome.explain); }
+    return row;
+  }
+  function trimResultsDom() { while (results.childElementCount > 200) results.removeChild(results.firstChild); }
+  function pending(codeText) {
+    var row = makeRow(codeText);
+    results.appendChild(row);
+    trimResultsDom();
+    pendingRow = row.querySelector(".res");
+    pendingCode = codeText;
+    applyFilterTo(row);
+    auto(results);
   }
   function result(o) {
     var r = pendingRow; pendingRow = null; if (!r) return;
-    if (o.error) { r.className = "res err"; r.textContent = o.error; }
-    else if (o.timedOut) { r.className = "res warn"; r.textContent = "no result within timeout (chunk likely still ran)"; }
-    else if (o.ok === false) { r.className = "res err"; r.textContent = "runtime error: " + o.value; }
-    else { r.className = "res ok"; r.textContent = (o.value === "" || o.value == null) ? "(no return value)" : o.value; }
+    var outcome = classify(o);
+    r.className = "res " + outcome.cls; r.textContent = outcome.text;
+    renderInspectBtn(r.parentElement, r, outcome);
+    renderExplain(r.parentElement, outcome.explain);
+    hist.push({ code: pendingCode, cls: outcome.cls, text: outcome.text, explain: outcome.explain, t: Date.now() });
+    persistHist();
+    applyFilterTo(r.parentElement);
     auto(results);
   }
+  function restoreHistory() {
+    hist.forEach(function (h) { results.appendChild(makeRow(h.code, { cls: h.cls, text: h.text, explain: h.explain })); });
+    trimResultsDom();
+  }
+  restoreHistory();
 
   /* ---- highlight rules: built-in tints for PASS/FAIL/error/[recipe], plus a couple of user-defined
      pattern -> color rules (localStorage, first match wins, user rules checked before the built-ins so
@@ -12363,9 +12469,18 @@ IDE.bus = (function () {
   };
   renderRules();
 
-  /* ---- log + filter ---- */
+  /* ---- filter: one shared input, applied to whichever feed (log OR results) is currently active --
+     "searchable like the log" extends to results too, since persisted history is only useful if you can
+     re-find the one that worked. ---- */
   var filterText = "";
   function matches(line) { return !filterText || line.toLowerCase().indexOf(filterText) >= 0; }
+  function rowMatches(row) {
+    if (!filterText) return true;
+    var resEl = row.querySelector(".res");
+    var text = (row.dataset.code + " " + (resEl ? resEl.textContent : "")).toLowerCase();
+    return text.indexOf(filterText) >= 0;
+  }
+  function applyFilterTo(row) { row.classList.toggle("hidden", !rowMatches(row)); }
   IDE.bus.on("log", function (d) {
     var el = document.createElement("div"); el.className = "logline" + (d.kind === "ws" ? " ws" : "");
     var ts = document.createElement("span"); ts.className = "lt";
@@ -12382,9 +12497,16 @@ IDE.bus = (function () {
     Array.prototype.forEach.call(log.children, function (el) {
       el.classList.toggle("hidden", !matches(el.textContent.slice(8)));   // slice off the HH:MM:SS stamp
     });
+    Array.prototype.forEach.call(results.children, applyFilterTo);
   });
 
-  IDE.console = { pending: pending, result: result, clear: function (which) { feedOf(which).innerHTML = ""; } };
+  IDE.console = {
+    pending: pending, result: result,
+    clear: function (which) {
+      feedOf(which).innerHTML = "";
+      if (which === "results") { hist = []; persistHist(); }
+    }
+  };
 })();
 
 /* ==== 42_repl.js ==== */
@@ -12446,7 +12568,12 @@ IDE.bus = (function () {
    the same way (`return (expr)`) so a bare expression just works. Each row is its own independent poll
    loop with a kill switch (the "×" button); polling silently no-ops while disconnected rather than
    erroring, and picks back up on its own once reconnected. Pinned expressions (not their last values)
-   persist across reloads. */
+   persist across reloads.
+
+   Object-mode rows (kind:"object", added by clicking 🔍 on a Results row -- 40_console.js) are the same
+   poll loop over a different, compound query: one round-trip pcall-reads name/pos/health/faction/alive +
+   Ess.Probe.describeSafe for whatever guid the expression evaluates to, rendered as a small collapsible
+   field list instead of one text value. */
 (function () {
   var IDE = window.IDE, $ = IDE.$, KEY = "m2ide.watch.v1", INTERVAL = 2000;
   var list = $("watchList");
@@ -12454,20 +12581,63 @@ IDE.bus = (function () {
 
   function uid() { return "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
   function persist() {
-    try { localStorage.setItem(KEY, JSON.stringify(rows.map(function (r) { return { expr: r.expr }; }))); } catch (e) {}
+    try {
+      localStorage.setItem(KEY, JSON.stringify(rows.map(function (r) { return { expr: r.expr, kind: r.kind }; })));
+    } catch (e) {}
   }
   function setStatus(row, text, cls) {
     row.valEl.className = "watchval " + cls;
     row.valEl.textContent = text;
   }
+
+  /* ---- object-mode: one compound query, tab-separated so a single round-trip carries every field ---- */
+  var OBJECT_FIELDS = ["guid", "name", "pos", "health", "maxHealth", "faction", "alive", "describe"];
+  function objectQuery(expr) {
+    return "local uGuid = (" + expr + "\n)\n" +
+      "if uGuid == nil then return \"\" end\n" +
+      "local function safe1(fn, ...) local ok, a = pcall(fn, ...); if ok then return a end return nil end\n" +
+      "local name = safe1(Ess.Object.displayName, uGuid)\n" +
+      "local hp = safe1(Ess.Object.health, uGuid)\n" +
+      "local maxhp = safe1(Ess.Object.maxHealth, uGuid)\n" +
+      "local fac = safe1(Ess.Probe.getFaction, uGuid)\n" +
+      "local alive = safe1(Ess.Object.alive, uGuid)\n" +
+      "local okpos, x, y, z = pcall(Ess.Object.pos, uGuid)\n" +
+      "local posStr = (okpos and x) and string.format(\"%.1f, %.1f, %.1f\", x, y, z) or \"?\"\n" +
+      "local descOk, desc = pcall(Ess.Probe.describeSafe, uGuid)\n" +
+      "return table.concat({ tostring(uGuid), name and tostring(name) or \"?\", posStr,\n" +
+      "  hp and tostring(hp) or \"?\", maxhp and tostring(maxhp) or \"?\", fac and tostring(fac) or \"?\",\n" +
+      "  (alive == true) and \"yes\" or (alive == false and \"no\" or \"?\"), descOk and tostring(desc) or \"?\" }, \"\\t\")";
+  }
+  function renderObjectVal(row, parts) {
+    row.valEl.innerHTML = "";
+    row.valEl.className = "watchval ok";
+    var summary = document.createElement("span"); summary.className = "watchobjsum";
+    summary.textContent = (parts[1] !== "?" ? parts[1] : parts[0]);
+    row.valEl.appendChild(summary);
+    var grid = row.fieldsEl;
+    grid.innerHTML = "";
+    OBJECT_FIELDS.forEach(function (label, i) {
+      var d = document.createElement("div"); d.className = "watchfield";
+      d.innerHTML = "<span class=\"wfk\">" + label + "</span><span class=\"wfv\">" + esc(parts[i] || "?") + "</span>";
+      grid.appendChild(d);
+    });
+  }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
   function poll(row) {
     if (!IDE.bridge.connected()) { setStatus(row, "· not connected", "dim"); return; }
-    IDE.bridge.run("return (" + row.expr + "\n)").then(function (r) {
+    var query = row.kind === "object" ? objectQuery(row.expr) : "return (" + row.expr + "\n)";
+    IDE.bridge.run(query).then(function (r) {
       if (rows.indexOf(row) < 0) return;   // removed while the request was in flight
-      if (r.error) setStatus(row, r.error, "err");
-      else if (r.timedOut) setStatus(row, "timed out", "err");
-      else if (r.ok === false) setStatus(row, "error: " + r.value, "err");
-      else setStatus(row, (r.value === "" || r.value == null) ? "nil" : r.value, "ok");
+      if (r.error) { setStatus(row, r.error, "err"); return; }
+      if (r.timedOut) { setStatus(row, "timed out", "err"); return; }
+      if (r.ok === false) { setStatus(row, "error: " + r.value, "err"); return; }
+      if (row.kind === "object") {
+        if (r.value === "" || r.value == null) { setStatus(row, "nil (not a live object)", "dim"); if (row.fieldsEl) row.fieldsEl.innerHTML = ""; return; }
+        renderObjectVal(row, String(r.value).split("\t"));
+      } else {
+        setStatus(row, (r.value === "" || r.value == null) ? "nil" : r.value, "ok");
+      }
     });
   }
   function removeRow(row) {
@@ -12476,16 +12646,26 @@ IDE.bus = (function () {
     rows = rows.filter(function (r) { return r !== row; });
     persist();
   }
-  function addRow(expr) {
-    var row = { id: uid(), expr: expr };
-    var el = document.createElement("div"); el.className = "watchrow";
+  function addRow(expr, kind) {
+    var row = { id: uid(), expr: expr, kind: kind || "expr" };
+    var el = document.createElement("div"); el.className = "watchrow" + (row.kind === "object" ? " watchobj" : "");
     var ex = document.createElement("span"); ex.className = "watchexpr"; ex.textContent = expr; ex.title = expr;
     var val = document.createElement("span"); val.className = "watchval dim"; val.textContent = "…";
     var rm = document.createElement("button"); rm.className = "watchrm"; rm.title = "Stop watching"; rm.textContent = "×";
     rm.onclick = function () { removeRow(row); };
     el.appendChild(ex); el.appendChild(val); el.appendChild(rm);
-    list.appendChild(el);
     row.valEl = val; row.el = el;
+    if (row.kind === "object") {
+      var open = true;
+      val.style.cursor = "pointer";
+      var fields = document.createElement("div"); fields.className = "watchfields";
+      row.fieldsEl = fields;
+      val.onclick = function () { open = !open; fields.classList.toggle("hidden", !open); };
+      list.appendChild(el);
+      list.appendChild(fields);
+    } else {
+      list.appendChild(el);
+    }
     rows.push(row);
     poll(row);
     row.timer = setInterval(function () { poll(row); }, INTERVAL);
@@ -12495,7 +12675,7 @@ IDE.bus = (function () {
   $("watchAdd").onclick = function () {
     var expr = $("watchExpr").value.trim();
     if (!expr) return;
-    addRow(expr);
+    addRow(expr, "expr");
     persist();
     $("watchExpr").value = "";
     $("watchExpr").focus();
@@ -12504,12 +12684,20 @@ IDE.bus = (function () {
 
   var saved = [];
   try { saved = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) {}
-  saved.forEach(function (s) { if (s && s.expr) addRow(s.expr); });
+  saved.forEach(function (s) { if (s && s.expr) addRow(s.expr, s.kind); });
 
   /* a reconnect should re-poll everything right away rather than waiting out the interval */
   IDE.bus.on("status", function (s) { if (s === "open") rows.forEach(poll); });
 
-  IDE.watch = { add: function (expr) { addRow(expr); persist(); } };
+  IDE.watch = {
+    add: function (expr) { addRow(expr, "expr"); persist(); },
+    /* the object inspector entry point -- 40_console.js's 🔍 button on a Results row calls this with the
+       row's raw result text as the expression to re-evaluate. */
+    addObject: function (expr) {
+      addRow(expr, "object"); persist();
+      document.querySelector('.tab[data-t="watch"]').click();
+    }
+  };
 })();
 
 /* ==== 50_api.js ==== */
@@ -12758,6 +12946,40 @@ IDE.bus = (function () {
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   };
 
+  /* ---- deploy as OnKey: bridges "ran it once in the IDE" to "it's a real mod now". Wraps the open
+     script in the exact guard/state/action shape every Ess OnKey mod uses (samples/OnKey/StarterMod.lua),
+     named after the script, ready to drop in scripts/OnKey/ and bind in lua_loader.ini. ---- */
+  function onKeyWrap(modName, code) {
+    return (
+      "-- " + modName + ".lua -- exported from the Mercs2 Lua IDE. Bind it to a key in lua_loader.ini to\n" +
+      "-- run it in-game:\n" +
+      "--     [OnKey]\n" +
+      "--     " + modName + ".lua=F5\n" +
+      "-- ...then press that key in-game (pick any free key instead of F5). Needs Ess (1_Ess.lua) already\n" +
+      "-- loaded as an OnLoad script.\n\n" +
+      "-- GUARD -- bail cleanly if Ess isn't loaded (wrong load order, or not installed). Always first.\n" +
+      "if not _G.Ess then Loader.Printf(\"" + modName + ": load Ess first (1_Ess.lua in scripts/OnLoad)\") return end\n\n" +
+      "-- STATE -- an OnKey script re-runs top-to-bottom on EVERY keypress; this table survives across\n" +
+      "-- those re-runs if your script needs to remember anything (a toggle, a counter, ...). Safe to\n" +
+      "-- leave unused if it doesn't.\n" +
+      "local S = Ess.State(\"" + modName + "\", {})\n\n" +
+      "-- ACTION -- your script from the IDE, unchanged below this line.\n" +
+      code
+    );
+  }
+  $("scDeploy").onclick = function () {
+    var s = IDE.store.active();
+    var modName = s.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "MyMod";
+    var wrapped = onKeyWrap(modName, IDE.editor.get());
+    var blob = new Blob([wrapped], { type: "text/x-lua" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = modName + ".lua";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    IDE.ui.flash($("scDeploy"), "Downloaded — bind it in lua_loader.ini");
+  };
+
   /* ---- whole-library backup / restore -- the seatbelt against "clear browsing data" ---- */
   $("scBackup").onclick = function () {
     var blob = new Blob([IDE.store.exportAll()], { type: "application/json" });
@@ -12873,7 +13095,8 @@ IDE.bus = (function () {
       var which = t.getAttribute("data-t");
       $("results").classList.toggle("hidden", which !== "results");
       $("log").classList.toggle("hidden", which !== "log");
-      $("logFilter").classList.toggle("hidden", which !== "log");
+      $("logFilter").classList.toggle("hidden", which !== "log" && which !== "results");
+      $("logFilter").placeholder = which === "results" ? "filter results…" : "filter the log…";
       $("hlRules").classList.toggle("hidden", which !== "log");
       $("watchPanel").classList.toggle("hidden", which !== "watch");
       if (which !== "log") $("hlPanel").classList.add("hidden");
@@ -13050,6 +13273,41 @@ IDE.bus = (function () {
       maybeShow(remote);
     })
     .catch(function () {});
+})();
+
+/* ==== 76_versioncheck.js ==== */
+/* 76_versioncheck.js -- "Ess-version drift" warning. The bundled ess-api.json/natives.json data was
+   generated against a specific Ess.VERSION (tools/gen_api.py stamps it in as window.ESS_API.essVersion).
+   On each real connect, ask the game what Ess.VERSION it's actually running and compare -- a mismatch
+   means the API reference/autocomplete/lint may be describing calls slightly differently than what's
+   really loaded. One dismissible line, not a blocker. Dismissing remembers that EXACT (reference, game)
+   pair -- if either side changes, the warning comes back fresh. */
+(function () {
+  var IDE = window.IDE, $ = IDE.$, KEY = "m2ide.verskip.v1";
+  var refVersion = (window.ESS_API && window.ESS_API.essVersion) || null;
+  if (!refVersion) return;   // data built without a resolvable Ess.VERSION -- nothing to compare against
+
+  var skip = null;
+  try { skip = localStorage.getItem(KEY); } catch (e) {}
+
+  IDE.bus.on("status", function (s) {
+    if (s !== "open") return;
+    IDE.bridge.run("return Ess.VERSION").then(function (r) {
+      if (!r.ok || r.value == null) return;
+      var gameVersion = String(r.value).replace(/^"|"$/g, "").trim();
+      if (!gameVersion || gameVersion === refVersion) { $("verbar").classList.add("hidden"); return; }
+      var pairKey = refVersion + ">" + gameVersion;
+      if (skip === pairKey) return;
+      $("verText").textContent = "The API reference/autocomplete is from Ess " + refVersion +
+        ", but the game's running " + gameVersion + " — some calls may differ.";
+      $("verbar").classList.remove("hidden");
+      $("verClose").onclick = function () {
+        skip = pairKey;
+        try { localStorage.setItem(KEY, pairKey); } catch (e) {}
+        $("verbar").classList.add("hidden");
+      };
+    });
+  });
 })();
 
 /* ==== 99_main.js ==== */

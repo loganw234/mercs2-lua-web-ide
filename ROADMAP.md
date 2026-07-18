@@ -58,9 +58,15 @@ Rest of Tier 2 (all but the tutorial), same session:
   mismatch. Dismissing remembers that exact (reference, game) pair, not "forever".
 
 - **Interactive first-script tutorial** — a floating, non-blocking guided panel (`78_tutorial.js`): connect
-  → TYPE `return Ess.VERSION` yourself → summon a taxi → find a nearby civilian fare → **your turn: widen
-  the search radius** → hold them → mark the pickup + drop a "go here" ring → **your turn: place the
-  drop-off** → deploy as OnKey. One script, additively built in place, living in its own dedicated
+  → TYPE `return Ess.VERSION` yourself → read your own position (`pose`) → **teleport to a live-captured
+  street outside the PMC HQ** (fresh players stand in the HQ lobby — summoning a car indoors is the first
+  thing that would've gone wrong) → summon a taxi and meet the **teardown pattern** (`Ess.State` +
+  remove-last-run's-taxi-unless-you're-in-it; the teardown block visibly grows mark-clearing lines when
+  marks arrive — hot-reload hygiene taught by example) → find a fare (nearest LIVING civilian with real
+  distance feedback — the first-match version could pick a corpse or someone 150 units off; civilians also
+  wander, so the copy treats an empty scan as normal) → **your turn: widen the search radius** → hold them
+  → mark the pickup + drop a "go here" ring (handles kept in `S` so the teardown can clear them) → **your
+  turn: place the drop-off** → deploy as OnKey. One script, additively built in place, living in its own dedicated
   "Tutorial: Taxi Fare" library entry (with a guard that switches back to it before writing, so wandering
   to another script mid-tutorial can never get that script clobbered). Every step advances off a real
   signal from the game (`"ran"` carries the code AND the bridge result; `"status"`/`"deployed"` for the

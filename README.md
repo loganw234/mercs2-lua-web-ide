@@ -117,6 +117,11 @@ node smoke.js                                      # headless boot + behavior te
 
 Then `python build.py` and commit.
 
+
+## License
+
+[MIT](LICENSE) -- matching the rest of the Mercenaries 2 tooling.
+
 ## Disclaimer
 
 This is an unofficial, non-commercial community fan project. It is **not affiliated with, associated with,

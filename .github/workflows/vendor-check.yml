@@ -1,0 +1,28 @@
+name: Vendored assets are current
+
+# The push-time gate in pages.yml/release.yml only WARNS when a pin is behind upstream, on purpose: an
+# unrelated repo cutting a release must never break this repo's deploy. But a warning inside an otherwise
+# green build is a warning nobody reads -- which is how src/data/CAPABILITIES.md ended up seven days and
+# 117 API calls behind Ess without anyone noticing.
+#
+# So staleness gets its own job. Once a week, --strict promotes it to a failure, which shows up as a red
+# run and a notification. Nothing here deploys or commits; the fix is one command, reported in the log:
+#   python tools/sync_assets.py --update && python tools/gen_api.py
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"        # Mondays, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.x" }
+      - name: Is every vendored pin still upstream's newest release?
+        run: python tools/sync_assets.py --check --strict

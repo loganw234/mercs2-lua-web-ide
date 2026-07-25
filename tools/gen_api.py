@@ -7,8 +7,14 @@ the namespace (`Ess.Xxx`) and its calls in backticks. We pull those out -- imper
 the point is a useful, current list of real call paths that stays in sync when Ess grows.
 
 Run: python tools/gen_api.py   (reads src/data/CAPABILITIES.md, writes src/data/ess-api.json)
+
+Two optional env vars control the Ess.VERSION stamp (see resolve_ess_version):
+  ESS_VERSION=0.3.4                          -- state it outright
+  ESS_CORE=/path/to/Ess/src/00_core.lua      -- or point at a checkout to read it from
+Neither is required: with both unset the stamp is carried forward from the existing ess-api.json.
 """
 import json
+import os
 import pathlib
 import re
 
@@ -16,8 +22,84 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "data" / "CAPABILITIES.md"
 OUT = ROOT / "src" / "data" / "ess-api.json"
 CALL_DOCS = ROOT / "src" / "data" / "call_docs.json"   # {"ess": {path: doc}, "natives": {...}} -- see its own header
-DEFAULT_ESS_CORE = r"C:\Users\logan\source\repos\mercs2-lua-essentials\src\00_core.lua"
+VENDOR = ROOT / "vendor.json"                          # the pin CAPABILITIES.md was fetched at
 VERSION_RE = re.compile(r'Ess\.VERSION\s*=\s*"([^"]+)"')
+SEMVER_PIN = re.compile(r"^v\d+\.\d+\.\d+$")           # "v0.3.4" -- strip the v to match Ess.VERSION
+
+# Where to find Ess's src/00_core.lua, tried in order after $ESS_CORE. The sibling-checkout guesses make
+# this work for anyone who clones both repos side by side; the absolute path is the maintainer's box.
+ESS_CORE_CANDIDATES = [
+    ROOT.parent / "mercs2-lua-essentials" / "src" / "00_core.lua",
+    ROOT.parent.parent / "mercs2-lua-essentials" / "src" / "00_core.lua",
+    pathlib.Path(r"C:\Users\logan\source\repos\mercs2-lua-essentials\src\00_core.lua"),
+]
+
+
+def vendor_pin():
+    """The Ess version CAPABILITIES.md was vendored at, per vendor.json -- "v0.3.4" -> "0.3.4".
+
+    Only trusted when it pins the file we actually generate from; a pin on some other asset says nothing
+    about this data. Missing/unreadable vendor.json is fine -- the caller falls through to the next source.
+    """
+    try:
+        doc = json.loads(VENDOR.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    want = SRC.relative_to(ROOT).as_posix()
+    for asset in doc.get("assets", []):
+        if asset.get("path", "").replace("\\", "/") == want:
+            pin = str(asset.get("pin", "")).strip()
+            return pin[1:] if SEMVER_PIN.match(pin) else (pin or None)
+    return None
+
+
+def resolve_ess_version():
+    """The Ess.VERSION this reference data describes -> (version, where_it_came_from).
+
+    76_versioncheck.js compares this against the live game's Ess.VERSION on connect and warns when they
+    differ -- but it bails on a falsy value (`if (!refVersion) return;`), so writing None here silently
+    DISABLES that warning rather than degrading it. That is exactly what happened on CI: the only source
+    was an absolute path to a local checkout, which no runner has, so every hosted build shipped
+    essVersion=null while local builds shipped a real version. The bug was invisible from either side.
+
+    Order: $ESS_VERSION -> vendor.json's pin -> $ESS_CORE -> a sibling checkout -> carry forward the
+    existing ess-api.json. That last step is the CI case, and the point of it: an unresolvable source
+    must never DOWNGRADE committed data to null. It goes stale rather than vanishing, and says so.
+
+    vendor.json ranks above any local checkout on purpose. The pin is the tag CAPABILITIES.md was
+    actually fetched at, so it describes THIS data; a working checkout describes whatever Ess happens to
+    be mid-edit, which is how you end up stamping 0.3.4 onto a reference generated from a 0.2.1-era
+    CAPABILITIES.md and suppressing the very warning that would have caught it.
+    """
+    stated = os.environ.get("ESS_VERSION", "").strip()
+    if stated:
+        return stated, "$ESS_VERSION"
+
+    pinned = vendor_pin()
+    if pinned:
+        return pinned, "vendor.json pin (%s)" % VENDOR.name
+
+    env_core = os.environ.get("ESS_CORE", "").strip()
+    candidates = ([pathlib.Path(env_core)] if env_core else []) + ESS_CORE_CANDIDATES
+    for path in candidates:
+        try:
+            if not path.is_file():
+                continue
+            m = VERSION_RE.search(path.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        if m:
+            return m.group(1), str(path)
+
+    if OUT.exists():
+        try:
+            carried = json.loads(OUT.read_text(encoding="utf-8")).get("essVersion")
+        except (OSError, ValueError):
+            carried = None
+        if carried:
+            return carried, "carried forward from %s (no Ess checkout found)" % OUT.name
+
+    return None, "UNRESOLVED"
 
 BACKTICK = re.compile(r"`([^`]+)`")
 NS_RE = re.compile(r"^Ess(?:\.Raw|\.Easy)?\.[A-Z][A-Za-z]+$")          # Ess.Player, Ess.Easy.Airstrike
@@ -137,19 +219,18 @@ def main():
         for c in calls:
             completions.add(c["path"])
 
-    # the Ess.VERSION this data was generated against -- 75_versioncheck.js compares it to the live
+    # the Ess.VERSION this data was generated against -- 76_versioncheck.js compares it to the live
     # game's own Ess.VERSION on connect, so a stale reference doesn't silently mislead anyone.
-    ess_version = None
-    core_path = pathlib.Path(DEFAULT_ESS_CORE)
-    if core_path.exists():
-        m = VERSION_RE.search(core_path.read_text(encoding="utf-8"))
-        if m:
-            ess_version = m.group(1)
+    ess_version, ver_src = resolve_ess_version()
 
     data = {"namespaces": out_ns, "completions": sorted(completions), "essVersion": ess_version}
     OUT.write_text(json.dumps(data, indent=1), encoding="utf-8")
     print("[gen_api] wrote %s -- %d namespaces, %d completions, %d calls with a real per-call doc, Ess %s"
           % (OUT.name, len(out_ns), len(completions), doc_hits, ess_version or "?"))
+    print("[gen_api] Ess.VERSION stamp: %s (from %s)" % (ess_version or "NONE", ver_src))
+    if not ess_version:
+        print("[gen_api] WARNING: no Ess.VERSION resolved -- 76_versioncheck.js will stay silent in this "
+              "build. Set ESS_VERSION or ESS_CORE, or run where a mercs2-lua-essentials checkout is visible.")
     return 0
 
 

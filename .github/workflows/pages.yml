@@ -24,6 +24,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.x" }
+      # Hard-fails if a vendored file doesn't match the tag+sha256 vendor.json pins it to; a pin that's
+      # merely BEHIND upstream is only a ::warning:: here (see .github/workflows/vendor-check.yml, which
+      # is where staleness becomes actionable). Another repo cutting a release must not break this deploy.
+      - name: Verify vendored assets match their pins
+        run: python tools/sync_assets.py --check
+
       - name: Regenerate the Ess API + build the standalone page
         run: |
           python tools/gen_api.py

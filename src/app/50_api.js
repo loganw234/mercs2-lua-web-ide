@@ -41,6 +41,21 @@
     });
   });
 
+  /* Bare globals have no namespace to sit under, so they get one synthetic entry rather than a fake
+     namespace prefix -- `assert(v)` is called as `assert`, not `globals.assert`, and the panel must not
+     imply otherwise. Listed last so it never displaces a real namespace at the top of the tree. */
+  var GLOBALS = (window.MERCS_NATIVES && window.MERCS_NATIVES.globals) || {};
+  if (Object.keys(GLOBALS).length) {
+    MODEL.push({
+      name: "(globals)", group: "lua-bridge", native: true, bridge: true,
+      doc: "Functions with no namespace at all — called by bare name. Added by lua-bridge to fill gaps in this game's stripped Lua runtime.",
+      calls: Object.keys(GLOBALS).sort().map(function (name) {
+        var g = GLOBALS[name];
+        return { path: name, sig: g.sig || name + "(…)", native: { doc: g.doc, sig: g.sig, global: 1 } };
+      })
+    });
+  }
+
   function tierOf(path, native) {
     /* A Loader.* call is not a native -- badging it "Native" repeats the same mislabel the
        dump introduced (see KINDS above). */
@@ -64,6 +79,15 @@
        or as the main doc when it doesn't -- the pre-per-call-doc fallback. */
     var callDoc = c.doc || (c.native && c.native.doc);
     if (callDoc) html += '<div class="doc">' + esc(callDoc) + "</div>";
+    /* What the call RETURNS, when the source documented it. */
+    var ret = c.ret || (c.native && c.native.ret);
+    if (ret) html += '<div class="retline"><b>returns</b> ' + esc(ret) + "</div>";
+    /* The gotcha goes right under the description, not at the bottom. This engine fails silently far
+       more often than it errors -- a getter returning 1/0 so `not x` never flips, a call that is async,
+       a name one letter from a different function -- so the warning IS the useful part, and burying it
+       below the fold defeats it. */
+    var got = c.gotcha || (c.native && c.native.gotcha);
+    if (got) html += '<div class="gotcha"><b>Watch out</b> ' + esc(got) + "</div>";
     if (ns.doc) html += '<div class="' + (callDoc ? "nsnote" : "doc") + '">' + esc(ns.doc) + "</div>";
     if (c.native) {
       html += '<div class="doc">The game’s own scripts call this ' + c.native.n + "×" +
@@ -82,6 +106,7 @@
     if (!c.native) return IDE.callTemplate(c);
     /* math.pi / math.huge are values, not functions -- inserting "math.pi(${})" would be nonsense. */
     if (c.native.const) return c.path;
+    if (c.native.global) return IDE.callTemplate({ path: c.path, sig: c.sig });
     var m = /\(([^]*)\)$/.exec(c.native.example || "");
     var args = m && m[1].trim() ? m[1].split(",").map(function (a) {
       return "${" + (a.trim().replace(/[^\w .:-]/g, "").trim() || "arg") + "}";

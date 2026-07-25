@@ -52,6 +52,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCRAPED = ROOT / "src" / "data" / "natives-scraped.json"   # from tools/scrape_natives.py
 LIVE = ROOT / "src" / "data" / "ess-natives.json"          # vendored from Ess's release
+CALL_DOCS = ROOT / "src" / "data" / "call_docs.json"       # hand-curated: {"natives": {path: doc}, "sigs": {path: sig}}
 OUT = ROOT / "src" / "data" / "natives.json"
 
 # NOT THE ENGINE, despite what the dump says.
@@ -125,6 +126,34 @@ def main():
         print("[gen_natives] no %s -- writing the scrape alone. Run tools/sync_assets.py to vendor "
               "the live dump." % LIVE.name)
 
+    # Hand-curated docs and signatures, merged HERE rather than in scrape_natives.py.
+    #
+    # That move is a fix, not a tidy-up. scrape_natives.py merges call_docs into its own output, which
+    # only ever contained functions the decompiled corpus calls -- so once the pipeline split, the 543
+    # live-only functions could not receive a doc at all, no matter what anyone wrote for them. Loader
+    # was the visible case (nothing in the base game calls it, so all nine arrived bare), but it applied
+    # to every live-only entry. Merging after the merge means a curated doc reaches whatever it names.
+    docs, sigs = {}, {}
+    if CALL_DOCS.exists():
+        try:
+            cd = json.loads(CALL_DOCS.read_text(encoding="utf-8"))
+            docs = cd.get("natives") or {}
+            sigs = cd.get("sigs") or {}
+        except (OSError, ValueError) as e:
+            print("[gen_natives] could not read %s (%s) -- continuing without curated docs"
+                  % (CALL_DOCS.name, e))
+
+    doc_hits = sig_hits = 0
+    for ns, members in natives.items():
+        for fn, entry in members.items():
+            path = ns + "." + fn
+            if path in docs and not entry.get("doc"):
+                entry["doc"] = docs[path]
+                doc_hits += 1
+            if path in sigs:
+                entry["sig"] = sigs[path]
+                sig_hits += 1
+
     # Per-namespace provenance, so a consumer can say where a function actually comes from instead of
     # calling everything in `natives` an engine function. Kept as a sibling map rather than folded into
     # each entry: `natives` is {ns: {fn: {...}}} and everything downstream indexes it that way.
@@ -147,6 +176,8 @@ def main():
     print("[gen_natives] %d resident modules recorded (%d functions) -- these need import(\"Name\") "
           "before use; 25_lint.js warns when one is missing"
           % (len(modules), sum(len(m["fns"]) for m in modules.values())))
+    print("[gen_natives] curated: %d docs and %d signatures merged from %s"
+          % (doc_hits, sig_hits, CALL_DOCS.name))
     bridge = sorted(ns for ns in natives if ns in BRIDGE_NS)
     if bridge:
         print("[gen_natives] reclassified as lua-bridge (Lua_Loader.asi), not engine: %s"

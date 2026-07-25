@@ -108,6 +108,15 @@ lua-bridge-api, and no decompiled base-game script references `Loader.*` at all.
 own functions, as the base game's scripts actually use them". The proper fix belongs upstream in Ess's
 `dump_natives.py`, which is the only thing that can know what was resident before the bridge attached.
 
+Those nine also arrived with no signature and no description — nothing in the base game calls the bridge,
+so the scrape had nothing to mine, and the live dump records existence only. Their docs are hand-written
+into `call_docs.json` (the repo's existing curated artifact) rather than parsed out of `lua_bridge.c`: the
+C is authoritative for the function *list*, but its comments describe the implementation — stack offsets
+and perf notes — not the contract, and three different argument idioms in there would defeat a parser on
+`Printf` and `IsKeyDown` alone. Nine functions that change roughly never are worth writing by hand.
+Curated docs are merged **after** the scrape/live merge, which also fixed a real gap: `call_docs` used to
+be applied inside `scrape_natives.py`, so none of the 543 live-only functions could receive a doc at all.
+
 The same file also records the 18 **resident Lua modules** (`MrxUtil`, `MrxGuiBase`, …) under a
 separate `modules` key rather than folding them in with the natives — they are not engine functions
 and they are not unconditionally available, which is exactly what makes the import check possible.

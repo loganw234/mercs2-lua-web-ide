@@ -30,7 +30,9 @@
     ((window.MERCS_TEMPLATES && window.MERCS_TEMPLATES.categories) || []).forEach(function (cat) {
       cat.items.forEach(function (it) { tplSet[it.name] = 1; });
     });
-    return (K = { essPaths: essPaths, essNs: essNs, essList: ess.completions, nat: nat, tplSet: tplSet });
+    var mods = (window.MERCS_NATIVES && window.MERCS_NATIVES.modules) || {};
+    return (K = { essPaths: essPaths, essNs: essNs, essList: ess.completions, nat: nat, tplSet: tplSet,
+                  mods: mods });
   }
 
   /* ---- tiny Levenshtein + did-you-mean ---- */
@@ -109,6 +111,54 @@
                     message: friendly(e), line: e.line || 1, col: e.column || 0 });
       return { errors: errors, warnings: warnings };
     }
+
+    /* ---- resident modules need their own import() ------------------------
+     *
+     * import("Name") only affects THE IMPORTING FILE'S OWN ENVIRONMENT -- confirmed by live testing,
+     * documented at the wiki's resident/index.md. So a script that calls MrxPmc.AddCashQty without
+     * importing MrxPmc first does not silently misbehave, it dies on the spot with:
+     *
+     *     attempt to index global 'MrxPmc' (a nil value)
+     *
+     * That is a runtime failure this linter can see before the script is ever sent, which is the whole
+     * point of the pre-send pass. Engine natives (Pg, Ai, Object...) need no import and are not in this
+     * list; neither is anything a module publishes straight to _G (MrxCheatBootstrap's Cheat,
+     * DebugTeleport), which works from anywhere.
+     *
+     * Collected first, over the whole chunk, because an import at the bottom still counts -- the module
+     * system runs the file before anything calls into it.
+     */
+    var imported = {};
+    try {
+      walk(ast, function (n) {
+        if (n.type !== "CallExpression" && n.type !== "StringCallExpression") return;
+        var b = n.base;
+        if (!b || b.type !== "Identifier" || b.name !== "import") return;
+        var arg = (n.arguments && n.arguments[0]) || n.argument;   /* import"X" is a StringCall */
+        if (arg && arg.type === "StringLiteral") {
+          imported[String(arg.value != null ? arg.value : arg.raw).replace(/^["']|["']$/g, "")] = 1;
+        }
+      });
+    } catch (e) { /* if we cannot read the imports, warn about none of them */ }
+
+    var flaggedMod = {};
+    try {
+      walk(ast, function (n) {
+        if (n.type !== "MemberExpression" && n.type !== "IndexExpression") return;
+        var root = n.base;
+        if (!root || root.type !== "Identifier") return;
+        var name = root.name;
+        if (!api.mods[name] || imported[name] || flaggedMod[name]) return;
+        flaggedMod[name] = 1;
+        var m = api.mods[name];
+        warnings.push({
+          from: root.range[0], to: root.range[1], severity: "warning",
+          message: name + ' is a resident game module, not a global — add import("' + name +
+            '") at the top of this script or it fails with: attempt to index global \'' + name +
+            "' (a nil value)." + (m.source ? "  [" + m.source + "]" : "")
+        });
+      });
+    } catch (e) { /* a checker bug must never take down the editor */ }
 
     try {
       walk(ast, function (n) {

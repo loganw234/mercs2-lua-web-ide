@@ -31,7 +31,10 @@ You can still write, save, and browse everything with no game attached — only 
   plain-English explanation (missing `end`, `=` vs `==`, `!=` vs `~=`, unclosed strings…) and jump you to the
   line. Live squiggles as you type, plus: did-you-mean for typo'd `Ess.*` / native / `Loader.*` calls,
   argument-count checks backed by how the game's own scripts call each native, colon-vs-dot fixes,
-  `print()` → `Ess.Log` hints, and a hard warning on `while true` loops (they freeze the game).
+  `print()` → `Ess.Log` hints, a hard warning on `while true` loops (they freeze the game), and a
+  **missing-`import()` check** — `import("Name")` only affects the importing file's own environment, so
+  calling a resident module like `MrxPmc` without importing it first dies with *attempt to index global
+  'MrxPmc' (a nil value)*. The linter names the exact import you need before the script is ever sent.
 - **Script library** — named scripts with rename / duplicate / delete, autosave as you type, import/export
   `.lua` files, and a one-click **Backup/Restore** of the whole library as one JSON file (the seatbelt
   against "clear browsing data" — restore always merges, never clobbers). **Share** links are LZ-string
@@ -96,6 +99,12 @@ shorthand against whichever full path appeared earlier in the row — which sile
 exist. CAPABILITIES.md is still pinned, but only for what `ess.json` doesn't carry: the section headings the
 API panel groups by, the per-namespace blurb, and richer hand-written signatures for calls documented with
 option-table keys.
+
+The same file also records the 18 **resident Lua modules** (`MrxUtil`, `MrxGuiBase`, …) under a
+separate `modules` key rather than folding them in with the natives — they are not engine functions
+and they are not unconditionally available, which is exactly what makes the import check possible.
+Only canonical top-level modules are listed; a dotted entry like `MrxGui.FlashWidget` is reached
+through its parent, so the import it needs is the parent's.
 
 `natives.json` is likewise a **merge** of two partial sources, neither sufficient alone: `scrape_natives.py`
 mines the decompiled corpus for how a native is really *called* (call site, observed argument counts), while

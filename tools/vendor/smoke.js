@@ -103,6 +103,45 @@ setTimeout(() => {
   ok("lint: Ess typo did-you-mean", /summon/.test((IDE.lint.validate('Ess.Easy.Vehicle.sumon("V")').warnings[0] || {}).message));
   ok("lint: freeze loop flagged", IDE.lint.validate("while true do end").warnings.some(d => /FREEZE/.test(d.message)));
   ok("lint: clean code is clean", IDE.lint.validate('Ess.Player.giveCash(1000)').warnings.length === 0);
+
+  /* import("Name") only affects THE IMPORTING FILE'S OWN ENVIRONMENT -- documented at the wiki's
+     resident/index.md and confirmed there by live testing. So calling a resident module without
+     importing it first does not misbehave subtly, it dies with
+         attempt to index global 'MrxPmc' (a nil value)
+     which is a runtime failure the pre-send pass can catch before the script is ever sent. */
+  const lintMsgs = (src) => IDE.lint.validate(src).warnings.map(d => d.message);
+  const modWarn = (src) => lintMsgs(src).filter(m => /resident game module/.test(m));
+
+  ok("lint: resident module used without import is flagged",
+     modWarn('MrxPmc.AddCashQty(0, 1000)').length === 1,
+     JSON.stringify(lintMsgs('MrxPmc.AddCashQty(0, 1000)')));
+  ok("lint: the warning names the exact import and the real failure",
+     /import\("MrxPmc"\)/.test(modWarn('MrxPmc.AddCashQty(0, 1000)')[0] || "") &&
+     /attempt to index global 'MrxPmc'/.test(modWarn('MrxPmc.AddCashQty(0, 1000)')[0] || ""),
+     modWarn('MrxPmc.AddCashQty(0, 1000)')[0]);
+  ok("lint: the same module WITH its import is clean",
+     modWarn('import("MrxPmc")\nMrxPmc.AddCashQty(0, 1000)').length === 0);
+  ok("lint: an import lower down the file still counts",
+     modWarn('MrxUtil.Foo()\nimport("MrxUtil")').length === 0);
+  ok("lint: engine natives need no import",
+     modWarn('Pg.GetGuidByName("x")').length === 0);
+  ok("lint: Ess needs no import",
+     modWarn('Ess.Player.pose(0)').length === 0);
+  ok("lint: each missing module is reported once, not once per use",
+     modWarn('MrxUtil.A()\nMrxUtil.B()\nMrxUtil.C()').length === 1);
+  ok("lint: two different missing modules are reported separately",
+     modWarn('MrxUtil.A()\nMrxGuiBase.B()').length === 2);
+  /* Things a module publishes straight to _G (MrxCheatBootstrap's Cheat, DebugTeleport) work from
+     anywhere. The dump classifies those as engine or omits them, so they are excluded for free. */
+  ok("lint: a _G-published global is not treated as a module",
+     modWarn('Cheat.Something()').length === 0);
+  ok("data: resident modules are recorded separately from natives",
+     w.MERCS_NATIVES.modules && Object.keys(w.MERCS_NATIVES.modules).length >= 15 &&
+     !w.MERCS_NATIVES.natives.MrxUtil,
+     Object.keys(w.MERCS_NATIVES.modules || {}).length + " modules");
+  ok("data: only canonical top-level modules, no dotted sub-tables",
+     Object.keys(w.MERCS_NATIVES.modules).every(k => k.indexOf(".") === -1));
+
   ok("lint: table-call style accepted", IDE.lint.validate('Ess.TextConsole.open{ onSubmit = function(t) end }').warnings.length === 0);
 
   // ---- run gating (not connected; syntax error must block before the bridge) ----

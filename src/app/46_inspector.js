@@ -94,8 +94,10 @@
     fields.innerHTML = "";
     poll();
     timer = setInterval(poll, INTERVAL);
-    var tab = document.querySelector('.stab[data-p="inspect"]');
-    if (tab) tab.click();
+    /* Reveal the Inspect panel. The `.stab` tabs this used to click were removed
+       by the dock refactor; the `if (tab)` guard meant it stopped working
+       silently rather than throwing, so nothing ever surfaced the panel. */
+    if (IDE.dock && IDE.dock.show) IDE.dock.show("inspect");
   }
   $("inspectClose").onclick = stop;
   IDE.bus.on("status", function (s) { if (s === "open" && expr) poll(); });

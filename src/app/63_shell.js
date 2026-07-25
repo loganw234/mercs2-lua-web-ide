@@ -16,9 +16,7 @@
     ["editor",    "Editor",    "‹›", false],
     ["output",    "Output",    "▤",  false],
     ["scripts",   "Scripts",   "❑",  true],
-    ["examples",  "Examples",  "◫",  true],
     ["api",       "API",       "ƒ",  true],
-    ["templates", "Templates", "⬢",  true],
     ["inspect",   "Inspect",   "🔍", true],
     ["watch",     "Watch",     "◎",  true],
     ["assist",    "Assistant", "✦",  true],
@@ -37,6 +35,9 @@
   PANELS.filter(function (p) { return p[3]; }).forEach(function (p) {
     var b = document.createElement("button");
     b.className = "actbtn";
+    /* Icon-only: the glyph is decorative, the title is the only name, and a
+       title is a tooltip rather than an accessible name. Say it properly. */
+    b.setAttribute("aria-label", p[1]);
     b.type = "button";
     b.title = p[1];
     b.textContent = p[2];
@@ -66,6 +67,34 @@
   IDE.dock.on("change", sync);
   sync();
 
+  /* Non-dock entries. Examples is a modal, not a panel, but it still belongs in
+     the activity bar: that bar is "how do I get to X", and a user should not
+     have to know which things happen to be docked. Sits after the panels with a
+     hairline above it so the difference is visible without being explained. */
+  var overlays = [
+    ["Examples", "◫", function () { if (IDE.examples) IDE.examples.open(); }],
+    /* Templates is a name lookup, which the palette does better than a tree --
+       this opens the palette pre-filtered to templates rather than restoring a
+       panel nobody needs open while they type. */
+    ["Spawn templates  (Ctrl+K)", "⬢", function () {
+      if (IDE.palette) IDE.palette.open({ kind: "tpl" });
+    }],
+    ["Search everything  (Ctrl+K)", "⌘", function () { if (IDE.palette) IDE.palette.open(); }]
+  ];
+  var rule = document.createElement("div");
+  rule.className = "actrule";
+  bar.appendChild(rule);
+  overlays.forEach(function (o) {
+    var b = document.createElement("button");
+    b.className = "actbtn";
+    b.type = "button";
+    b.title = o[0];
+    b.setAttribute("aria-label", o[0]);
+    b.textContent = o[1];
+    b.onclick = o[2];
+    bar.appendChild(b);
+  });
+
   /* A reset-layout affordance, tucked at the bottom of the activity bar. */
   var spacer = document.createElement("div");
   spacer.className = "actspace";
@@ -74,6 +103,7 @@
   gear.className = "actbtn dim";
   gear.type = "button";
   gear.title = "Settings";
+  gear.setAttribute("aria-label", "Settings");
   gear.textContent = "⚙";
   gear.onclick = function () { if (IDE.settings) IDE.settings.open(); };
   bar.appendChild(gear);
@@ -82,7 +112,30 @@
   reset.className = "actbtn dim";
   reset.type = "button";
   reset.title = "Reset the panel layout";
+  reset.setAttribute("aria-label", "Reset the panel layout");
   reset.textContent = "⟲";
   reset.onclick = function () { IDE.dock.reset(); };
   bar.appendChild(reset);
+
+  /* ---- the File menu ------------------------------------------------------
+     The library commands (new / import / export / backup / restore / deploy)
+     used to live in a <select> inside the Scripts panel, which meant they were
+     unreachable whenever that panel was closed -- and a <select> is the wrong
+     control for running commands regardless. They are app-level, so they live
+     in the top bar, built from the same IDE.scriptsPanel.commands list the
+     palette uses. */
+  var fileBtn = $("fileMenu");
+  if (fileBtn) {
+    fileBtn.onclick = function (e) {
+      e.stopPropagation();
+      var items = (IDE.scriptsPanel && IDE.scriptsPanel.commands || []).map(function (c) {
+        return c.sep ? { sep: true } : { label: c.label, run: c.run };
+      });
+      items.push({ sep: true });
+      items.push({ label: "Search everything…", hint: "Ctrl+K",
+                   run: function () { if (IDE.palette) IDE.palette.open(); } });
+      items.push({ label: "Examples gallery…", run: function () { if (IDE.examples) IDE.examples.open(); } });
+      IDE.ui.menu(fileBtn, items);
+    };
+  }
 })();

@@ -23,7 +23,7 @@
 (function () {
   var IDE = window.IDE;
 
-  /* Dotted references -- Ai.Goal, Pg.Spawn, MrxFollow.Create, MrxFollow.follow.
+  /* Dotted references -- Ai.Goal, Pg.Spawn, MrxFollow.follow, Ess.Player.pose.
    *
    * The method half is deliberately case-insensitive. An earlier version
    * required it to start uppercase and therefore sailed straight past
@@ -33,8 +33,18 @@
    * so the narrow pattern was checking the half of the API least likely to be
    * invented.
    *
+   * The trailing `+` matters just as much, and its absence was a real hole.
+   * With a single `\.name` group this matched only the FIRST TWO segments, so
+   * `Ess.Player.teleportTo` yielded `Ess.Player` -- a real namespace, therefore
+   * "grounded" -- and the invented method half was never looked at. Ess is a
+   * three-segment API (`Ess.Namespace.method`), which is to say the entire
+   * framework this IDE exists for was exempt from the check: any fabricated
+   * method on a real namespace passed silently. Two-segment names were fine,
+   * which is why the earlier `MrxFollow.follow` fix did not expose it. Caught
+   * by testing a live local model's answer against the checker.
+   *
    * Bare words are still not checked: too noisy to be useful. */
-  var API_RE = /\b[A-Z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*\b/g;
+  var API_RE = /\b[A-Z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+\b/g;
 
   /* Filenames match the pattern and are not API references. The wiki is full of
      "mrxfollow.lua" and "vz-patch.wad", and flagging those would be constant
@@ -78,6 +88,24 @@
    *
    * -> Promise<{absent: [], elsewhere: []}>, rejects if the index is unreachable.
    */
+  /* The index is 3,485 entries / ~4.8 MB, and this used to concatenate the
+     whole thing into one string on EVERY answer -- on the UI thread, right
+     after the reply the user is trying to read. The index is immutable for the
+     session (it is fetched once and cached), so the flattened form is too:
+     build it on first use and keep it. Keyed on the array identity so a
+     re-fetch would correctly rebuild rather than serve a stale haystack. */
+  var hayCache = null, hayFor = null;
+  function haystack(idx) {
+    if (hayCache !== null && hayFor === idx) return hayCache;
+    var parts = new Array(idx.length);
+    for (var i = 0; i < idx.length; i++) {
+      parts[i] = (idx[i].title || "") + "\n" + (idx[i].content || "");
+    }
+    hayCache = parts.join("\n");
+    hayFor = idx;
+    return hayCache;
+  }
+
   function verify(candidates) {
     if (!candidates || !candidates.length) {
       return Promise.resolve({ absent: [], elsewhere: [] });
@@ -86,10 +114,7 @@
       return Promise.reject(new Error("no wiki index available"));
     }
     return IDE.agent.index().then(function (idx) {
-      var hay = "";
-      for (var i = 0; i < idx.length; i++) {
-        hay += (idx[i].title || "") + "\n" + (idx[i].content || "") + "\n";
-      }
+      var hay = haystack(idx);
       var absent = [], elsewhere = [];
       for (var k = 0; k < candidates.length; k++) {
         (hay.indexOf(candidates[k]) === -1 ? absent : elsewhere).push(candidates[k]);

@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Files this repo VENDORS from other repos, pinned to a tag + sha256.",
+    "Do not edit the vendored files by hand -- they are overwritten. Change them upstream, release, repin.",
+    "  python tools/sync_assets.py            fetch at the pinned tag and verify",
+    "  python tools/sync_assets.py --update   repin to upstream's newest release tag",
+    "  python tools/sync_assets.py --check    CI gate (see the script's header for the two severities)",
+    "The pin is also what stamps window.ESS_API.essVersion, so the API reference and the version it",
+    "claims to be can no longer disagree -- see tools/gen_api.py resolve_ess_version()."
+  ],
+  "assets": [
+    {
+      "path": "src/data/CAPABILITIES.md",
+      "repo": "loganw234/mercs2-lua-essentials",
+      "remote_path": "CAPABILITIES.md",
+      "pin": "v0.3.4",
+      "why": "Ess's own API reference. tools/gen_api.py turns it into src/data/ess-api.json, which powers the API panel, Ess.* autocomplete, hover docs and the linter's did-you-mean.",
+      "sha256": "3c832d78c686fae3533793feb58a2885554212a506dc11759c77f9fa306ab1cd"
+    }
+  ]
+}

@@ -47,14 +47,20 @@
       needsKey: true, local: false, tested: false,
       note: "Sends the direct-browser-access opt-in header." },
 
-    { id: "ollama", label: "Ollama (local)", api: "openai",
-      baseUrl: "http://localhost:11434/v1", model: "qwen3:14b",
+    /* api:"ollama" drives Ollama's NATIVE /api/chat, not its OpenAI-compatible
+       shim. That is the only way to send num_ctx and keep_alive per request --
+       the shim silently ignores both, which meant the IDE could not control the
+       single setting that decides whether the reference pack fits (and
+       OLLAMA_CONTEXT_LENGTH does not stick while the tray app is running).
+       tools/bench_tools.py already used the native endpoint for exactly this
+       reason; the app now agrees with the benchmark. */
+    { id: "ollama", label: "Ollama (local)", api: "ollama",
+      baseUrl: "http://localhost:11434", model: "qwen3:14b",
       needsKey: false, local: true, tested: true,
       note: "qwen3:14b is the tested pick -- 7/7 on tool use and zero invented " +
-            "identifiers. Big models on CPU/RAM: set OLLAMA_KEEP_ALIVE=60m (the " +
-            "OpenAI-compatible endpoint ignores per-request keep_alive), raise " +
-            "OLLAMA_LOAD_TIMEOUT, and set OLLAMA_CONTEXT_LENGTH=32768 or a small " +
-            "model will reserve VRAM for a 131k context it never uses." },
+            "identifiers. The context window and keep-alive are set per request " +
+            "now, so no OLLAMA_* environment variables are needed for those. " +
+            "Raise OLLAMA_LOAD_TIMEOUT if a big model loads from disk slowly." },
 
     { id: "lmstudio", label: "LM Studio (local)", api: "openai",
       baseUrl: "http://localhost:1234/v1", model: "local-model",
@@ -88,11 +94,43 @@
        hosted 1M one). */
     editorMode: "diff",   /* "diff" = full script once then diffs; "full" = whole script every turn */
     trimHistory: true,    /* auto-trim old messages to the model's context window */
-    logSend: 40,          /* game-log lines attached per message */
-    keepRawResults: 2,    /* agent: tool results kept verbatim (older ones summarized) */
+    logSend: 0,           /* game-log lines per message; 0 = derive from the window (see budget()) */
+    keepRawResults: 0,    /* agent: tool results kept verbatim; 0 = derive from the window */
     maxSteps: 10,         /* agent: max tool-call steps per run */
-    promptCache: true     /* Anthropic: cache_control breakpoint on the reference pack */
+    promptCache: true,    /* Anthropic: cache_control breakpoint on the reference pack */
+    /* Ollama-native knobs (api:"ollama"). num_ctx 0 = load at the model's own default. */
+    numCtx: 0,            /* per-request context window; the ONLY override of a Modelfile pin */
+    keepAlive: "60m",     /* keep the model resident so the next question isn't a reload */
+    /* Reasoning models: "" = don't send the parameter at all (correct for every
+       non-reasoning model, and for providers that reject an unknown field). */
+    reasoningEffort: "",  /* "" | minimal | low | medium | high */
+    ctxDetected: 0        /* what autodetect last measured, so we can tell it from a typed value */
   };
+
+  /* Context windows for hosted models we cannot ask. Only used as a last resort,
+     and only as a PREFILL -- a wrong guess here is visible and editable in
+     settings, whereas no value at all silently disables history trimming. */
+  var MODEL_CTX = [
+    [/^deepseek-(v4|chat|reasoner)/i, 1000000],
+    [/^claude-(fable|opus|sonnet|haiku)-[45]/i, 200000],
+    [/^claude-3/i, 200000],
+    [/^gpt-5|^gpt-6|^o[1-9](-|$)/i, 400000],
+    [/^gpt-4\.1/i, 1000000],
+    [/^gpt-4o/i, 128000],
+    [/^gemini-[12]\.\d-(pro|flash)/i, 1000000],
+    [/^qwen3(\.\d)?:(30b|32b|35b)/i, 262144],
+    [/^qwen.*1m/i, 1000000],
+    [/^qwen3(\.\d)?:/i, 40960],
+    [/^llama-?3\.[13]/i, 131072],
+    [/^mistral|^mixtral/i, 32768]
+  ];
+
+  function guessCtx(model) {
+    for (var i = 0; i < MODEL_CTX.length; i++) {
+      if (MODEL_CTX[i][0].test(model || "")) return MODEL_CTX[i][1];
+    }
+    return 0;
+  }
 
   /* Provider PROFILES. Users keep several named setups -- a free local model, a
      paid frontier one, a hosted DeepSeek -- and switch between them. Internally
@@ -136,6 +174,20 @@
       if (!p.id) p.id = pid();
       if (!p.name) p.name = "Profile";
     });
+    /* One-time: logSend/keepRawResults gained an "auto" mode (0 = derive from
+       the model's window -- see budget()). Profiles written before that carry
+       the OLD DEFAULTS, which are indistinguishable from a deliberate choice
+       and would pin those two knobs forever. Anything still sitting on the old
+       default is moved to auto once; a value the user actually picked is left
+       alone, and so is anything they set after this runs. */
+    if (!store.autoBudget) {
+      store.profiles.forEach(function (p) {
+        if (p.logSend === 40) p.logSend = 0;
+        if (p.keepRawResults === 2) p.keepRawResults = 0;
+      });
+      store.autoBudget = 1;
+      save();
+    }
     if (!activeProfile()) store.active = store.profiles[0].id;
     return activeProfile();
   }
@@ -156,6 +208,68 @@
       try { console.warn("[ai] settings NOT persisted:", saveErr); } catch (_) {}
       return false;
     }
+  }
+
+  /* ---- transport --------------------------------------------------------
+     Retry on 429 and 5xx with bounded backoff.
+     Why this is not optional: the setup this project actively recommends to
+     people with no budget is OpenRouter's free tier, which rate-limits hard --
+     in our own cross-ecosystem run two models scored 0/11 and 7/11 purely from
+     HTTP 429s, i.e. the harness measured the rate limiter, not the model. A
+     user hitting that sees "HTTP 429" and concludes the IDE is broken.
+
+     Only retried before the body is touched, so a half-streamed answer is never
+     silently restarted. An abort is never retried. Retry-After is honoured when
+     the provider sends one, because guessing shorter than they asked just burns
+     the next attempt too. */
+  var RETRY_STATUS = { 429: 1, 500: 1, 502: 1, 503: 1, 504: 1, 529: 1 };
+
+  function retryDelay(res, attempt) {
+    var ra = res && res.headers && res.headers.get && res.headers.get("retry-after");
+    if (ra) {
+      var secs = parseFloat(ra);
+      if (!isNaN(secs) && secs >= 0) return Math.min(secs * 1000, 30000);
+      var when = Date.parse(ra);
+      if (!isNaN(when)) return Math.max(0, Math.min(when - Date.now(), 30000));
+    }
+    return Math.min(1000 * Math.pow(2, attempt), 8000);   /* 1s, 2s, 4s, 8s */
+  }
+
+  function fetchRetry(url, init, opts, onRetry) {
+    var max = 2, attempt = 0;
+    function go() {
+      return fetch(url, init).then(function (res) {
+        if (res.ok || !RETRY_STATUS[res.status] || attempt >= max) return res;
+        if (opts && opts.signal && opts.signal.aborted) return res;
+        var wait = retryDelay(res, attempt);
+        attempt++;
+        if (onRetry) onRetry(res.status, wait, attempt, max);
+        /* Drain so the connection can be reused rather than left dangling. */
+        try { res.body && res.body.cancel && res.body.cancel(); } catch (e) {}
+        return new Promise(function (resolve, reject) {
+          var t = setTimeout(function () { resolve(go()); }, wait);
+          if (opts && opts.signal) {
+            opts.signal.addEventListener("abort", function () {
+              clearTimeout(t);
+              var err = new Error("aborted"); err.name = "AbortError"; reject(err);
+            }, { once: true });
+          }
+        });
+      });
+    }
+    return go();
+  }
+
+  /* A provider can return HTTP 200 and then report the failure INSIDE the
+     stream (OpenRouter does this for upstream rate limits). The frame carries
+     no `choices`, so the old handler dropped it and the user got a silent empty
+     answer with no explanation at all. Recognise it and fail loudly instead. */
+  function frameError(o) {
+    if (!o) return null;
+    var e = o.error || (o.response && o.response.error);
+    if (!e) return null;
+    var msg = (typeof e === "string") ? e : (e.message || e.type || JSON.stringify(e));
+    return new Error("The provider reported an error mid-stream: " + msg);
   }
 
   /* ---- SSE line reader shared by both adapters ---------------------------
@@ -179,8 +293,41 @@
             if (payload === "[DONE]") continue;
             var obj = null;
             try { obj = JSON.parse(payload); } catch (e) { continue; }
+            var err = frameError(obj);
+            if (err) throw err;
             onFrame(obj);
           }
+        }
+        return pump();
+      });
+    }
+    return pump();
+  }
+
+  /* Ollama's native /api/chat streams NDJSON -- one complete JSON object per
+     line -- not SSE. Same job, different framing. */
+  function readNDJSON(res, onFrame) {
+    var reader = res.body.getReader();
+    var dec = new TextDecoder();
+    var buf = "";
+    function pump() {
+      return reader.read().then(function (c) {
+        if (c.done) {
+          var tail = buf.trim();
+          if (tail) { try { onFrame(JSON.parse(tail)); } catch (e) {} }
+          return;
+        }
+        buf += dec.decode(c.value, { stream: true });
+        var lines = buf.split("\n");
+        buf = lines.pop();
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          var obj = null;
+          try { obj = JSON.parse(line); } catch (e) { continue; }
+          var err = frameError(obj);
+          if (err) throw err;
+          onFrame(obj);
         }
         return pump();
       });
@@ -203,19 +350,48 @@
 
   /* ---- adapters --------------------------------------------------------- */
 
-  function chatOpenAI(c, messages, opts) {
+  /* Reasoning models take `max_completion_tokens`; `max_tokens` is rejected
+     outright by some and, where accepted, is spent on reasoning tokens before
+     the answer starts -- so a 4k cap can silently produce an empty reply.
+     There is no reliable way to know from the model id alone (every provider
+     names them differently and the list rots), so: guess from the id, and if
+     the provider objects, flip the field and retry ONCE. Self-healing beats a
+     table nobody remembers to update. */
+  var REASONING_ID = /^(o[1-9]|gpt-5|gpt-6|deepseek-reasoner|.*-thinking)/i;
+
+  function openAIBody(c, messages, tools, useCompletionTokens) {
+    var body = { model: c.model, messages: messages, stream: true };
+    body[useCompletionTokens ? "max_completion_tokens" : "max_tokens"] = c.maxTokens;
+    if (c.reasoningEffort) body.reasoning_effort = c.reasoningEffort;
+    if (tools && tools.length) { body.tools = tools; body.tool_choice = "auto"; }
+    return body;
+  }
+
+  function postOpenAI(c, messages, tools, opts) {
     var headers = { "content-type": "application/json" };
     if (c.key) headers.authorization = "Bearer " + c.key;
-    var body = {
-      model: c.model,
-      messages: messages,
-      stream: true,
-      max_tokens: c.maxTokens
-    };
-    return fetch(c.baseUrl.replace(/\/+$/, "") + "/chat/completions", {
-      method: "POST", headers: headers, body: JSON.stringify(body), signal: opts.signal
-    }).then(function (res) {
-      if (!res.ok) return httpError(res);
+    var url = c.baseUrl.replace(/\/+$/, "") + "/chat/completions";
+
+    function attempt(useCompletionTokens) {
+      return fetchRetry(url, {
+        method: "POST", headers: headers, signal: opts.signal,
+        body: JSON.stringify(openAIBody(c, messages, tools, useCompletionTokens))
+      }, opts, opts.onRetry).then(function (res) {
+        if (res.ok) return res;
+        if (res.status !== 400 || useCompletionTokens) return httpError(res);
+        /* Peek at the 400 before giving up: is it complaining about the very
+           field we guessed at? */
+        return res.text().then(function (t) {
+          if (/max_completion_tokens|max_tokens/i.test(t)) return attempt(true);
+          return httpError(new Response(t, { status: res.status }));
+        });
+      });
+    }
+    return attempt(REASONING_ID.test(c.model || ""));
+  }
+
+  function chatOpenAI(c, messages, opts) {
+    return postOpenAI(c, messages, null, opts).then(function (res) {
       return readSSE(res, function (o) {
         var d = o.choices && o.choices[0] && o.choices[0].delta;
         if (!d) return;
@@ -226,6 +402,114 @@
         var r = d.reasoning_content || d.reasoning;
         if (r && opts.onReasoning) opts.onReasoning(r);
         if (d.content && opts.onDelta) opts.onDelta(d.content);
+      });
+    });
+  }
+
+  /* ---- Ollama native (/api/chat) ----------------------------------------
+   *
+   * The OpenAI-compatible shim cannot set num_ctx or keep_alive: it ignores
+   * both silently. num_ctx is the only thing that overrides a model's
+   * Modelfile-pinned context, and context -- not parameter count -- is what
+   * decides whether the reference pack survives (a model that cannot hold the
+   * pack does not warn you; it truncates from the FRONT, where the
+   * anti-invention rules live, and answers confidently anyway).
+   *
+   * Differences from the OpenAI shape, all handled here so the rest of the app
+   * stays provider-blind:
+   *   - NDJSON framing, not SSE
+   *   - tool-call arguments are a JSON OBJECT, not a JSON string
+   *   - reasoning arrives as message.thinking
+   *   - one whole message per frame (already-assembled tool calls)
+   */
+  function ollamaRoot(c) {
+    return c.baseUrl.replace(/\/+$/, "").replace(/\/v1$/, "");
+  }
+
+  function toOllama(messages) {
+    return messages.map(function (m) {
+      if (m.role === "tool") {
+        /* Ollama keys tool results by name, not by call id. */
+        return { role: "tool", content: String(m.content || ""), tool_name: m.name || "" };
+      }
+      if (m.role === "assistant" && m.tool_calls && m.tool_calls.length) {
+        return {
+          role: "assistant", content: m.content || "",
+          tool_calls: m.tool_calls.map(function (tc) {
+            var args = {};
+            try { args = JSON.parse((tc.function && tc.function.arguments) || "{}"); }
+            catch (e) { args = {}; }
+            return { function: { name: tc.function && tc.function.name, arguments: args } };
+          })
+        };
+      }
+      return { role: m.role, content: String(m.content || "") };
+    });
+  }
+
+  function ollamaOptions(c) {
+    var o = {};
+    if (c.numCtx && c.numCtx > 0) o.num_ctx = c.numCtx;
+    return o;
+  }
+
+  function postOllama(c, messages, tools, opts) {
+    var body = {
+      model: c.model,
+      messages: toOllama(messages),
+      stream: true,
+      keep_alive: c.keepAlive || "60m",
+      options: ollamaOptions(c)
+    };
+    if (tools && tools.length) body.tools = tools;
+    return fetchRetry(ollamaRoot(c) + "/api/chat", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify(body), signal: opts.signal
+    }, opts, opts.onRetry).then(function (res) {
+      if (!res.ok) return httpError(res);
+      return res;
+    });
+  }
+
+  function chatOllama(c, messages, opts) {
+    return postOllama(c, messages, null, opts).then(function (res) {
+      return readNDJSON(res, function (o) {
+        var m = o.message;
+        if (!m) return;
+        if (m.thinking && opts.onReasoning) opts.onReasoning(m.thinking);
+        if (m.content && opts.onDelta) opts.onDelta(m.content);
+      });
+    });
+  }
+
+  function completeOllama(c, messages, tools, opts) {
+    var content = "", reasoning = "", calls = [];
+    return postOllama(c, messages, tools, opts).then(function (res) {
+      return readNDJSON(res, function (o) {
+        var m = o.message;
+        if (!m) return;
+        if (m.thinking) { reasoning += m.thinking; if (opts.onReasoning) opts.onReasoning(m.thinking); }
+        if (m.content) { content += m.content; if (opts.onDelta) opts.onDelta(m.content); }
+        if (m.tool_calls) {
+          m.tool_calls.forEach(function (tc, i) {
+            var f = tc.function || {};
+            /* Back to the OpenAI shape the agent loop executes against: it
+               wants arguments as a STRING, and an id to pair the result with. */
+            calls.push({
+              id: f.name ? (f.name + "_" + (calls.length + i)) : ("call_" + calls.length),
+              type: "function",
+              function: {
+                name: f.name || "",
+                arguments: typeof f.arguments === "string"
+                  ? f.arguments : JSON.stringify(f.arguments || {})
+              }
+            });
+          });
+        }
+      }).then(function () {
+        var raw = { role: "assistant", content: content };
+        if (calls.length) raw.tool_calls = calls;
+        return { content: content, toolCalls: calls, reasoning: reasoning, raw: raw };
       });
     });
   }
@@ -275,16 +559,8 @@
    * once and arguments are concatenated. content and reasoning forward live via
    * opts.onDelta / opts.onReasoning. Returns the same shape as before. */
   function completeOpenAI(c, messages, tools, opts) {
-    var headers = { "content-type": "application/json" };
-    if (c.key) headers.authorization = "Bearer " + c.key;
-    var body = { model: c.model, messages: messages, stream: true,
-                 max_tokens: c.maxTokens };
-    if (tools && tools.length) { body.tools = tools; body.tool_choice = "auto"; }
     var content = "", reasoning = "", calls = [];
-    return fetch(c.baseUrl.replace(/\/+$/, "") + "/chat/completions", {
-      method: "POST", headers: headers, body: JSON.stringify(body), signal: opts.signal
-    }).then(function (res) {
-      if (!res.ok) return httpError(res);
+    return postOpenAI(c, messages, tools, opts).then(function (res) {
       return readSSE(res, function (o) {
         var d = o.choices && o.choices[0] && o.choices[0].delta;
         if (!d) return;
@@ -364,17 +640,24 @@
     return { system: system, messages: out };
   }
 
+  /* Streams, like every other adapter. This used to be stream:false, which made
+     agent mode on Anthropic go dark between steps -- no live tokens, nothing to
+     watch, and no way to abort a run mid-generation -- while the docs claimed
+     streaming was the design. Assembling tool_use here is the mirror of the
+     OpenAI path: content_block_start carries the block's type/id/name, the
+     deltas carry partial JSON for tool input, and content_block_stop closes it. */
   function completeAnthropic(c, messages, tools, opts) {
     var conv = toAnthropic(messages);
     var body = { model: c.model, system: anthropicSystem(c, conv.system), messages: conv.messages,
-                 max_tokens: c.maxTokens, stream: false };
+                 max_tokens: c.maxTokens, stream: true };
     if (tools && tools.length) {
       body.tools = tools.map(function (t) {
         return { name: t.function.name, description: t.function.description,
                  input_schema: t.function.parameters };
       });
     }
-    return fetch(c.baseUrl.replace(/\/+$/, "") + "/messages", {
+    var text = "", reasoning = "", blocks = [];
+    return fetchRetry(c.baseUrl.replace(/\/+$/, "") + "/messages", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -383,19 +666,33 @@
         "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify(body), signal: opts.signal
-    }).then(function (res) {
+    }, opts, opts.onRetry).then(function (res) {
       if (!res.ok) return httpError(res);
-      return res.json();
-    }).then(function (j) {
-      var text = "", reasoning = "", toolCalls = [];
-      (j.content || []).forEach(function (b) {
-        if (b.type === "text") text += b.text || "";
-        else if (b.type === "thinking") reasoning += b.thinking || "";
-        else if (b.type === "tool_use") {
-          /* back to the OpenAI shape the loop executes against */
-          toolCalls.push({ id: b.id, type: "function",
-            function: { name: b.name, arguments: JSON.stringify(b.input || {}) } });
+      return readSSE(res, function (o) {
+        var i = o.index;
+        if (o.type === "content_block_start" && o.content_block) {
+          blocks[i] = { type: o.content_block.type, id: o.content_block.id,
+                        name: o.content_block.name, json: "" };
+          return;
         }
+        if (o.type === "content_block_delta" && o.delta) {
+          var d = o.delta;
+          if (d.type === "text_delta" && d.text) {
+            text += d.text; if (opts.onDelta) opts.onDelta(d.text);
+          } else if (d.type === "thinking_delta" && d.thinking) {
+            reasoning += d.thinking; if (opts.onReasoning) opts.onReasoning(d.thinking);
+          } else if (d.type === "input_json_delta" && blocks[i]) {
+            blocks[i].json += d.partial_json || "";
+          }
+        }
+      });
+    }).then(function () {
+      var toolCalls = [];
+      blocks.forEach(function (b) {
+        if (!b || b.type !== "tool_use") return;
+        /* back to the OpenAI shape the loop executes against */
+        toolCalls.push({ id: b.id, type: "function",
+          function: { name: b.name, arguments: b.json || "{}" } });
       });
       /* raw is what the loop pushes back into the conversation, so it must be
          OpenAI-shaped too -- toAnthropic re-converts it on the next round. */
@@ -412,12 +709,109 @@
     complete: function (messages, tools, opts) {
       var c = load();
       opts = opts || {};
-      var fn = c.api === "anthropic" ? completeAnthropic : completeOpenAI;
+      var fn = c.api === "anthropic" ? completeAnthropic
+             : c.api === "ollama" ? completeOllama : completeOpenAI;
       return fn(c, messages, tools, opts);
+    },
+
+    /* ---- context autodetection -------------------------------------------
+       The model's context window is the single number everything else scales
+       off: history trimming, the pack tier that fits, how much of a wiki page a
+       tool may return. It used to default to 0 -- meaning "unknown", meaning no
+       trimming at all -- and the only way to set it was for the user to know
+       their model's internals and type them in. Meanwhile checkContext() was
+       already READING the true value from Ollama and merely warning with it.
+
+       So ask, in order of authority: the running server (it knows), then a
+       table for hosted models we cannot ask. Returns {ctx, caps, source} with
+       ctx 0 when genuinely undiscoverable. Never throws -- a detection failure
+       must not break sending a message. */
+    detectContext: function () {
+      var c = load();
+      var root = c.api === "ollama" ? ollamaRoot(c)
+               : c.baseUrl.replace(/\/+$/, "").replace(/\/v1$/, "");
+      var isOllama = c.api === "ollama" || /:11434(\/|$)/.test(c.baseUrl);
+
+      function fallback(why) {
+        var g = guessCtx(c.model);
+        return { ctx: g, caps: null, source: g ? "known model id" : (why || "unavailable") };
+      }
+
+      if (isOllama) {
+        return fetch(root + "/api/show", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ model: c.model })
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+          if (!d || !d.model_info) return fallback("Ollama did not report model info");
+          var ctx = 0;
+          for (var k in d.model_info) {
+            if (/\.context_length$/.test(k)) { ctx = d.model_info[k]; break; }
+          }
+          if (!ctx) return fallback("Ollama reported no context_length");
+          return { ctx: ctx, caps: d.capabilities || [], source: "Ollama /api/show" };
+        }).catch(function () { return fallback("could not reach Ollama"); });
+      }
+
+      /* OpenAI-compatible servers vary in what they expose; OpenRouter reports
+         context_length, LM Studio max_context_length, some report nothing. */
+      var headers = {};
+      if (c.key) headers.authorization = "Bearer " + c.key;
+      return fetch(c.baseUrl.replace(/\/+$/, "") + "/models", { headers: headers })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          var list = (d && (d.data || d.models)) || [];
+          for (var i = 0; i < list.length; i++) {
+            var m = list[i];
+            if (String(m.id || m.name) !== c.model) continue;
+            var ctx = m.context_length || m.max_context_length ||
+                      m.context_window || m.loaded_context_length ||
+                      (m.top_provider && m.top_provider.context_length) || 0;
+            if (ctx) return { ctx: ctx, caps: null, source: "the provider's /models" };
+            break;
+          }
+          return fallback("the provider's /models did not report a window");
+        })
+        .catch(function () { return fallback("could not reach the provider"); });
     },
     preset: function (id) {
       for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i];
       return null;
+    },
+
+    /* ---- derived limits ---------------------------------------------------
+       Everything that used to be a fixed constant scattered across the app --
+       how much of a wiki page a tool may return, how many log lines ride along,
+       how many tool results stay verbatim -- is really "some fraction of the
+       model's window". As constants they were wrong at both ends of the range
+       this fork targets: truncating a wiki page to 14k chars throws away the
+       grounding a 1M-context flagship was given the window to hold, while the
+       same 14k is a third of a 40k local model's entire budget in ONE result.
+
+       Fractions, clamped at both ends, with the old constants as the
+       unknown-window fallback so behaviour is unchanged until a window is
+       known. A profile that sets one of these explicitly (>0) always wins. */
+    budget: function (kind) {
+      var c = load();
+      var w = (c.modelCtx && c.modelCtx > 0) ? c.modelCtx : 0;
+      function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+      switch (kind) {
+        case "pageChars":                       /* one wiki page / tool result */
+          return w ? clamp(w * 0.10 * 4, 6000, 120000) : 14000;
+        case "editorChars":                     /* the attached editor buffer */
+          return w ? clamp(w * 0.25 * 4, 20000, 400000) : 60000;
+        case "selChars":
+          return w ? clamp(w * 0.08 * 4, 8000, 120000) : 20000;
+        case "logLines":
+          if (c.logSend && c.logSend > 0) return c.logSend;
+          return w ? clamp(w / 1000, 20, 400) : 40;
+        case "keepRaw":                         /* tool results kept verbatim */
+          if (c.keepRawResults && c.keepRawResults > 0) return c.keepRawResults;
+          return w ? clamp(w / 32000, 2, 12) : 2;
+        case "stubChars":                       /* what an elided result shrinks to */
+          return w ? clamp(w / 100, 220, 2000) : 220;
+        default:
+          return 0;
+      }
     },
     get: function () { return load(); },
     set: function (patch) {
@@ -500,7 +894,8 @@
       if (!c.baseUrl || !c.model) {
         return Promise.reject(new Error("No provider configured -- open Assistant settings."));
       }
-      var fn = c.api === "anthropic" ? chatAnthropic : chatOpenAI;
+      var fn = c.api === "anthropic" ? chatAnthropic
+             : c.api === "ollama" ? chatOllama : chatOpenAI;
       return fn(c, messages, opts).catch(function (e) {
         if (e && e.name === "AbortError") throw e;
         /* A browser CORS rejection surfaces as an opaque TypeError, which is

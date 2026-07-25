@@ -5,8 +5,9 @@ A fork of `mercs2-lua-web-ide` with a provider-agnostic AI assistant panel.
 `upstream` is the local base IDE it forked from. The plan is to merge this back
 into the base IDE once testing is through — until then it lives as its own repo.
 
-Serve it with `python -m http.server 8614 --directory dist`, or just open
-`dist/index.html`.
+`dist/` is gitignored — run `python build.py` first, then serve it with
+`python -m http.server 8614 --directory dist`, or just open `dist/index.html`.
+CI builds the same file on every push and attaches it to the `latest` release.
 
 ## Design
 
@@ -26,14 +27,18 @@ The trade is that **CORS becomes the user's problem** — see Known limits.
 
 | File | Change |
 |---|---|
-| `src/app/80_provider.js` | **new** — provider config + OpenAI/Anthropic adapters |
+| `src/app/66_palette.js` | **new** — the Ctrl+K command palette (API / templates / examples / commands) |
+| `src/app/65_examples.js` | Examples became a modal gallery; fixed its dead `.stab` call |
+| `src/app/79_render.js` | **new** — the pure renderer (markdown, Lua highlighting, `<think>` splitting), split out of `82_assist.js` |
+| `src/app/80_provider.js` | **new** — provider config + OpenAI/Anthropic/**Ollama-native** adapters, retries, context autodetection, derived budgets |
 | `src/app/85_ground.js` | **new** — ungrounded-identifier check (see below) |
 | `src/app/86_agent.js` | **new** — tool definitions + the agent loop |
 | `src/app/82_assist.js` | **new** — the panel, context capture, rendering |
 | `src/data/packs/*.txt` | **new** — all five reference-pack tiers, bundled |
 | `src/index.html` | Assistant tab + panel markup, `/*__PACK__*/` placeholder |
 | `src/styles.css` | `.ai-*` styles appended |
-| `src/app/60_ui.js` | tab switcher made generic (see below) |
+| `src/app/60_ui.js` | tab switcher made generic; gained `trapFocus` + a real `menu()` |
+| `src/app/63_shell.js` | activity-bar overlay entries + the top-bar File menu |
 | `build.py` | inlines every tier as `window.MERCS_PACKS` + `MERCS_PACK_INFO` |
 
 `60_ui.js` previously hid the five known panels by id, so a sixth panel stayed
@@ -46,14 +51,14 @@ so adding a sidebar panel needs no edit there again.
 This is the whole point of putting it in the IDE rather than linking to the wiki
 chat. Each question can carry:
 
-- **the editor buffer** (capped at 60k chars) — sent **in full the first time**, then
+- **the editor buffer** (capped by `budget("editorChars")` — 60k when the window is unknown) — sent **in full the first time**, then
   as a **unified diff** of your edits since the model last saw it (unchanged runs elided;
   an unchanged buffer collapses to a one-line marker). So the model stays current on your
   script across a long chat without a fresh full copy bloating every message. The baseline
   is per-chat and per-file (switching scripts, or a diff too large to compute, re-sends the
   whole thing); in agent mode the `get_editor` tool always returns the full live buffer on
   demand.
-- **the game log**, from a 120-line ring buffer fed off `IDE.bus` — sent as a **delta**:
+- **the game log**, from a 400-line ring buffer fed off `IDE.bus` — sent as a **delta**:
   the recent tail the first time, then only the lines new since the model last saw it.
 
 Both are toggleable in settings.
@@ -66,7 +71,9 @@ hard ceiling (qwen3:14b is 40,960 native). Four things keep a long chat from ove
 - **Budget-aware trimming** (`assembleMessages`): the history is fitted to the model's window
   (`modelCtx`) — newest turns kept verbatim, everything older folded into a one-line breadcrumb
   summary of the questions asked, and the user told how many messages were trimmed. Order stays
-  `[pack, …turns]` so caching keeps paying off; unknown window (`modelCtx 0`) trims nothing.
+  `[pack, …turns]` so caching keeps paying off. An unknown window still trims nothing — but the
+  window is now **detected** rather than typed (see "Sizing to the model" below), so that case is
+  the exception rather than the default it used to be.
   A trim resets the script/log baseline so the next turn re-sends a full copy (no dangling diff).
 - **Tool-result compaction** in an agent run (`compactConvo`): within one run the model re-reads
   the convo each step, so only the last couple of tool results stay verbatim; older ones shrink
@@ -86,8 +93,9 @@ Answers render markdown, tables and fenced code. Lua blocks get **Insert** and
 ## Providers
 
 Presets ship for DeepSeek, OpenAI, OpenRouter, Anthropic, Ollama, LM Studio,
-llama.cpp and Custom. Only the OpenAI-compatible shape and Anthropic's need
-separate code; everything else is a base-URL/model change.
+llama.cpp and Custom. Three shapes need separate code — OpenAI-compatible,
+Anthropic, and Ollama's native `/api/chat` (see below for why Ollama is not just
+a base-URL change) — everything else is a base-URL/model change.
 
 **Only DeepSeek is marked tested** — the others are labelled `(untested)` in the
 dropdown deliberately. Removing that label should mean someone actually ran it.
@@ -422,6 +430,181 @@ its 1M window. **The pack tier you can afford matters as much as the model choic
 Default local: `qwen3:14b`; `qwen3:30b-a3b` if you have the VRAM and want the full
 namespace reference in context; never the coder line for agent mode.
 
+### The grab bar was 48px because of a class-name collision
+
+The dock built its direction modifier as a bare word — `className = "dsplit " +
+node.dir` — so every horizontal split and every vertical gutter matched the
+results list's generic `.row` rule and silently inherited
+`padding: 5px 48px 5px 0` plus a `border-bottom`. Measured: gutters rendered
+**48px wide** instead of 6, and each row split lost **48px off its right edge**.
+`.col` has no such rule, which is exactly why only the vertical bars looked
+wrong. The modifier is now `d-row` / `d-col`; fixing it handed **132px of
+horizontal space back** to the panels at 1280px wide.
+
+The bar itself is now 8px of hit area with `-2px` margins — a 4px visual gap,
+which is both a comfortable drag target and enough separation between two
+rounded panels (6px flush left them touching).
+
+### Click to hide
+
+Each gutter carries two chevrons on hover, one per side, each hiding the
+neighbour it points at. One button would be ambiguous about *which* side it
+hides, and "hide the smaller one" is worse still because the target changes as
+you resize.
+
+A hidden panel collapses to a 26px strip labelled with what it contains, and
+that strip is the restore control — a panel that vanished with no way back would
+just be `close` with extra steps. The freed space is **redistributed**: the
+stored `sizes` are percentages of the whole split, so using them unchanged left
+the collapsed cell's share as dead space (the panel hid and nothing grew, which
+is the opposite of the point). Visible cells renormalise to sum to 100 while
+keeping their proportions; `sizes` is untouched, so restoring is exact.
+Collapsing both side columns gives the editor **+501px** at 1280.
+
+## Sizing to the model: autodetection and derived budgets
+
+The context window is the number everything else scales off, and it used to be a
+number the user had to know and type. It defaulted to 0 = "unknown" = **history
+was never trimmed**, so a long chat on a 40k local model silently overflowed —
+and the overflow eats the FRONT of the prompt, which is where the system rules
+and the anti-invention banner live. Meanwhile `checkContext()` was already
+reading the true value from Ollama and doing nothing with it but warn.
+
+`IDE.provider.detectContext()` now asks, in order of authority:
+
+1. **Ollama** `/api/show` → `model_info["*.context_length"]` (and `capabilities`)
+2. **OpenAI-compatible** `/v1/models` → `context_length` / `max_context_length` /
+   `context_window` (OpenRouter and LM Studio both report one)
+3. a small **model-id table** for hosted models that report nothing
+
+Whose value wins is explicit: **nothing set, or the value we detected last time
+→ applied silently; a number the user typed → never overwritten**, only offered.
+Overflow is the exception — a tier that cannot fit is lowered automatically,
+because leaving it is not a neutral choice.
+
+### Derived budgets
+
+`IDE.provider.budget(kind)` turns that window into every limit that used to be a
+constant. As constants they were wrong at both ends of the range this fork
+targets: truncating a wiki page to 14k chars discards the grounding a 1M-context
+flagship was given the window to hold, while the same 14k is a third of a 40k
+local model's entire budget in **one** tool result.
+
+| kind | unknown window | derived |
+|---|---|---|
+| `pageChars` | 14,000 | 10% of the window, clamped 6k–120k chars |
+| `editorChars` | 60,000 | 25%, clamped 20k–400k |
+| `selChars` | 20,000 | 8%, clamped 8k–120k |
+| `logLines` | 40 | window/1000, clamped 20–400 |
+| `keepRaw` | 2 | window/32000, clamped 2–12 |
+| `stubChars` | 220 | window/100, clamped 220–2000 |
+
+The unknown-window column is the old constant, so behaviour is unchanged until a
+window is actually known. A profile that sets `logSend`/`keepRawResults`
+explicitly (>0) always wins; 0 means "derive". Profiles written before this
+existed carry the old defaults (40 and 2), which are indistinguishable from a
+deliberate choice, so they are migrated to auto exactly once (`store.autoBudget`).
+
+## Ollama runs on its native endpoint
+
+`api:"ollama"` drives `/api/chat` (NDJSON), not the OpenAI-compatible shim. The
+shim **silently ignores `num_ctx` and `keep_alive`**, and `num_ctx` is the only
+thing that overrides a model's Modelfile-pinned context — `tools/bench_tools.py`
+had already worked this out and used the native endpoint for exactly that
+reason, while the app itself could not. Now they agree.
+
+Two consequences worth stating plainly:
+
+- **No `OLLAMA_*` environment variables are needed** for the context window or
+  keep-alive any more. (`OLLAMA_LOAD_TIMEOUT` still matters for a big model
+  loading from disk.) This also retires the open question about
+  `OLLAMA_CONTEXT_LENGTH` not sticking while the tray app is running.
+- **`num_ctx` is sized to what the pack actually needs**, rounded up to a 4k
+  boundary and capped at the model's real window — not to the model's maximum.
+  Asking for the maximum is how a 4.9 GB model ends up reserving 23 GB of VRAM
+  for a 131k window it never uses, on a machine that is also running the game.
+
+Differences the adapter absorbs so nothing downstream learns about them: NDJSON
+framing, tool-call arguments arriving as a JSON **object** rather than a string,
+reasoning arriving as `message.thinking`, and tool results being keyed by name
+rather than by call id.
+
+## Transport hardening
+
+- **Retries** on 429 and 5xx, bounded, honouring `Retry-After`, never after the
+  body has been touched and never on an abort. This is not optional given the
+  project actively recommends OpenRouter's free tier to people with no budget:
+  in the cross-ecosystem run above, two models scored 0/11 and 7/11 **purely
+  from HTTP 429s** — the harness measured the rate limiter, not the model.
+- **Mid-stream errors surface.** A provider can return HTTP 200 and then report
+  the failure inside the stream (OpenRouter does). Those frames carry no
+  `choices`, so they were dropped and the user got a silent empty answer.
+- **Reasoning models**: `max_completion_tokens` instead of `max_tokens`, guessed
+  from the model id and **self-healing** — if the provider objects with a 400
+  naming either field, the request is retried once with the other. A table of
+  which models want which would rot; this does not. `reasoning_effort` is
+  exposed in Advanced settings and is only sent when set.
+
+## Tool errors no longer end the run
+
+`execute()`'s `try/catch` only ever caught *synchronous* throws. The wiki tools
+had their own `.catch`; `inspect_game`, `run_lua`, `propose_script` and
+`get_editor` did not — so a bridge call that rejected propagated out through the
+step chain and killed the whole agent run, discarding every step already
+completed. Every tool now returns a string, including its failures, and the
+model gets to react to them.
+
+## Where things live: panels, modals and the palette
+
+Six dock panels was one too many for the sidebar — at 1366x768 the fourth tab
+was clipped mid-word with nothing to say it existed. Rather than shrink them,
+each surface now sits wherever its actual interaction wants it, which turned out
+to be three different places:
+
+| surface | where | why |
+|---|---|---|
+| **Examples** | modal (`65_examples.js`) | Picking one is **terminal** — it creates a script and switches to it, so there is nothing left in the gallery to look at. A permanent panel for an occasional visit. |
+| **Templates** | palette only (`66_palette.js`) | Pure string lookup; you almost always know a fragment already. A modal would be *worse* than the panel — it closes on every insert, so three spawn lines means opening it three times. `52_templates.js` is now data-only: the category tree it used to build was ~2,000 DOM nodes rendered into a container nothing displayed. |
+| **API** | **stays docked**, plus palette insert | You read the doc pane *while writing code*. A modal hides the editor, which is most of its value. The palette covers the other half ("I know which call I want"). |
+| **File commands** | top bar menu (`60_ui.js` `menu`) | App-level, and previously unreachable whenever the Scripts panel was closed. |
+
+The palette (`Ctrl/Cmd+K`) searches API calls, spawn templates, examples and
+commands in one place. Two things about it are deliberate:
+
+- **Insertion reuses the panels' own functions** (`IDE.api.templateFor`,
+  `IDE.templates.insert`, `IDE.examples.openAsScript`), so a palette insert is
+  byte-identical to a panel insert and cannot drift from it.
+- **Scoring is segment-aware, and Ess outranks the engine natives.** Scoring the
+  raw string put `Player.Unbind` above `Ess.Player.pose` for the query
+  "player" — the `Ess.` namespace was effectively charged as a penalty for being
+  namespaced. Matching at a dot boundary now counts almost as much as matching
+  at position 0, and a kind bias breaks the tie, so `Ess.Easy.*` floats to the
+  top exactly as the editor's autocomplete already does. It is deliberately
+  **not** typo-tolerant fuzzy matching: silently inserting the *wrong* API call
+  is worse than finding nothing.
+
+### The Actions dropdown
+
+It was a `<select>` impersonating a command menu. That is not only a look
+problem: a select announces as a form control, its keyboard model is "pick a
+value" rather than "run a command", it cannot carry separators or shortcut
+hints, and on some platforms it opens a native popup that ignores the app's
+theme entirely. `IDE.ui.menu()` is a real menu with `role="menu"`, arrow-key
+navigation, Escape, click-outside and shortcut hints.
+
+### Three dead `.stab` call sites
+
+The dock refactor deleted the old `.stab` sidebar tabs but three files still
+drove them, and nothing caught it because the smoke test was never run:
+
+- `78_tutorial.js` — threw a TypeError on a null `querySelector`, so **starting
+  the tutorial did nothing at all**.
+- `65_examples.js` — same, so **"Open as a new script" was dead**.
+- `46_inspector.js` — guarded with `if (tab)`, so it failed silently and the
+  Inspect panel simply never revealed itself.
+
+All three now ask `IDE.dock.show(...)`.
+
 ## Grounding check (`85_ground.js`) — the main safeguard
 
 Every failure this project has hit is one thing: **an identifier asserted that
@@ -511,6 +694,13 @@ going off the rails — the Send button becomes Stop, or press Esc. The tool chi
 still render live above the answer, so you see *what* was consulted too. (An
 earlier build did not stream the agent loop and this section said so — the code
 now does.)
+
+This now includes **Anthropic**, which it previously did not: `completeAnthropic`
+sent `stream:false`, so agent mode on a Claude model went dark between steps with
+nothing to watch and no way to abort mid-generation — while this document claimed
+streaming was the design. It assembles `tool_use` from the SSE frames the same way
+the OpenAI path does (`content_block_start` carries type/id/name, `input_json_delta`
+carries partial JSON).
 
 Caveat worth knowing: if tokens still arrive in one block, the loop isn't holding
 them — some backends **buffer** the response when the request carries tools, and

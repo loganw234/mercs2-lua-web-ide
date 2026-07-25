@@ -5,8 +5,16 @@ Thumbs.db
 .idea/
 .vscode/
 
-# the merged build IS committed (dist/index.html) so GitHub Pages + downloads work with no build step.
-# src/lib/vendor.js (CodeMirror 6 + luaparse) is ALSO committed -- regenerate with tools/vendor.
+# the merged build is NOT committed -- CI rebuilds it from src/ on every push, both ways it's consumed:
+#   .github/workflows/pages.yml   -> builds dist/ and deploys it to GitHub Pages
+#   .github/workflows/release.yml -> builds it and attaches mercs2-lua-ide.html to the "latest" release
+# so the hosted page and the in-app download link are always current without a committed copy. Committing
+# it cost a fresh ~4.5 MB blob in history on EVERY push: dist/index.html is one long line of inlined data
+# (all six pack tiers included), so git can't delta-compress it and each rebuild stores in full.
+# Want a local copy? python build.py
+dist/
+
+# src/lib/vendor.js (CodeMirror 6 + luaparse) IS still committed -- regenerate with tools/vendor.
 
 # the vendoring toolchain's local state (only needed to REgenerate src/lib/vendor.js)
 tools/vendor/node_modules/

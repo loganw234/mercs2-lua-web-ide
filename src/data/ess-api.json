@@ -504,6 +504,41 @@
    ]
   },
   {
+   "name": "Ess.Easy.Followers",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Followers.hideMarkers",
+     "sig": "Ess.Easy.Followers.hideMarkers()"
+    },
+    {
+     "path": "Ess.Easy.Followers.orderAttack",
+     "sig": "Ess.Easy.Followers.orderAttack(target)"
+    },
+    {
+     "path": "Ess.Easy.Followers.orderEnter",
+     "sig": "Ess.Easy.Followers.orderEnter(vehicleGuid, role)"
+    },
+    {
+     "path": "Ess.Easy.Followers.orderGuard",
+     "sig": "Ess.Easy.Followers.orderGuard(at)"
+    },
+    {
+     "path": "Ess.Easy.Followers.orderPatrol",
+     "sig": "Ess.Easy.Followers.orderPatrol(points)"
+    },
+    {
+     "path": "Ess.Easy.Followers.recruit",
+     "sig": "Ess.Easy.Followers.recruit(guid)"
+    },
+    {
+     "path": "Ess.Easy.Followers.showMarkers",
+     "sig": "Ess.Easy.Followers.showMarkers()"
+    }
+   ]
+  },
+  {
    "name": "Ess.Easy.Fun",
    "group": "Instant-gratification one-liners",
    "doc": "",
@@ -748,6 +783,61 @@
    ]
   },
   {
+   "name": "Ess.Easy.Squad",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Easy.Squad.assignRole",
+     "sig": "Ess.Easy.Squad.assignRole"
+    },
+    {
+     "path": "Ess.Easy.Squad.cancelQueue",
+     "sig": "Ess.Easy.Squad.cancelQueue(name)"
+    },
+    {
+     "path": "Ess.Easy.Squad.clearFormation",
+     "sig": "Ess.Easy.Squad.clearFormation(name)"
+    },
+    {
+     "path": "Ess.Easy.Squad.createTeam",
+     "sig": "Ess.Easy.Squad.createTeam"
+    },
+    {
+     "path": "Ess.Easy.Squad.dismountAndSecure",
+     "sig": "Ess.Easy.Squad.dismountAndSecure(name, atPos, radius)"
+    },
+    {
+     "path": "Ess.Easy.Squad.mountUp",
+     "sig": "Ess.Easy.Squad.mountUp(vehGuid, name)"
+    },
+    {
+     "path": "Ess.Easy.Squad.orderTeamAttack",
+     "sig": "Ess.Easy.Squad.orderTeamAttack(name, target)"
+    },
+    {
+     "path": "Ess.Easy.Squad.orderTeamFollow",
+     "sig": "Ess.Easy.Squad.orderTeamFollow(name)"
+    },
+    {
+     "path": "Ess.Easy.Squad.orderTeamGuard",
+     "sig": "Ess.Easy.Squad.orderTeamGuard(name, at)"
+    },
+    {
+     "path": "Ess.Easy.Squad.orderTeamPatrol",
+     "sig": "Ess.Easy.Squad.orderTeamPatrol(name, points)"
+    },
+    {
+     "path": "Ess.Easy.Squad.queue",
+     "sig": "Ess.Easy.Squad.queue(name, steps, onComplete)"
+    },
+    {
+     "path": "Ess.Easy.Squad.setFormation",
+     "sig": "Ess.Easy.Squad.setFormation(name, formationType)"
+    }
+   ]
+  },
+  {
    "name": "Ess.Easy.Time",
    "group": "Timing & input",
    "doc": "",
@@ -848,6 +938,53 @@
      "path": "Ess.Event.on",
      "sig": "Ess.Event.on(type, args, cb, tracker)",
      "doc": "Wraps Event.Create(eventType, args, cb) in a pcall; on failure logs via Ess.Log and returns nil instead of a broken handle. Pass a tracker as the 4th arg to auto-register the handle on it (tracker:event(handle))."
+    }
+   ]
+  },
+  {
+   "name": "Ess.Followers",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": ".recruit(guid, opts)/.dismiss(guid)/.dismissAll()/.list()/.count()/.isFollower(guid), .order(behavior, opts) (commands the whole roster, any Ess.AIOrders behavior \u2014 vehicle-aware auto-resume-Follow on natural completion), .setMarkersEnabled(bool)/.markersEnabled() (per-follower + order-destination world markers, ON by default), .on(eventName, fn) (onRecruit/onDismiss/onFollowerDown)",
+   "calls": [
+    {
+     "path": "Ess.Followers.count",
+     "sig": "Ess.Followers.count()"
+    },
+    {
+     "path": "Ess.Followers.dismiss",
+     "sig": "Ess.Followers.dismiss(guid)"
+    },
+    {
+     "path": "Ess.Followers.dismissAll",
+     "sig": "Ess.Followers.dismissAll()"
+    },
+    {
+     "path": "Ess.Followers.isFollower",
+     "sig": "Ess.Followers.isFollower(guid)"
+    },
+    {
+     "path": "Ess.Followers.list",
+     "sig": "Ess.Followers.list()"
+    },
+    {
+     "path": "Ess.Followers.markersEnabled",
+     "sig": "Ess.Followers.markersEnabled()"
+    },
+    {
+     "path": "Ess.Followers.on",
+     "sig": "Ess.Followers.on"
+    },
+    {
+     "path": "Ess.Followers.order",
+     "sig": "Ess.Followers.order(behavior, opts)"
+    },
+    {
+     "path": "Ess.Followers.recruit",
+     "sig": "Ess.Followers.recruit(guid, opts)"
+    },
+    {
+     "path": "Ess.Followers.setMarkersEnabled",
+     "sig": "Ess.Followers.setMarkersEnabled(bool)"
     }
    ]
   },
@@ -1179,9 +1316,17 @@
      "doc": "Returns whether a loop is currently registered under id."
     },
     {
+     "path": "Ess.Loop.list",
+     "sig": "Ess.Loop.list()"
+    },
+    {
      "path": "Ess.Loop.start",
      "sig": "Ess.Loop.start(id, interval, tickFn)",
      "doc": "Registers (or replaces) a self-rescheduling loop under id; tickFn() runs every interval seconds (default 1), returning true/truthy to keep going or false/nil to auto-stop. Calling again with the same id safely supersedes any previous loop under it; a tick that errors is pcall-caught, logged, and treated as stop."
+    },
+    {
+     "path": "Ess.Loop.stats",
+     "sig": "Ess.Loop.stats(id)"
     },
     {
      "path": "Ess.Loop.stop",
@@ -2127,6 +2272,72 @@
    ]
   },
   {
+   "name": "Ess.Squad",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "a team/role layer over Ess.Followers \u2014 .createTeam(name, guids)/.team(name)/.teamOf(guid)/.assignRole(guid, roleType)/.roleOf(guid), .orderTeam(name, behavior, opts) (any Ess.AIOrders behavior, scoped to one team without disturbing the rest of the roster), .queue(targetGroup, steps, queueOpts)/.cancelQueue(targetGroup) (async multi-step sequences with per-step timeouts), Ess.Squad.Tactics.mountUp(vehGuid, targetGroup, opts)/.dismountAndSecure(targetGroup, atPos, radius), .setFormation(targetGroup, formationType, opts)/.clearFormation(targetGroup) (on-foot wedge/column/line/diamond, opt-in visual formations), .on(eventName, fn) (forwards to Ess.Followers.on; adds onStepComplete/onQueueComplete/onVehicleMounted)",
+   "calls": [
+    {
+     "path": "Ess.Squad.assignRole",
+     "sig": "Ess.Squad.assignRole(guid, roleType)"
+    },
+    {
+     "path": "Ess.Squad.cancelQueue",
+     "sig": "Ess.Squad.cancelQueue(targetGroup)"
+    },
+    {
+     "path": "Ess.Squad.createTeam",
+     "sig": "Ess.Squad.createTeam(name, guids)"
+    },
+    {
+     "path": "Ess.Squad.orderTeam",
+     "sig": "Ess.Squad.orderTeam(name, behavior, opts)"
+    },
+    {
+     "path": "Ess.Squad.queue",
+     "sig": "Ess.Squad.queue(targetGroup, steps, queueOpts)"
+    },
+    {
+     "path": "Ess.Squad.roleOf",
+     "sig": "Ess.Squad.roleOf(guid)"
+    },
+    {
+     "path": "Ess.Squad.team",
+     "sig": "Ess.Squad.team(name)"
+    },
+    {
+     "path": "Ess.Squad.teamOf",
+     "sig": "Ess.Squad.teamOf(guid)"
+    }
+   ]
+  },
+  {
+   "name": "Ess.Squad.Tactics",
+   "group": "Encounter toolkit (standalone gameplay scripting)",
+   "doc": "",
+   "calls": [
+    {
+     "path": "Ess.Squad.Tactics.clearFormation",
+     "sig": "Ess.Squad.Tactics.clearFormation(targetGroup)"
+    },
+    {
+     "path": "Ess.Squad.Tactics.dismountAndSecure",
+     "sig": "Ess.Squad.Tactics.dismountAndSecure(targetGroup, atPos, radius)"
+    },
+    {
+     "path": "Ess.Squad.Tactics.mountUp",
+     "sig": "Ess.Squad.Tactics.mountUp(vehGuid, targetGroup, opts)"
+    },
+    {
+     "path": "Ess.Squad.Tactics.on",
+     "sig": "Ess.Squad.Tactics.on(eventName, fn)"
+    },
+    {
+     "path": "Ess.Squad.Tactics.setFormation",
+     "sig": "Ess.Squad.Tactics.setFormation(targetGroup, formationType, opts)"
+    }
+   ]
+  },
+  {
    "name": "Ess.State",
    "group": "Core primitives",
    "doc": "Reload-safe _G state, field-merged",
@@ -2715,6 +2926,14 @@
   "Ess.Easy.Debug.hide",
   "Ess.Easy.Debug.isOn",
   "Ess.Easy.Debug.overlay",
+  "Ess.Easy.Followers",
+  "Ess.Easy.Followers.hideMarkers",
+  "Ess.Easy.Followers.orderAttack",
+  "Ess.Easy.Followers.orderEnter",
+  "Ess.Easy.Followers.orderGuard",
+  "Ess.Easy.Followers.orderPatrol",
+  "Ess.Easy.Followers.recruit",
+  "Ess.Easy.Followers.showMarkers",
   "Ess.Easy.Fun",
   "Ess.Easy.Fun.dance",
   "Ess.Easy.Fun.fanfare",
@@ -2762,6 +2981,19 @@
   "Ess.Easy.Spawn.fx",
   "Ess.Easy.Spawn.fxOn",
   "Ess.Easy.Spawn.weapon",
+  "Ess.Easy.Squad",
+  "Ess.Easy.Squad.assignRole",
+  "Ess.Easy.Squad.cancelQueue",
+  "Ess.Easy.Squad.clearFormation",
+  "Ess.Easy.Squad.createTeam",
+  "Ess.Easy.Squad.dismountAndSecure",
+  "Ess.Easy.Squad.mountUp",
+  "Ess.Easy.Squad.orderTeamAttack",
+  "Ess.Easy.Squad.orderTeamFollow",
+  "Ess.Easy.Squad.orderTeamGuard",
+  "Ess.Easy.Squad.orderTeamPatrol",
+  "Ess.Easy.Squad.queue",
+  "Ess.Easy.Squad.setFormation",
   "Ess.Easy.Time",
   "Ess.Easy.Time.slowmo",
   "Ess.Easy.Toast",
@@ -2782,6 +3014,17 @@
   "Ess.Event",
   "Ess.Event.off",
   "Ess.Event.on",
+  "Ess.Followers",
+  "Ess.Followers.count",
+  "Ess.Followers.dismiss",
+  "Ess.Followers.dismissAll",
+  "Ess.Followers.isFollower",
+  "Ess.Followers.list",
+  "Ess.Followers.markersEnabled",
+  "Ess.Followers.on",
+  "Ess.Followers.order",
+  "Ess.Followers.recruit",
+  "Ess.Followers.setMarkersEnabled",
   "Ess.Gfx",
   "Ess.Gfx.call",
   "Ess.Gfx.menuNav",
@@ -2845,7 +3088,9 @@
   "Ess.Log",
   "Ess.Loop",
   "Ess.Loop.isRunning",
+  "Ess.Loop.list",
   "Ess.Loop.start",
+  "Ess.Loop.stats",
   "Ess.Loop.stop",
   "Ess.Mark",
   "Ess.Mark.clear",
@@ -3034,6 +3279,21 @@
   "Ess.Sound.stop",
   "Ess.Sound.stopAmbience",
   "Ess.Sound.volume",
+  "Ess.Squad",
+  "Ess.Squad.Tactics",
+  "Ess.Squad.Tactics.clearFormation",
+  "Ess.Squad.Tactics.dismountAndSecure",
+  "Ess.Squad.Tactics.mountUp",
+  "Ess.Squad.Tactics.on",
+  "Ess.Squad.Tactics.setFormation",
+  "Ess.Squad.assignRole",
+  "Ess.Squad.cancelQueue",
+  "Ess.Squad.createTeam",
+  "Ess.Squad.orderTeam",
+  "Ess.Squad.queue",
+  "Ess.Squad.roleOf",
+  "Ess.Squad.team",
+  "Ess.Squad.teamOf",
   "Ess.State",
   "Ess.Str",
   "Ess.Str.capitalize",
@@ -3134,5 +3394,5 @@
   "Ess.Vehicle.riders",
   "Ess.Vehicle.seatOf"
  ],
- "essVersion": "0.3.1"
+ "essVersion": "0.3.4"
 }

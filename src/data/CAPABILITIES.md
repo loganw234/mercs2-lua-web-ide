@@ -40,7 +40,8 @@ each is one guessable call:
 | `Ess.Easy.Fun.dance()` / `.fanfare(win)` | technoviking dance / victory-or-fail music sting |
 
 All use confirmed template names / real engine functions. `Ess.Easy.Console.open()` browses the full set
-in-game.
+in-game. For the full catalog of spawn templates, FX names, skin codes, and other magic strings beyond
+what's used above, see [wiki.mercs2.tools/reference.html](https://wiki.mercs2.tools/reference.html).
 
 ---
 
@@ -75,7 +76,7 @@ in-game.
 | Namespace | What it's for | Key calls |
 |---|---|---|
 | `Ess.Time` | All wall-clock timing (survives world-pause) | `.stamp()`/`.elapsed(s)`/`.mark(s)` (explicit, real-time), `.mainStamp()` (the pausable/scaled GAME clock — freezes with pause and tracks `.scale`; use it for gameplay cooldowns, `.stamp()` for UI/real-world timing), `.cooldown(seconds)` → `ready()`, `.clock(maxDelta)` → `:delta()` (auto-advancing per-frame dt), `.scale(n)`/`.restoreScale()`, `.format(sec, tenths)`; `Ess.Easy.Time.slowmo(n, seconds)` |
-| `Ess.Loop` | The one shared reload-safe heartbeat | `.start(id, interval, tickFn)`, `.stop(id)`, `.isRunning(id)` |
+| `Ess.Loop` | The one shared reload-safe heartbeat | `.start(id, interval, tickFn)`, `.stop(id)`, `.isRunning(id)`; `.stats(id)` / `.list()` — introspection (interval, tick count, last/avg real tick duration via `Ess.Time`, last error) for spotting a loop whose tick is expensive relative to its own interval |
 | `Ess.Input` | The only correct key-polling shape + device query | `.poll()` → `{pressed, down(vk)}` (owns the edge events), `.held(vk)` (level check — "is it down right now"; safe to call from any number of loops without eating `.poll()`'s edges), `.clear()` (flush the key buffer), `.VkToChar(vk, shift)`, `.usingController()`, `.hijackController(onInput)` |
 | `Ess.Keys` | Bind several hotkeys in ONE script (a toolkit) | `.on(key, fn)` (key = VK or name `"F5"`/`"space"`/`"a"`; `fn(bShift)`), `.off/.clear/.isBound`, `.vk(name)` — edge-triggered dispatch on one shared loop |
 | `Ess.TextConsole` | A typed-input console, no `.gfx` asset needed | `.open{ onSubmit=, … }`, `.close()`, `.isOpen()` |
@@ -144,6 +145,8 @@ without a running contract.
 | Namespace | Core | Easy |
 |---|---|---|
 | `Ess.AIOrders` | `.command(guids, behavior, opts, tracker)` — 11 behaviors (move/patrol/defend/attack/hold/face/follow/flee/enter/deploy/animate); `.setGroup/.group` | `Ess.Easy.AIOrders.attack(guids, target)`, `.patrol(guids, points)`, `.guard(guids, at)` |
+| `Ess.Followers` | `.recruit(guid, opts)`/`.dismiss(guid)`/`.dismissAll()`/`.list()`/`.count()`/`.isFollower(guid)`, `.order(behavior, opts)` (commands the whole roster, any `Ess.AIOrders` behavior — vehicle-aware auto-resume-Follow on natural completion), `.setMarkersEnabled(bool)`/`.markersEnabled()` (per-follower + order-destination world markers, ON by default), `.on(eventName, fn)` (`onRecruit`/`onDismiss`/`onFollowerDown`) | `Ess.Easy.Followers.recruit(guid)`, `.orderAttack(target)`, `.orderPatrol(points)`, `.orderGuard(at)`, `.orderEnter(vehicleGuid, role)`, `.showMarkers()`/`.hideMarkers()` |
+| `Ess.Squad` | a team/role layer over `Ess.Followers` — `.createTeam(name, guids)`/`.team(name)`/`.teamOf(guid)`/`.assignRole(guid, roleType)`/`.roleOf(guid)`, `.orderTeam(name, behavior, opts)` (any `Ess.AIOrders` behavior, scoped to one team without disturbing the rest of the roster), `.queue(targetGroup, steps, queueOpts)`/`.cancelQueue(targetGroup)` (async multi-step sequences with per-step timeouts), `Ess.Squad.Tactics.mountUp(vehGuid, targetGroup, opts)`/`.dismountAndSecure(targetGroup, atPos, radius)`, `.setFormation(targetGroup, formationType, opts)`/`.clearFormation(targetGroup)` (on-foot wedge/column/line/diamond, opt-in visual formations), `.on(eventName, fn)` (forwards to `Ess.Followers.on`; adds `onStepComplete`/`onQueueComplete`/`onVehicleMounted`) | `Ess.Easy.Squad.createTeam`/`.assignRole`, `.orderTeamAttack(name, target)`, `.orderTeamPatrol(name, points)`, `.orderTeamGuard(name, at)`, `.orderTeamFollow(name)`, `.queue(name, steps, onComplete)`/`.cancelQueue(name)`, `.mountUp(vehGuid, name)`/`.dismountAndSecure(name, atPos, radius)`, `.setFormation(name, formationType)`/`.clearFormation(name)` |
 | `Ess.Relations` | `.apply(pairs, label)` → **handle**, `.restore(handle)`, `.isActive(handle)`, `.getFeeling/.setFeeling` (per-individual), `.getPerceivability/.setPerceivability` (per-individual AI detectability — reversible; the stat behind Easy ghost) | `Ess.Easy.Relations.makeHostile(factions)`, `.makeAllies(factions)`, `.war(a, b)` (two factions fight each other), `.sideWith(friend, foe)` (you join `friend` against `foe`), `.restore()` |
 | `Ess.Triggers` | `.arm(spec, onFire, tracker)` (stateless); `.scope()` → an **isolated** `:arm/:armNamed/:gate/:declare/:markFired` namespace | `Ess.Easy.Triggers.onPlayerNear(x,y,z,r,fn)`, `.onDeath(guid,fn)`, `.after(seconds,fn)` |
 | `Ess.Sandbox` | `.begin(id, providerNames, opts)`, `.finish(id)`, `.isActive(id)` — providers: layers/economy/supports/relations, all save-gated | `Ess.Easy.Sandbox.arena(id, opts)` (all providers on), `.done(id)` |

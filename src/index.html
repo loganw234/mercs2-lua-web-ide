@@ -10,12 +10,19 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
 <style>/*__CSS__*/</style>
 </head>
 <body>
+<a class="skiplink" href="#dockRoot">Skip to the editor</a>
 <header class="bar">
   <span class="brand">Mercs2 <b>Lua IDE</b></span>
-  <span class="conn"><span class="dot" id="dot"></span><span id="state">offline</span></span>
+  <span class="conn"><span class="dot" id="dot" aria-hidden="true"></span><span id="state" role="status" aria-live="polite" aria-label="Game connection">offline</span></span>
   <button class="btn go" id="run" title="Run (Ctrl/Cmd+Enter) — runs the selection if you have one, else the whole file">Run ▷</button>
   <button class="btn" id="panic" title="Stop every Ess.Loop and restore the time scale — the 'my script went wild' button">■ Stop loops</button>
-  <span class="scriptname" id="scriptName" title="The open script — manage scripts in the sidebar"></span>
+  <!-- The active script's name is the editor tab strip's job (21_edtabs.js) now that several
+       scripts can be open at once. This span said the same word a few pixels away, which read as
+       two different things being called "Welcome". Kept in the DOM, hidden, because 55_scripts.js
+       writes to it and a screen reader still benefits from the announcement. -->
+  <span class="scriptname visually-hidden" id="scriptName" aria-live="polite"></span>
+  <button class="btn" id="fileMenu" aria-haspopup="menu" aria-expanded="false"
+          title="Script library: new, import, export, backup, deploy">File ▾</button>
   <button class="btn" id="save" title="Save to this browser (Ctrl/Cmd+S) — also autosaves as you type">Save</button>
   <button class="btn" id="share" title="Copy a shareable link (script encoded in the URL)">Share</button>
   <button class="btn" id="grabTarget" title="Grab what you're aiming at in-game (Ess.Player.targetUnderReticle) — inserts its guid at the caret">🎯 Grab target</button>
@@ -23,22 +30,27 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
   <span class="spacer"></span>
   <input id="url" class="url" value="ws://127.0.0.1:27050" spellcheck="false" title="The lua-bridge WebSocket address">
   <button class="btn" id="connect">Connect</button>
+  <!-- Was position:fixed bottom-right, which floated it directly over the Assistant
+       composer's send button. It is an app-wide setting, so it belongs with the other
+       app-wide controls rather than hovering over whichever panel is bottom-right. -->
+  <button class="btn icon" id="themeBtn" title="Theme: auto (following your system)"
+          aria-label="Theme: auto (following your system)">◐</button>
 </header>
 
 <div class="updbar hidden" id="updbar">
   <span>A newer build of the IDE is available.</span>
-  <a class="btn small go" id="updGet" href="https://github.com/loganw234/mercs2-lua-web-ide/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the update</a>
+  <a class="btn small go" id="updGet" href="https://github.com/loganw234/mercs2-lua-web-ide-ai/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the update</a>
   <button class="btn small ghost" id="updSkip" title="Don't mention this version again">Skip this one</button>
-  <button class="updx" id="updClose" title="Dismiss">×</button>
+  <button class="updx" id="updClose" title="Dismiss" aria-label="Dismiss">×</button>
 </div>
 
 <div class="updbar hidden" id="verbar">
   <span id="verText"></span>
-  <button class="updx" id="verClose" title="Dismiss">×</button>
+  <button class="updx" id="verClose" title="Dismiss" aria-label="Dismiss">×</button>
 </div>
 
 <main class="layout">
-  <nav class="activity" id="activity" title="Panels"></nav>
+  <nav class="activity" id="activity" aria-label="Panels"></nav>
   <div class="dockroot" id="dockRoot"></div>
 </main>
 
@@ -48,23 +60,15 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
      CSS, decides what is shown. -->
 <div id="dockPool" class="dockpool" hidden>
     <div class="spanel" id="panelScripts">
+      <!-- The Actions <select> moved to the File menu in the top bar: these are
+           app-level commands and shouldn't be reachable only while this panel is
+           open. The hidden file inputs stay here because the commands drive them. -->
       <div class="sidehead scriptshead">
-        <select class="btn small scactions" id="scActions" title="Script actions">
-          <option value="" selected>Actions ▾</option>
-          <option value="new">+ New script</option>
-          <option value="import">Import .lua files…</option>
-          <option value="export">Export current script</option>
-          <option value="backup">Backup library (.json)</option>
-          <option value="restore">Restore library…</option>
-          <option value="deploy">⬇ Deploy as OnKey</option>
-        </select>
+        <button class="btn small" id="scNew" title="New script">+ New script</button>
         <input type="file" id="scFile" accept=".lua,.txt" multiple hidden>
         <input type="file" id="scRestoreFile" accept=".json" hidden>
       </div>
       <div class="sclist" id="scList"></div>
-    </div>
-    <div class="spanel" id="panelExamples">
-      <div class="exlist" id="exList"></div>
     </div>
     <div class="spanel" id="panelApi">
       <div class="sidehead">
@@ -72,13 +76,6 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
       </div>
       <div class="apitree" id="apiTree"></div>
       <div class="apidoc hidden" id="apiDoc"></div>
-    </div>
-    <div class="spanel" id="panelTemplates">
-      <div class="sidehead">
-        <input id="tplSearch" placeholder="search spawnable templates…" spellcheck="false">
-      </div>
-      <div class="tplcredit" id="tplCredit"></div>
-      <div class="apitree" id="tplTree"></div>
     </div>
     <div class="spanel" id="panelInspect">
       <div class="watchadd">
@@ -90,7 +87,7 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
       </div>
       <div class="inspecthead hidden" id="inspectHead">
         <span class="inspectexpr" id="inspectExpr"></span>
-        <button class="btn small" id="inspectClose" title="Stop inspecting">✕</button>
+        <button class="btn small" id="inspectClose" title="Stop inspecting" aria-label="Stop inspecting">✕</button>
       </div>
       <div class="inspectbody">
         <div class="inspectempty" id="inspectEmpty">Grab your target above, type a guid, or click 🔍 on a
@@ -101,12 +98,12 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
   <div class="spanel" id="panelAssist">
         <div class="ai-head">
           <select id="aiProfileQuick" class="ai-profile-quick" title="Switch provider profile" hidden></select>
-          <button id="aiModelChip" class="ai-model" title="Active model — click to change"></button>
-          <button id="aiPackChip" class="ai-pack" title="Reference pack in use — click to change"></button>
+          <button id="aiModelChip" class="ai-model" title="Active model — click to change" aria-label="Active model"></button>
+          <button id="aiPackChip" class="ai-pack" title="Reference pack in use — click to change" aria-label="Reference pack in use"></button>
           <span class="aihead-acts">
-            <button id="aiNew" class="ai-icon" title="New chat">＋</button>
-            <button id="aiHistBtn" class="ai-icon" title="Chat history">🗨</button>
-            <button id="aiGear" class="ai-icon" title="Assistant settings">⚙</button>
+            <button id="aiNew" class="ai-icon" title="New chat" aria-label="New chat">＋</button>
+            <button id="aiHistBtn" class="ai-icon" title="Chat history" aria-label="Chat history">🗨</button>
+            <button id="aiGear" class="ai-icon" title="Assistant settings" aria-label="Assistant settings">⚙</button>
           </span>
         </div>
         <div class="ai-hist hidden" id="aiHist"></div>
@@ -132,16 +129,18 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
             </div>
             <div id="aiLog" class="ai-log"></div>
           </div>
-          <button class="ai-jump hidden" id="aiJump" title="Jump to the latest">↓</button>
+          <button class="ai-jump hidden" id="aiJump" title="Jump to the latest" aria-label="Jump to the latest">↓</button>
         </div>
-        <div id="aiStatus" class="ai-status"></div>
+        <!-- Carries detection results, context trimming notices and errors -- all
+             things the user needs to learn about without watching this corner. -->
+        <div id="aiStatus" class="ai-status" role="status" aria-live="polite"></div>
         <div class="ai-composer">
           <div class="ai-chips" id="aiChips"></div>
           <div class="ai-box">
-            <button id="aiAttach" class="ai-attach" title="Attach files as reference (scripts, docs — any number)">📎</button>
+            <button id="aiAttach" class="ai-attach" title="Attach files as reference (scripts, docs — any number)" aria-label="Attach files as reference (scripts, docs">📎</button>
             <input id="aiFile" type="file" multiple hidden>
             <textarea id="aiInput" rows="1" placeholder="Ask about your script, the API, an error…" spellcheck="false"></textarea>
-            <button id="aiSend" class="ai-send" title="Send (Enter) — Shift+Enter for a new line">➤</button>
+            <button id="aiSend" class="ai-send" title="Send (Enter) — Shift+Enter for a new line" aria-label="Send (Enter)">➤</button>
           </div>
         </div>
       </div>
@@ -150,7 +149,7 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
           <span>World map</span>
           <span class="maphead-acts">
             <button id="mapToggle" class="ai-mini" title="Switch map style">Color</button>
-            <button id="mapFit" class="ai-mini" title="Fit whole map">Fit</button>
+            <button id="mapFit" class="ai-mini" title="Fit whole map" aria-label="Fit whole map">Fit</button>
             <button id="mapFollow" class="ai-mini" title="Keep the player centred">Follow</button>
           </span>
         </div>
@@ -215,11 +214,42 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
 
 <!-- Settings modal. The field ids match what 82_assist.js reads/writes, so the
      form logic is unchanged -- only its container became a real dialog. -->
+<!-- Examples gallery. A modal rather than a dock panel because picking one is a
+     TERMINAL action -- it creates a new script and switches to it, so there is
+     nothing left to look at. -->
+<div class="modal-back hidden" id="examplesModal">
+  <div class="modal modal-wide" role="dialog" aria-label="Example scripts">
+    <div class="modal-head">
+      <b>Examples</b>
+      <input id="exSearch" class="modal-search" placeholder="search examples…" spellcheck="false" data-autofocus>
+      <button id="exClose" class="modal-x" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body nopad">
+      <div class="exlist" id="exList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Command palette. Templates and API insertion are search-then-insert, which a
+     modal serves badly (it would close on every insert); this is keyboard-first
+     and reopens with one keystroke. -->
+<div class="palette-back hidden" id="paletteBack">
+  <div class="palette" role="dialog" aria-label="Command palette">
+    <input id="paletteInput" class="palette-input" spellcheck="false" autocomplete="off"
+           placeholder="Search calls, templates, examples and commands…"
+           role="combobox" aria-expanded="true" aria-controls="paletteList" aria-autocomplete="list">
+    <div id="paletteList" class="palette-list" role="listbox"></div>
+    <div class="palette-foot">
+      <span><b>↑↓</b> navigate</span><span><b>↵</b> insert / run</span><span><b>esc</b> close</span>
+    </div>
+  </div>
+</div>
+
 <div class="modal-back hidden" id="settingsModal">
   <div class="modal" role="dialog" aria-label="Settings">
     <div class="modal-head">
       <span>Settings</span>
-      <button id="aiSettingsClose" class="modal-x" title="Close">✕</button>
+      <button id="aiSettingsClose" class="modal-x" title="Close" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
       <div class="settings-section">Profile</div>
@@ -239,7 +269,8 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
       <label>API key<input id="aiKey" type="password" spellcheck="false" placeholder="stored in this browser only"></label>
       <div class="settings-section">Reference pack</div>
       <label>Bundled tier<select id="aiPackTier"></select></label>
-      <label>Model context window <small>(optional — tokens; enables the budget below)</small><input id="aiModelCtx" type="number" min="0" step="1000" spellcheck="false" placeholder="e.g. 128000"></label>
+      <label>Model context window <small>(tokens — detected automatically where possible; blank = re-detect)</small><input id="aiModelCtx" type="number" min="0" step="1000" spellcheck="false" placeholder="detecting…"></label>
+      <div id="aiCtxNote" class="ai-note"></div>
       <div id="aiBudget" class="ai-budget"></div>
       <div id="aiPackNote" class="ai-note ai-packnote"></div>
       <label>Pack URL <small>(optional override — blank = use the bundled tier above)</small><input id="aiPackUrl" type="text" spellcheck="false" placeholder="https://wiki.mercs2.tools/assets/pack/pack-medium.txt"></label>
@@ -258,10 +289,21 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
           <option value="full">Always send the whole script</option>
         </select></label>
         <label class="ai-check"><input id="aiTrimHistory" type="checkbox"> Auto-trim old messages to fit the context window <small>(needs the window set above)</small></label>
-        <label>Game-log lines per message <small>(after the first, only new lines are sent)</small><input id="aiLogSend" type="number" min="0" max="200" step="5" spellcheck="false"></label>
+        <label>Game-log lines per message <small>(0 = size it to the context window; after the first, only new lines are sent)</small><input id="aiLogSend" type="number" min="0" max="400" step="5" spellcheck="false"></label>
+        <label>Reasoning effort <small>(reasoning models only — blank sends nothing, which is right for every other model)</small><select id="aiReasoning">
+          <option value="">— don't send —</option>
+          <option value="minimal">minimal</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select></label>
+        <div class="settings-subhead">Ollama (local)</div>
+        <p class="ai-note">Sent per request on Ollama's native endpoint. The OpenAI-compatible shim ignores both, which is why these used to have to be environment variables.</p>
+        <label>Context to load <small>(num_ctx — 0 = the model's own default. Sized automatically to fit the pack; raising it costs VRAM the game also wants)</small><input id="aiNumCtx" type="number" min="0" max="1048576" step="1024" spellcheck="false"></label>
+        <label>Keep model loaded <small>(keep_alive — e.g. 60m, so the next question isn't a full reload)</small><input id="aiKeepAlive" type="text" spellcheck="false" placeholder="60m"></label>
         <div class="settings-subhead">Agent mode</div>
         <label>Max tool steps per answer<input id="aiMaxSteps" type="number" min="1" max="30" step="1" spellcheck="false"></label>
-        <label>Tool results kept in full <small>(older ones are shortened to save context)</small><input id="aiKeepRaw" type="number" min="1" max="10" step="1" spellcheck="false"></label>
+        <label>Tool results kept in full <small>(0 = size it to the context window; older ones are shortened)</small><input id="aiKeepRaw" type="number" min="0" max="12" step="1" spellcheck="false"></label>
         <label class="ai-check"><input id="aiPromptCache" type="checkbox"> Prompt caching <small>(Anthropic — cache the reference pack across turns; leave on)</small></label>
       </details>
 
@@ -276,15 +318,14 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
   </div>
 </div>
 
-<button id="themeBtn" title="Theme: auto (following your system)">◐</button>
 
 <div class="tutorial hidden" id="tutorial">
   <div class="tuthead">
     <span class="tutstepno" id="tutStep"></span>
     <span class="tutnav">
-      <button class="tutarrow" id="tutBack" title="Previous step">‹</button>
-      <button class="tutarrow" id="tutFwd" title="Next step (only steps you've reached)">›</button>
-      <button class="updx" id="tutClose" title="Pause tutorial — the 🎓 button resumes right here">×</button>
+      <button class="tutarrow" id="tutBack" title="Previous step" aria-label="Previous step">‹</button>
+      <button class="tutarrow" id="tutFwd" title="Next step (only steps you've reached)" aria-label="Next step (only steps you've reached)">›</button>
+      <button class="updx" id="tutClose" title="Pause tutorial — the 🎓 button resumes right here" aria-label="Pause tutorial">×</button>
     </span>
   </div>
   <div class="tutdots" id="tutDots"></div>
@@ -331,7 +372,7 @@ try{var __t=localStorage.getItem("m2ide.theme");if(__t==="light"||__t==="dark")d
     </ul>
     <p><b>The fix that always works: download the editor and open it from your disk.</b> Same app, offline, no browser restrictions.</p>
     <div class="dlrow">
-      <a class="btn go" id="dlRelease" href="https://github.com/loganw234/mercs2-lua-web-ide/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the editor</a>
+      <a class="btn go" id="dlRelease" href="https://github.com/loganw234/mercs2-lua-web-ide-ai/releases/latest/download/mercs2-lua-ide.html" download>⬇ Download the editor</a>
       <button class="btn" id="dlSelf">Save this page instead</button>
       <button class="btn" id="blockedSnooze">The game's just closed right now</button>
       <button class="btn ghost" id="blockedClose">Keep trying</button>

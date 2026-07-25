@@ -31,7 +31,11 @@
   var IDE = window.IDE;
 
   var WIKI = "https://wiki.mercs2.tools";
-  var MAX_PAGE_CHARS = 14000;
+  /* How much of a page a tool may return scales with the model's window --
+     14k chars is a third of a 40k local model's budget in one result, and a
+     rounding error to a 1M flagship that was given the window precisely so it
+     could hold the whole reference. See IDE.provider.budget(). */
+  function pageChars() { return IDE.provider.budget("pageChars"); }
   var MAX_STEPS = 10;         /* tool round trips before we stop and answer.
                                  Raised from 6 with the bundled-data tools: a
                                  search -> read -> inspect -> propose chain is
@@ -41,9 +45,37 @@
 
   /* Calls that only read. Anything not matching is refused by inspect_game and
      must go through run_lua (which asks). Deliberately conservative: a missing
-     entry costs a confirmation click, a wrong entry costs the user's game. */
-  var READ_ONLY = /^(?:[A-Za-z_][\w.]*\s*=\s*)?(?:local\s+[\w,\s]+=\s*)?(?:return\s+)?(?:[\w.]*\.)?(Get|Is|Has|Find|Count|Query|Enumerate|pairs|ipairs|tostring|tonumber|type|table\.|string\.|math\.)/;
-  var MUTATORS = /\b(Set(?!ting)|Spawn|Remove|Kill|Destroy|Delete|Add|Give|Teleport|Apply|Play|Stop|Enable|Disable|Create|Attach|Detach|Explode|Damage|Revive)\w*\s*\(/;
+     entry costs a confirmation click, a wrong entry costs the user's game.
+
+     The engine's own natives are PascalCase (Player.GetLocalCharacter), but Ess
+     -- the framework this IDE exists for -- exposes lowercase verbs, so the
+     PascalCase-only version refused `return Ess.Player.pose(0)`: the example
+     from our own Watch panel, a pure read, bounced to the run_lua gate. Reading
+     the game is the thing the assistant should be able to do freely, so the
+     lowercase Ess read verbs are listed too. MUTATORS still runs first and is
+     matched case-insensitively, so a lowercase `spawn`/`set` is still caught. */
+  var READ_VERBS = "Get|Is|Has|Find|Count|Query|Enumerate|" +
+    "pos|pose|position|name|health|state|status|list|all|find|count|" +
+    "describe|describeSafe|info|read|peek|dump|exists|near|nearest|" +
+    "isRunning|isAlive|isValid|current|active|version";
+  var READ_ONLY = new RegExp(
+    "^(?:[A-Za-z_][\\w.]*\\s*=\\s*)?(?:local\\s+[\\w,\\s]+=\\s*)?(?:return\\s+)?" +
+    "(?:[\\w.]*\\.)?(" + READ_VERBS + "|pairs|ipairs|tostring|tonumber|type|" +
+    "table\\.|string\\.|math\\.)");
+  /* Case-insensitive: Ess mutators are lowercase (Ess.Loop.stop), engine ones
+     PascalCase (Object.Destroy). `\b` plus the trailing `(` keeps it anchored to
+     actual calls rather than prose. */
+  var MUTATORS = /\b(set(?!ting)|spawn|remove|kill|destroy|delete|add|give|teleport|apply|play|stop|enable|disable|create|attach|detach|explode|damage|revive|write|send|clear|reset|start)\w*\s*\(/i;
+
+  /* The single decision "may inspect_game auto-run this?", in one place so the
+     guard and its tests cannot drift apart. Exported on IDE.agent for the smoke
+     test -- this is the boundary that decides whether the model can touch the
+     user's running game without asking, so it should be directly assertable. */
+  function isReadOnly(expr) {
+    var e = String(expr || "").trim();
+    if (!e) return false;
+    return !MUTATORS.test(e) && READ_ONLY.test(e);
+  }
 
   /* The wiki's just-the-docs search index: 3,485 per-heading entries with
      {title, content, url}. Fetched lazily on first search and cached for the
@@ -401,7 +433,24 @@
     return out.filter(Boolean);
   }
 
+  /* Every tool returns a STRING the model can read -- including its failures.
+     A tool that rejects must not end the run: `execute`'s try/catch only ever
+     caught synchronous throws, so a bridge call that rejected (inspect_game,
+     run_lua) or a declined gate propagated out through the step chain and
+     killed the whole agent run, discarding every step already completed. Now a
+     rejection becomes a tool result like any other and the model gets to react
+     to it. Wiki tools already did this individually; this makes it uniform. */
   function execute(name, args, ui) {
+    return Promise.resolve()
+      .then(function () { return executeInner(name, args, ui); })
+      .catch(function (e) {
+        if (e && e.name === "AbortError") throw e;      /* the user stopped it */
+        return "Tool error: " + ((e && e.message) || String(e)) +
+          ". This call failed; do not assume what it would have returned.";
+      });
+  }
+
+  function executeInner(name, args, ui) {
     try {
       if (name === "search_api") {
         var aq = String(args.query || "").trim();
@@ -581,9 +630,9 @@
           })
           .then(function (h) {
             if (h.lastIndexOf("That page does not exist", 0) === 0) return h;
-            var t = txtFromHtml(h);
-            return t.length > MAX_PAGE_CHARS
-              ? t.slice(0, MAX_PAGE_CHARS) + "\n\n[truncated -- ask for a narrower page]"
+            var t = txtFromHtml(h), max = pageChars();
+            return t.length > max
+              ? t.slice(0, max) + "\n\n[truncated -- ask for a narrower page]"
               : t;
           })
           .catch(function (e) { return "Could not fetch the page: " + e.message; });
@@ -654,7 +703,7 @@
 
       if (name === "inspect_game") {
         var expr = String(args.expr || "");
-        if (MUTATORS.test(expr) || !READ_ONLY.test(expr.trim())) {
+        if (!isReadOnly(expr)) {
           return Promise.resolve(
             "Refused: inspect_game is read-only and that looks like it changes state. " +
             "If the user asked for this to happen, use run_lua instead.");
@@ -706,14 +755,13 @@
      them now), older ones shrink to a stub that keeps the pairing intact (same role/id) and
      a hint of what was there, so the model can re-call the tool if it truly needs the rest.
      The real `convo` (and the grounding set) stays whole. */
-  var KEEP_RAW_RESULTS = 2;   /* default; overridable per profile (settings) */
-  var STUB_CHARS = 220;
-  function keepRaw() {
-    var c = IDE.provider.get(); var n = c && c.keepRawResults;
-    return (typeof n === "number" && n >= 1) ? n : KEEP_RAW_RESULTS;
-  }
+  /* Both scale with the model's window (a profile that sets keepRawResults
+     explicitly still wins) -- see IDE.provider.budget(). */
+  function keepRaw() { return IDE.provider.budget("keepRaw"); }
+  function stubChars() { return IDE.provider.budget("stubChars"); }
   function compactConvo(convo) {
     var keep = keepRaw();
+    var STUB_CHARS = stubChars();
     var toolIdx = [];
     for (var i = 0; i < convo.length; i++) if (convo[i] && convo[i].role === "tool") toolIdx.push(i);
     if (toolIdx.length <= keep) return convo;
@@ -815,6 +863,9 @@
 
   IDE.agent = { tools: function () { return TOOLS.slice(); }, execute: execute, run: run,
                 MAX_STEPS: MAX_STEPS,
+                /* the inspect_game auto-run boundary, exported so it is testable */
+                isReadOnly: isReadOnly,
+                compactConvo: compactConvo,
                 /* The grounding check uses this as a second opinion: the pack is
                    a slice of the wiki, so "absent from the pack" is a weak
                    claim, while "absent from the entire wiki index" is a strong

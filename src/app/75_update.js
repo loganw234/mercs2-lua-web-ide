@@ -6,7 +6,7 @@
    update after it. Offline / rate-limited / fetch-less -> silently do nothing. */
 (function () {
   var IDE = window.IDE, $ = IDE.$, B = window.IDE_BUILD || {};
-  var API = "https://api.github.com/repos/loganw234/mercs2-lua-web-ide/commits/master";
+  var API = "https://api.github.com/repos/loganw234/mercs2-lua-web-ide-ai/commits/master";
   var KEY = "m2ide.update.v1", CHECK_EVERY = 20 * 3600e3;   // ~daily, survives frequent reopens
 
   var isLocalCopy = location.protocol === "file:" || location.host === "127.0.0.1:27050";

@@ -12,11 +12,14 @@
 (function () {
   var IDE = window.IDE, $ = IDE.$;
 
-  var LOG_KEEP = 120;          /* log lines retained for context */
-  var LOG_SEND = 40;           /* how many we actually attach */
-  var EDITOR_MAX = 60000;      /* chars of the buffer we will attach */
-  var SEL_MAX = 20000;         /* chars of the selection we will attach */
+  var LOG_KEEP = 400;          /* log lines retained in the ring (the send cap is derived) */
   var FILE_MAX = 120000;       /* per attached file; source docs are usually tiny */
+
+  /* How much of each thing we attach is a fraction of the model's context
+     window, not a constant -- see IDE.provider.budget(). These wrappers exist
+     so the call sites stay readable and so an unknown window still yields the
+     original fixed defaults. */
+  function bud(kind) { return IDE.provider.budget(kind); }
 
   var logRing = [];
   var pendingFiles = [];       /* [{name, text}] attached to the NEXT question, any count */
@@ -104,7 +107,8 @@
     var prev = (rec && rec.name === name) ? rec.text : null;
     var part;
     function full() {
-      var s = src.length > EDITOR_MAX ? src.slice(0, EDITOR_MAX) + "\n-- [truncated]" : src;
+      var cap = bud("editorChars");
+      var s = src.length > cap ? src.slice(0, cap) + "\n-- [truncated]" : src;
       return tag + " ---\n```lua\n" + s + "\n```\n--- end script ---";
     }
     if (IDE.provider.get().editorMode === "full") {
@@ -135,8 +139,7 @@
     if (newCount <= 0) {
       part = "--- game log (no new lines since last shown) ---";
     } else {
-      var cap = IDE.provider.get().logSend;
-      cap = (typeof cap === "number" && cap >= 0) ? cap : LOG_SEND;
+      var cap = bud("logLines");
       var inRing = Math.min(newCount, logRing.length);
       var lines = logRing.slice(logRing.length - inRing);
       var elided = 0;
@@ -161,7 +164,8 @@
     }
     var sel = sendSel ? selectionText() : "";
     if (sel.trim()) {
-      if (sel.length > SEL_MAX) sel = sel.slice(0, SEL_MAX) + "\n-- [truncated]";
+      var selCap = bud("selChars");
+      if (sel.length > selCap) sel = sel.slice(0, selCap) + "\n-- [truncated]";
       parts.push("--- selected code (the question is about this part) ---\n```lua\n" +
         sel + "\n```\n--- end selection ---");
     }
@@ -276,51 +280,125 @@
 
   /* ---- pack -------------------------------------------------------------- */
 
-  /* Ask Ollama how much context the chosen model actually has, and warn if the
-     pack cannot fit.
-     Why this exists: gemma2:27b reports CONTEXT 8192. Feeding it the 14.8k
-     "small" pack truncates silently, and the truncation eats the FRONT -- a
-     canary at position 0 did not survive. The front is the system rules and the
-     tier banner, so the user ends up with a model that looks configured, has
-     lost every anti-invention instruction, and says nothing about it. Ollama is
-     the only provider we can ask cheaply, so we only check there. */
-  function checkContext() {
+  /* ---- context autodetection ---------------------------------------------
+   *
+   * The model's context window decides everything downstream: whether history
+   * gets trimmed, which pack tier fits, how much of a wiki page a tool may
+   * return. It used to be a number the user had to know and type, defaulting to
+   * 0 = "unknown" = no trimming at all -- while this very function was ALREADY
+   * reading the true value from Ollama and doing nothing with it but warn.
+   *
+   * Now it applies what it learns, with one rule about whose value wins:
+   *   - nothing set, or the value we detected last time  -> apply silently
+   *   - a number the USER typed                          -> never overwrite; offer
+   *
+   * Overflow is the exception: if the selected tier cannot fit, the tier is
+   * lowered automatically and the user is told. Leaving it is not a neutral
+   * choice -- the model truncates from the FRONT, eating the system rules and
+   * the anti-invention banner, and then answers confidently with no sign
+   * anything was lost (verified: a canary at position 0 never came back).
+   */
+  var ctxChecked = "";        /* preset|baseUrl|model we last probed, so we probe once per change */
+
+  function tiers() { return (window.MERCS_PACK_INFO || []).slice(); }
+
+  /* Largest tier whose pack still leaves room to actually hold a conversation. */
+  function bestTierFor(ctx) {
+    var list = tiers(), best = null;
+    var reserve = replyReserve() + toolBudget() + 4000;   /* answer + tools + a little script */
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].tokens + reserve <= ctx && (!best || list[i].tokens > best.tokens)) best = list[i];
+    }
+    return best;
+  }
+
+  /* Size Ollama's num_ctx to what we actually need rather than the model's
+     maximum. Asking for the max is how a 4.9 GB model ends up reserving 23 GB
+     of VRAM for a 131k window it never uses -- and on a machine that is also
+     running Mercenaries 2, that VRAM is not free. */
+  function neededCtx(packTokens) {
+    var need = packTokens + ideUseTokens().total + replyReserve() + 2000;
+    return Math.max(8192, Math.ceil(need / 4096) * 4096);
+  }
+
+  function checkContext(force) {
     var c = IDE.provider.get();
-    if (!/localhost:11434|127\.0\.0\.1:11434/.test(c.baseUrl)) return;
-    var root = c.baseUrl.replace(/\/v1\/?$/, "");
-    fetch(root + "/api/show", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ model: c.model })
-    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-      if (!d || !d.model_info) return;
-      var ctx = 0;
-      for (var k in d.model_info) {
-        if (/\.context_length$/.test(k)) { ctx = d.model_info[k]; break; }
-      }
+    var sig = c.preset + "|" + c.baseUrl + "|" + c.model;
+    if (!force && sig === ctxChecked) return;
+    ctxChecked = sig;
+
+    IDE.provider.detectContext().then(function (d) {
       /* Agent mode needs a model that emits tool calls. Ollama reports a
          capability list, and a MISSING "tools" entry is reliable -- gemma2:27b
          omits it and cannot do this at all. The presence of it is NOT reliable:
          qwen2.5-coder declares "tools" and then never emits a call, even for a
          one-line system prompt and an unmissable question. So only the negative
          is worth a hard warning; the positive gets no promise. */
-      var caps = d.capabilities || [];
-      if (IDE.provider.get().agentMode && caps.indexOf("tools") === -1) {
+      if (d.caps && IDE.provider.get().agentMode && d.caps.indexOf("tools") === -1) {
         setStatus(c.model + " does not support tool calling, so agent mode " +
           "cannot work with it. Turn agent mode off, or switch to a model that " +
-          "does (llama3.1:8b is the one verified here).", true);
+          "does (qwen3:14b is the one verified here).", true);
+        return;
+      }
+      if (!d.ctx) return;
+
+      var cur = IDE.provider.get();
+      var userSet = cur.modelCtx > 0 && cur.modelCtx !== cur.ctxDetected;
+      var patch = { ctxDetected: d.ctx };
+      var msgs = [];
+
+      if (!userSet && cur.modelCtx !== d.ctx) {
+        patch.modelCtx = d.ctx;
+        msgs.push("Detected a " + d.ctx.toLocaleString() + "-token window for " +
+          cur.model + " (" + d.source + ").");
+      }
+      var effective = patch.modelCtx || cur.modelCtx || d.ctx;
+
+      /* Tier that does not fit -> lower it. This is a correctness fix, not a
+         preference: the alternative is silent front-truncation. */
+      var info = tiers().filter(function (t) { return t.key === cur.packTier; })[0];
+      var reserve = replyReserve() + toolBudget() + 4000;
+      if (info && info.tokens + reserve > effective) {
+        var fit = bestTierFor(effective);
+        if (fit && fit.key !== cur.packTier) {
+          patch.packTier = fit.key;
+          packText = null;
+          msgs.push("The " + info.label + " pack (" + fmtTokens(info.tokens) +
+            ") does not fit, so the tier was lowered to " + fit.label +
+            " — otherwise it is truncated from the front and loses the rules " +
+            "that stop it inventing API names.");
+        } else if (!fit) {
+          msgs.push("Warning: even the smallest pack does not fit this model's " +
+            effective.toLocaleString() + "-token window. Answers will be unreliable.");
+        }
+      } else if (info) {
+        /* Room for more -- offer, never impose. */
+        var up = bestTierFor(effective);
+        if (up && up.tokens > info.tokens) {
+          msgs.push("Your model can hold the " + up.label + " pack (" +
+            fmtTokens(up.tokens) + ") — a bigger tier means fewer invented " +
+            "names. Change it in Assistant settings.");
+        }
       }
 
-      if (!ctx || packText === null) return;
-      var need = Math.ceil(packText.length / 4) + 1500;   /* pack + room to talk */
-      if (need > ctx) {
-        setStatus("Warning: " + c.model + " has a " + ctx.toLocaleString() +
-          "-token context but the selected pack needs about " +
-          need.toLocaleString() + ". It will be silently truncated from the " +
-          "front, losing the rules that stop it inventing API names. Pick a " +
-          "smaller Bundled tier in Assistant settings, or use a longer-context model.",
-          true);
+      /* Ollama: size the per-request window to what we need. */
+      if (cur.api === "ollama") {
+        var packTokens = (tiers().filter(function (t) {
+          return t.key === (patch.packTier || cur.packTier);
+        })[0] || {}).tokens || 12000;
+        var want = Math.min(neededCtx(packTokens), effective);
+        if (want !== cur.numCtx) patch.numCtx = want;
       }
-    }).catch(function () { /* best effort only */ });
+
+      if (Object.keys(patch).length > 1 || patch.modelCtx) IDE.provider.set(patch);
+      if (userSet && cur.modelCtx !== d.ctx) {
+        msgs.push("Note: autodetect says " + d.ctx.toLocaleString() +
+          " tokens but your settings say " + cur.modelCtx.toLocaleString() +
+          "; yours is being used. Clear the field to use the detected value.");
+      }
+      if (msgs.length) setStatus(msgs.join(" "));
+      if ($("settingsModal") && !$("settingsModal").classList.contains("hidden")) fillSettings();
+    }).catch(function () { /* best effort only -- never block sending */ });
   }
 
   function loadPack() {
@@ -337,139 +415,11 @@
     return Promise.resolve(packText);
   }
 
-  /* ---- rendering --------------------------------------------------------- */
-
-  function esc(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
-  function inline(md) {
-    return md
-      .replace(/`([^`\n]+)`/g, function (_, c) { return "<code>" + c + "</code>"; })
-      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/(^|[\s(])((?:https?:\/\/)[^\s<)]+[^\s<).,])/g,
-        '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
-  }
-
-  /* A table only starts once its |---| separator has arrived. Without this
-     look-ahead the first row of a streaming table is claimed by no branch and
-     the paragraph loop spins forever. */
-  function isTable(lines, i) {
-    return /^\s*\|.*\|\s*$/.test(lines[i]) && i + 1 < lines.length &&
-      /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1]);
-  }
-
-  function prose(text) {
-    var lines = esc(text).split("\n"), html = "", i = 0;
-    while (i < lines.length) {
-      if (!lines[i].trim()) { i++; continue; }
-      if (isTable(lines, i)) {
-        var rows = [];
-        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]);
-        html += '<div class="ai-tw"><table>';
-        rows.forEach(function (r, n) {
-          var cells = r.replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); });
-          if (n === 1 && cells.every(function (c) { return /^:?-{2,}:?$/.test(c); })) return;
-          var tag = n === 0 ? "th" : "td";
-          html += "<tr>" + cells.map(function (c) {
-            return "<" + tag + ">" + inline(c) + "</" + tag + ">";
-          }).join("") + "</tr>";
-        });
-        html += "</table></div>";
-        continue;
-      }
-      var h = lines[i].match(/^(#{1,6})\s+(.*)$/);
-      if (h) { html += '<div class="ai-h">' + inline(h[2]) + "</div>"; i++; continue; }
-      if (/^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
-        var ordered = /^\s*\d+\./.test(lines[i]), items = [];
-        while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
-          items.push(lines[i].replace(/^\s*([-*]|\d+\.)\s+/, "")); i++;
-        }
-        var t = ordered ? "ol" : "ul";
-        html += "<" + t + ">" + items.map(function (x) { return "<li>" + inline(x) + "</li>"; }).join("") + "</" + t + ">";
-        continue;
-      }
-      var para = [];
-      while (i < lines.length && lines[i].trim() &&
-             !/^(#{1,6})\s|^\s*([-*]|\d+\.)\s/.test(lines[i]) && !isTable(lines, i)) {
-        para.push(lines[i]); i++;
-      }
-      if (!para.length) { para.push(lines[i]); i++; }
-      html += "<p>" + inline(para.join("<br>")) + "</p>";
-    }
-    return html;
-  }
-
-  /* Tiny Lua highlighter for code blocks, on the same design tokens the editor
-     uses. Tokenises the RAW code (so string/comment contents never match the
-     keyword branch) and escapes per token. */
-  var LUA_KW = /^(and|break|do|else|elseif|end|false|for|function|goto|if|in|local|nil|not|or|repeat|return|then|true|until|while)$/;
-  var LUA_GLOBAL = /^(Ess|Pg|Sys|Player|Ai|Vz|Easy|Game|World|Cam|Ui|Debug|Net)$/;
-  function hlLua(src) {
-    var re = /--\[(=*)\[[\s\S]*?\]\1\]|--[^\n]*|\[(=*)\[[\s\S]*?\]\2\]|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|\b0[xX][0-9a-fA-F]+\b|\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b|\b[A-Za-z_]\w*\b/g;
-    var out = "", last = 0, m;
-    while ((m = re.exec(src))) {
-      out += esc(src.slice(last, m.index));
-      var t = m[0], cls = "";
-      if (t.lastIndexOf("--", 0) === 0) cls = "hl-c";
-      else if (t[0] === '"' || t[0] === "'" || t[0] === "[") cls = "hl-s";
-      else if (/^\d|^0[xX]/.test(t)) cls = "hl-n";
-      else if (LUA_KW.test(t)) cls = "hl-k";
-      else if (LUA_GLOBAL.test(t)) cls = "hl-g";
-      out += cls ? '<span class="' + cls + '">' + esc(t) + "</span>" : esc(t);
-      last = m.index + t.length;
-    }
-    return out + esc(src.slice(last));
-  }
-
-  function render(text) {
-    var out = "", parts = text.split("```");
-    for (var i = 0; i < parts.length; i++) {
-      if (i % 2 === 1) {
-        var m = parts[i].match(/^([a-zA-Z0-9_-]*)\n([\s\S]*)$/);
-        var lang = m ? (m[1] || "code") : "code";
-        var code = (m ? m[2] : parts[i]).replace(/\n$/, "");
-        var isLua = /^lua$/i.test(lang);
-        out += '<div class="ai-code"><div class="ai-codehead"><span>' + esc(lang) +
-          '</span><span class="ai-codeacts">' +
-          '<button type="button" class="ai-act ai-copy" title="Copy code">Copy</button>' +
-          (isLua ? '<button type="button" class="ai-act ai-insert" title="Insert at the cursor">Insert</button>' +
-            '<button type="button" class="ai-act ai-replace" title="Replace the whole script">Replace</button>' : "") +
-          '</span></div><pre><code>' + (isLua ? hlLua(code) : esc(code)) + "</code></pre></div>";
-      } else {
-        out += prose(parts[i]);
-      }
-    }
-    return out;
-  }
-
-  /* Pull a model's inline reasoning out of the answer text. Reasoning that
-     arrives as a separate `reasoning`/`reasoning_content` field is handled in
-     the provider; this is for models (the Qwen family especially) that put it
-     inline. Two inline shapes occur, and only handling the first was why a Qwen
-     on LM Studio showed no thought panel:
-
-       1. <think> ... </think> rest      -- explicit open + close.
-       2. ... reasoning ... </think> rest -- CLOSE ONLY. Qwen chat templates
-          inject the opening <think> into the prompt, so the model streams the
-          reasoning text and just the closing tag; there is no opening tag in
-          the output at all. */
-  function splitThink(raw) {
-    var open = raw.indexOf("<think>");
-    var close = raw.indexOf("</think>");
-    /* Shape 1: an opening tag with only whitespace before it. */
-    if (open !== -1 && /^\s*$/.test(raw.slice(0, open))) {
-      var s = open + 7;
-      if (close === -1) return { think: raw.slice(s), rest: "" };
-      return { think: raw.slice(s, close), rest: raw.slice(close + 8).replace(/^\s+/, "") };
-    }
-    /* Shape 2: a closing tag with no opening tag before it -> the open was in
-       the prompt; everything up to the close is the thought. */
-    if (close !== -1 && (open === -1 || open > close)) {
-      return { think: raw.slice(0, close), rest: raw.slice(close + 8).replace(/^\s+/, "") };
-    }
-    return { think: "", rest: raw };
-  }
+  /* ---- rendering ---------------------------------------------------------
+     Lives in 79_render.js now (pure, testable, and the one place that handles
+     untrusted model output). These aliases keep the call sites here short. */
+  var esc = IDE.render.esc, hlLua = IDE.render.hlLua,
+      render = IDE.render.md, splitThink = IDE.render.splitThink;
 
   /* ---- DOM --------------------------------------------------------------- */
 
@@ -729,7 +679,7 @@
         sendSel, "Attach the selected code to this question"));
     }
     box.appendChild(chipEl("log", "≡ Game log", !!c.sendLog,
-      "Attach the last " + LOG_SEND + " game-log lines"));
+      "Attach the last " + bud("logLines") + " game-log lines (sized to your model's context window)"));
     box.appendChild(chipEl("agent", "⚒ Agent", !!c.agentMode,
       "Let the assistant search the docs and examples, inspect the live game, and propose script edits or Lua to run (changes always ask first)"));
     pendingFiles.forEach(function (pf, i) {
@@ -1062,6 +1012,34 @@
     return ops;
   }
 
+  /* Both approval gates are inline cards rather than modals, on purpose -- the
+     answer around them stays readable. But an approval that a keyboard user
+     cannot find is not the deliberate act the safety design assumes, so each
+     one announces itself, takes focus, and treats Escape as "no".
+     Declining is always the safe default, so Escape declines. */
+  function wireGate(wrap, label, resolve) {
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", label);
+    wrap.setAttribute("tabindex", "-1");
+    var restoreTo = document.activeElement;
+    function done(v) {
+      document.removeEventListener("keydown", onKey, true);
+      wrap.remove();
+      if (restoreTo && restoreTo.focus) { try { restoreTo.focus(); } catch (e) {} }
+      resolve(v);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); }
+    }
+    document.addEventListener("keydown", onKey, true);
+    wrap.querySelector(".ai-yes").onclick = function () { done(true); };
+    wrap.querySelector(".ai-no").onclick = function () { done(false); };
+    /* Focus the card, not the approve button -- nobody should be able to
+       confirm model-written code with a reflexive Enter. */
+    setTimeout(function () { try { wrap.focus(); } catch (e) {} }, 0);
+    return done;
+  }
+
   /* Confirmation gate for propose_script: show WHAT would change (a real
      diff, long unchanged runs collapsed), apply only on a click. Same safety
      stance as run_lua -- the model proposes, the user disposes. */
@@ -1117,9 +1095,7 @@
         "Proposed edit: " + why + (ops ? "  (+" + adds + " −" + dels + ")" : "");
       logEl().appendChild(wrap);
       scrollBottom(true);
-      function done(v) { wrap.remove(); resolve(v); }
-      wrap.querySelector(".ai-yes").onclick = function () { done(true); };
-      wrap.querySelector(".ai-no").onclick = function () { done(false); };
+      wireGate(wrap, "Proposed edit to your script — approve or decline", resolve);
     });
   }
 
@@ -1140,9 +1116,7 @@
       wrap.querySelector(".ai-confirm-code").innerHTML = hlLua(code);
       logEl().appendChild(wrap);
       scrollBottom(true);
-      function done(v) { wrap.remove(); resolve(v); }
-      wrap.querySelector(".ai-yes").onclick = function () { done(true); };
-      wrap.querySelector(".ai-no").onclick = function () { done(false); };
+      wireGate(wrap, "The assistant wants to run Lua in your game — approve or decline", resolve);
     });
   }
 
@@ -1155,8 +1129,16 @@
 
   /* ---- settings ---------------------------------------------------------- */
 
-  function openSettings() { $("settingsModal").classList.remove("hidden"); fillSettings(); }
-  function closeSettings() { $("settingsModal").classList.add("hidden"); }
+  function openSettings() {
+    $("settingsModal").classList.remove("hidden");
+    fillSettings();
+    checkContext(true);       /* re-probe on open so the budget bar reflects reality */
+    IDE.ui.trapFocus($("settingsModal"), { onEscape: closeSettings });
+  }
+  function closeSettings() {
+    $("settingsModal").classList.add("hidden");
+    IDE.ui.releaseFocus();
+  }
   /* let anything (e.g. the activity-bar gear) open Settings */
   IDE.settings = { open: openSettings, close: closeSettings };
 
@@ -1216,9 +1198,28 @@
     if ($("aiMaxTokens")) $("aiMaxTokens").value = c.maxTokens || 4000;
     if ($("aiEditorMode")) $("aiEditorMode").value = c.editorMode || "diff";
     if ($("aiTrimHistory")) $("aiTrimHistory").checked = c.trimHistory !== false;
-    if ($("aiLogSend")) $("aiLogSend").value = (c.logSend == null ? 40 : c.logSend);
+    if ($("aiLogSend")) $("aiLogSend").value = (c.logSend == null ? 0 : c.logSend);
     if ($("aiMaxSteps")) $("aiMaxSteps").value = c.maxSteps || 10;
-    if ($("aiKeepRaw")) $("aiKeepRaw").value = c.keepRawResults || 2;
+    if ($("aiKeepRaw")) $("aiKeepRaw").value = c.keepRawResults || 0;
+    if ($("aiReasoning")) $("aiReasoning").value = c.reasoningEffort || "";
+    if ($("aiNumCtx")) $("aiNumCtx").value = c.numCtx || 0;
+    if ($("aiKeepAlive")) $("aiKeepAlive").value = c.keepAlive || "60m";
+    /* Say where the window came from, so a detected value does not look like
+       something the user typed and forgot about. */
+    var cn = $("aiCtxNote");
+    if (cn) {
+      if (c.modelCtx && c.modelCtx === c.ctxDetected) {
+        cn.textContent = "Detected automatically (" + c.modelCtx.toLocaleString() +
+          " tokens). Type a number to override it.";
+      } else if (c.modelCtx) {
+        cn.textContent = "Set by you." + (c.ctxDetected
+          ? " Autodetect measured " + c.ctxDetected.toLocaleString() +
+            " — clear the field to use that instead." : "");
+      } else {
+        cn.textContent = "Not known yet. Without it, old messages are never trimmed " +
+          "and a long chat can silently overflow the model.";
+      }
+    }
     if ($("aiPromptCache")) $("aiPromptCache").checked = c.promptCache !== false;
     var p = IDE.provider.preset(c.preset);
     $("aiNote").textContent = (p && p.note) ? p.note : "";
@@ -1327,9 +1328,12 @@
       maxTokens: $("aiMaxTokens") ? (parseInt($("aiMaxTokens").value, 10) || 4000) : 4000,
       editorMode: $("aiEditorMode") ? $("aiEditorMode").value : "diff",
       trimHistory: $("aiTrimHistory") ? $("aiTrimHistory").checked : true,
-      logSend: $("aiLogSend") ? (parseInt($("aiLogSend").value, 10) || 0) : 40,
+      logSend: $("aiLogSend") ? (parseInt($("aiLogSend").value, 10) || 0) : 0,
       maxSteps: $("aiMaxSteps") ? (parseInt($("aiMaxSteps").value, 10) || 10) : 10,
-      keepRawResults: $("aiKeepRaw") ? (parseInt($("aiKeepRaw").value, 10) || 2) : 2,
+      keepRawResults: $("aiKeepRaw") ? (parseInt($("aiKeepRaw").value, 10) || 0) : 0,
+      reasoningEffort: $("aiReasoning") ? $("aiReasoning").value : "",
+      numCtx: $("aiNumCtx") ? (parseInt($("aiNumCtx").value, 10) || 0) : 0,
+      keepAlive: $("aiKeepAlive") ? ($("aiKeepAlive").value.trim() || "60m") : "60m",
       promptCache: $("aiPromptCache") ? $("aiPromptCache").checked : true
     });
     packText = null;   /* tier or packUrl may have changed */
@@ -1368,7 +1372,8 @@
     var fields = ["aiPreset", "aiBase", "aiModel", "aiKey", "aiPackTier",
                   "aiModelCtx", "aiPackUrl", "aiSendEditor", "aiSendLog", "aiAgent",
                   "aiMaxTokens", "aiEditorMode", "aiTrimHistory", "aiLogSend",
-                  "aiMaxSteps", "aiKeepRaw", "aiPromptCache"];
+                  "aiMaxSteps", "aiKeepRaw", "aiPromptCache",
+                  "aiReasoning", "aiNumCtx", "aiKeepAlive"];
     fields.forEach(function (id) {
       var el = $(id);
       if (!el) return;
@@ -1566,6 +1571,10 @@
       refreshModel();
       refreshChips();
       updateEmpty();
+      /* Re-probe when the model/endpoint changed. checkContext keys off that
+         signature itself, so this is cheap on unrelated changes (a toggled
+         checkbox) and correct on the ones that matter. */
+      checkContext();
     });
     IDE.bus.on("script", refreshChips);
 

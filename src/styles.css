@@ -9,6 +9,9 @@
   --k:#c586e0; --s:#9ece6a; --c:#5c6a82; --num:#e6b455; --b:#5cc8ff;
   --ok:#4ec9a0; --err:#ff6b6b; --warn:#e6b455;
   --hov:#141d2e; --selrow:#1c2740; --inbg:#0a0f18; --selbg:rgba(92,200,255,.28);
+  /* budget-bar segments: data colours, deliberately distinct from --accent so the
+     bar reads as a measurement rather than as chrome. Mid-tone, legible on both themes. */
+  --seg-pack:#4a86c7; --seg-ide:#c78f4a; --seg-free:#2f8f5b;
 }
 /* theme: dark is the base; light applies via the OS preference (unless the user forced dark) OR the
    user's explicit choice. The toggle (35_theme.js) stamps data-theme on <html>; "auto" removes it. */
@@ -65,28 +68,77 @@ select.btn{padding:6px 8px}
 /* ---- dock tree ---- */
 .dockroot{flex:1;min-width:0;min-height:0;overflow:hidden}
 .dsplit{display:flex;width:100%;height:100%;min-width:0;min-height:0}
-.dsplit.row{flex-direction:row}
-.dsplit.col{flex-direction:column}
+.dsplit.d-row{flex-direction:row}
+.dsplit.d-col{flex-direction:column}
 .dcell{display:flex;min-width:0;min-height:0;overflow:hidden}
 .dcell>*{flex:1;min-width:0;min-height:0}
-.dgutter{flex:none;background:transparent;z-index:2}
-.dgutter.row{width:6px;margin:0 -3px;cursor:col-resize}
-.dgutter.col{height:6px;margin:-3px 0;cursor:row-resize}
-.dgutter:hover{background:var(--accent);opacity:.4}
+/* The grab bar. 8px of hit area with -2px margins nets a 4px visual gap: enough
+   breathing room between two rounded panels, and a comfortable drag target
+   (6px flush against the borders was fiddly to grab and left the panels
+   touching). It renders as a hairline until you approach it. */
+.dgutter{flex:none;position:relative;background:transparent;z-index:3;
+  display:flex;align-items:center;justify-content:center;gap:2px}
+.dgutter.d-row{width:8px;margin:0 -2px;cursor:col-resize;flex-direction:column}
+.dgutter.d-col{height:8px;margin:-2px 0;cursor:row-resize;flex-direction:row}
+.dgutter::before{content:"";position:absolute;inset:0;background:var(--accent);
+  opacity:0;transition:opacity .12s}
+.dgutter:hover::before{opacity:.35}
+
+/* Collapse chevrons: one per side, each hiding the neighbour it points at.
+   Hidden until the gutter is hovered or focused within, so the divider stays a
+   hairline in normal use. */
+.dchev{position:absolute;z-index:4;width:15px;height:22px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  font:11px/1 var(--efont);color:var(--ink);background:var(--bar);
+  border:1px solid var(--edge2);border-radius:4px;cursor:pointer;
+  opacity:0;transition:opacity .12s}
+.dgutter:hover .dchev,.dgutter:focus-within .dchev{opacity:1}
+.dchev:hover{border-color:var(--accent);color:var(--accent)}
+.dchev:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+.d-row .dchev.before{top:calc(50% - 24px)}
+.d-row .dchev.after{top:calc(50% + 2px)}
+.d-col .dchev{width:22px;height:15px}
+.d-col .dchev.before{left:calc(50% - 24px)}
+.d-col .dchev.after{left:calc(50% + 2px)}
+
+/* A collapsed cell keeps a thin strip -- the panel's name, and the control that
+   brings it back. Without it "hide" would be indistinguishable from "close". */
+.dcell.collapsed{flex:0 0 26px !important;min-width:26px;min-height:26px}
+.dstrip{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  padding:6px 0;font:11px/1 var(--efont);color:var(--dim);background:var(--panel);
+  border:1px solid var(--edge);border-radius:6px;cursor:pointer;overflow:hidden}
+.dstrip:hover{color:var(--ink);border-color:var(--accent2,var(--edge2));background:var(--hov)}
+.dstrip-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dstrip.d-row .dstrip-label{writing-mode:vertical-rl;transform:rotate(180deg);max-height:100%}
 
 .dleaf{display:flex;flex-direction:column;width:100%;height:100%;min-width:0;min-height:0;
   position:relative;background:var(--panel);border:1px solid var(--edge);border-radius:6px;
   overflow:hidden}
 .dtabs{flex:none;display:flex;align-items:stretch;gap:1px;min-height:30px;
-  background:var(--bar);border-bottom:1px solid var(--edge);overflow-x:auto}
+  background:var(--bar);border-bottom:1px solid var(--edge);overflow-x:auto;
+  position:relative;scrollbar-width:none}
 .dtabs::-webkit-scrollbar{height:0}
+/* The scrollbar is hidden for looks, so overflow needs its own signal: a fade
+   on whichever edge has tabs scrolled out of sight. Without this a clipped tab
+   is indistinguishable from a tab that does not exist. */
+.dtabs.cut-l{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px);
+  mask-image:linear-gradient(90deg,transparent 0,#000 24px)}
+.dtabs.cut-r{-webkit-mask-image:linear-gradient(270deg,transparent 0,#000 24px);
+  mask-image:linear-gradient(270deg,transparent 0,#000 24px)}
+.dtabs.cut-l.cut-r{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
 .dtab{display:flex;align-items:center;gap:6px;padding:0 10px;font:12px/1 var(--efont);
   color:var(--dim);cursor:pointer;border-right:1px solid var(--edge);white-space:nowrap;
   user-select:none}
+.dtab-label{overflow:hidden;text-overflow:ellipsis;max-width:22ch}
 .dtab:hover{color:var(--ink);background:var(--hov)}
 .dtab.on{color:var(--ink);background:var(--panel);box-shadow:inset 0 2px 0 var(--accent)}
 .dtab.dragging{opacity:.4}
-.dtab-x{font-size:10px;color:var(--dim);border-radius:4px;padding:2px 3px}
+/* A real <button> (it needs to be keyboard-reachable and nameable), so the UA's
+   default border/background/font has to be cleared -- otherwise every tab grows
+   a boxed ✕. */
+.dtab-x{font:inherit;font-size:10px;line-height:1;color:var(--dim);background:transparent;
+  border:0;border-radius:4px;padding:2px 3px;cursor:pointer}
 .dtab-x:hover{color:var(--ink);background:var(--edge2)}
 .dbody{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .dbody>*{flex:1;min-height:0;min-width:0}
@@ -352,11 +404,11 @@ select.btn{padding:6px 8px}
 #repl{flex:1;font:12px/1.4 var(--efont);color:var(--ink);background:transparent;border:0;outline:none;padding:3px 0}
 #repl::placeholder{color:var(--c)}
 
-/* the theme toggle, floating bottom-right */
-#themeBtn{position:fixed;right:12px;bottom:10px;z-index:40;width:34px;height:34px;border-radius:50%;
-  font:15px/1 var(--efont);color:var(--dim);background:var(--bar);border:1px solid var(--edge2);cursor:pointer;
-  box-shadow:0 4px 14px rgba(0,0,0,.25)}
-#themeBtn:hover{color:var(--ink);border-color:var(--accent)}
+/* The theme toggle lives in the top bar. It used to be position:fixed at the
+   bottom-right, where it sat on top of whatever panel happened to be there --
+   in practice the Assistant's send button, every time. */
+.btn.icon{width:32px;padding:6px 0;text-align:center;font:15px/1 var(--efont);color:var(--dim)}
+.btn.icon:hover{color:var(--ink)}
 
 /* ---- the guided tutorial: a floating, non-blocking card (not a modal -- the player needs the whole app
    live underneath: Connect, Run, Results) -- 78_tutorial.js ---- */
@@ -428,10 +480,16 @@ a.btn{text-decoration:none;display:inline-block}
 /* -- header: model chip + chat actions -- */
 .ai-head { flex: none; display: flex; align-items: center; gap: 6px;
   padding: 5px 8px; border-bottom: 1px solid var(--edge); background: var(--bar); }
-.ai-model { min-width: 0; max-width: 55%; overflow: hidden; text-overflow: ellipsis;
+/* direction:rtl keeps the END of the name when it truncates -- model ids are
+   distinguished by their tail ("qwen3:14b" vs "qwen3:8b"), so clipping to
+   "qwen…" threw away the only part that identifies which one is loaded.
+   The inner text is re-marked ltr so the string itself still reads normally. */
+.ai-model { min-width: 4.5em; max-width: 60%; overflow: hidden; text-overflow: ellipsis;
+  direction: rtl;
   white-space: nowrap; font: 11px/1 var(--efont); color: var(--dim);
   background: var(--hov); border: 1px solid var(--edge2); border-radius: 20px;
   padding: 4px 10px; cursor: pointer; }
+.ai-model { unicode-bidi: plaintext; }
 .ai-model:hover { color: var(--ink); border-color: var(--accent); }
 .ai-model.unset { color: var(--warn); border-color: var(--warn); border-style: dashed; }
 .ai-pack { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis;
@@ -577,7 +635,7 @@ a.btn{text-decoration:none;display:inline-block}
 .maphead-acts { margin-left: auto; display: flex; gap: 4px; }
 .maphead-acts .ai-mini.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .map-canvas { flex: 1; min-height: 180px; width: 100%; display: block;
-  background: #101014; cursor: crosshair; }
+  background: var(--inbg); cursor: crosshair; }
 .map-readout { font-size: 11px; padding: 4px 8px; opacity: .75;
   font-family: ui-monospace, Consolas, monospace;
   border-top: 1px solid var(--edge); }
@@ -634,19 +692,19 @@ a.btn{text-decoration:none;display:inline-block}
 .ai-budget { margin: 8px 0 4px; font-size: 12px; }
 .ai-budget-track {
   display: flex; height: 16px; border-radius: 4px; overflow: hidden;
-  background: #23262b; border: 1px solid #33373d;
+  background: var(--inbg); border: 1px solid var(--edge2);
 }
 .ai-budget-track .seg { height: 100%; display: block; }
-.ai-budget-track .seg.pack { background: #4a86c7; }   /* reference pack */
-.ai-budget-track .seg.ide  { background: #c78f4a; }   /* IDE Use */
-.ai-budget-track .seg.free { background: #2f8f5b; }   /* free for the user */
+.ai-budget-track .seg.pack { background: var(--seg-pack); }   /* reference pack */
+.ai-budget-track .seg.ide  { background: var(--seg-ide); }   /* IDE Use */
+.ai-budget-track .seg.free { background: var(--seg-free); }   /* free for the user */
 .ai-budget.unknown .ai-budget-track { opacity: .55; }
-.ai-budget.over .ai-budget-track { border-color: #b4553f; }
-.ai-budget-read { margin-top: 5px; color: #c8cdd4; line-height: 1.45; }
-.ai-budget-read b { color: #7fd0a0; }
-.ai-budget.over .ai-budget-read { color: #e0a08f; }
+.ai-budget.over .ai-budget-track { border-color: var(--err); }
+.ai-budget-read { margin-top: 5px; color: var(--ink); line-height: 1.45; }
+.ai-budget-read b { color: var(--ok); }
+.ai-budget.over .ai-budget-read { color: var(--err); }
 .ai-budget-key {
-  margin-top: 4px; color: #8b9199; font-size: 11px;
+  margin-top: 4px; color: var(--dim); font-size: 11px;
   display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px;
 }
 .ai-budget-key .k {
@@ -654,22 +712,22 @@ a.btn{text-decoration:none;display:inline-block}
   margin-left: 6px;
 }
 .ai-budget-key .k:first-child { margin-left: 0; }
-.ai-budget-key .k.pack { background: #4a86c7; }
-.ai-budget-key .k.ide  { background: #c78f4a; }
-.ai-budget-key .k.free { background: #2f8f5b; }
+.ai-budget-key .k.pack { background: var(--seg-pack); }
+.ai-budget-key .k.ide  { background: var(--seg-ide); }
+.ai-budget-key .k.free { background: var(--seg-free); }
 
 /* settings persistence: autosave hint + a loud warning if storage is denied */
-.ai-autosave-hint { color: #8b9199; font-size: 11px; margin-right: auto; align-self: center; }
+.ai-autosave-hint { color: var(--dim); font-size: 11px; margin-right: auto; align-self: center; }
 .ai-savewarn {
   margin: 8px 0; padding: 8px 10px; font-size: 12px; line-height: 1.45;
-  border: 1px solid #b4553f; border-radius: 6px;
-  background: rgba(180, 85, 63, .12); color: #e0a08f;
+  border: 1px solid var(--err); border-radius: 6px;
+  background: rgba(180, 85, 63, .12); color: var(--err);
 }
 
 /* --- assistant file attachment --------------------------------------------- */
 .ai-attach {
   flex: 0 0 auto; background: none; border: none; cursor: pointer;
-  font-size: 16px; padding: 4px 6px; color: #8b9199; align-self: flex-end;
+  font-size: 16px; padding: 4px 6px; color: var(--dim); align-self: flex-end;
   border-radius: 6px; line-height: 1;
 }
 .ai-attach:hover { color: #cdd2d8; background: rgba(255,255,255,.06); }
@@ -678,7 +736,7 @@ a.btn{text-decoration:none;display:inline-block}
   max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ai-chip.ai-chip-file:hover { background: rgba(180,90,70,.22); border-color: #9c5a3f; color: #e8bcb0; }
-.ai-composer.dragover { outline: 2px dashed #4a86c7; outline-offset: 2px; border-radius: 8px; }
+.ai-composer.dragover { outline: 2px dashed var(--seg-pack); outline-offset: 2px; border-radius: 8px; }
 .ai-composer.dragover::after {
   content: "Drop files to attach"; position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
@@ -693,7 +751,152 @@ a.btn{text-decoration:none;display:inline-block}
 /* header quick-switch: compact, sits left of the model chip */
 .ai-profile-quick {
   font: inherit; font-size: 11px; max-width: 130px; padding: 2px 4px;
-  border-radius: 5px; border: 1px solid #33373d; background: #23262b;
-  color: #c8cdd4; cursor: pointer;
+  border-radius: 5px; border: 1px solid var(--edge2); background: var(--inbg);
+  color: var(--ink); cursor: pointer;
 }
-.ai-profile-quick:hover { border-color: #4a86c7; }
+.ai-profile-quick:hover { border-color: var(--seg-pack); }
+
+/* ---- focus visibility --------------------------------------------------
+   The app is almost entirely custom controls, and none of them showed a focus
+   ring, so keyboard navigation was invisible -- you could tab through the
+   approval gate for model-written Lua with no way to see where you were.
+   :focus-visible only paints for keyboard focus, so mouse users see nothing. */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.dtab:focus-visible,.edtab:focus-visible{outline-offset:-2px}
+.ai-confirm:focus-visible{outline:2px solid var(--warn);outline-offset:3px}
+
+/* ---- responsive --------------------------------------------------------
+   This IDE targets people running a 2008 PC game, which means laptops and
+   half-screen windows as often as a 1920 desktop. Everything below is about
+   staying usable as width goes away, in the order things should give up space:
+   the map's chrome, then panel padding, then the activity bar's width, then
+   the side-by-side arrangement itself. */
+
+/* Laptop-class (1366x768 is the common one). Tighten padding and let the tab
+   labels shorten before they start scrolling out of view. */
+@media (max-width: 1440px){
+  .dtab{padding:0 8px}
+  .dtab-label{max-width:16ch}
+  .edtab{max-width:150px}
+  .edtab-label{max-width:110px}
+  .url{width:150px}
+  .ai-budget-read{font-size:11px}
+}
+
+/* Narrow: the top bar is the first thing to overflow because it is one long
+   flex row of buttons. Let it wrap and shrink rather than clip. */
+@media (max-width: 1180px){
+  .activity{width:38px}
+  .actbtn{width:30px;height:30px;font-size:14px}
+  .bar{gap:6px;padding:6px 8px}
+  .btn{padding:5px 8px}
+  .dtab-label{max-width:12ch}
+  .url{width:120px}
+}
+
+/* Very narrow / split-screen: side-by-side dock columns stop making sense
+   below roughly 900px -- three columns of 300px is nobody's editor. Stack the
+   top-level split vertically so each panel gets full width, and let the whole
+   thing scroll instead of compressing to unusable slivers. */
+@media (max-width: 900px){
+  .dockroot > .dsplit.d-row{flex-direction:column}
+  .dockroot > .dsplit.d-row > .dgutter.d-row{width:auto;height:6px;margin:-3px 0;cursor:row-resize}
+  .dleaf{min-height:180px}
+  .bar{flex-wrap:wrap}
+  .brand{font-size:12px}
+}
+
+/* Coarse pointers (touch): the close affordances are 10px glyphs, which is
+   well under any usable touch target. */
+@media (pointer: coarse){
+  .dtab-x,.edtab-x{padding:6px;font-size:12px}
+  .actbtn{width:40px;height:40px}
+}
+
+/* Light theme: the budget-bar segment colours were picked against a dark
+   panel. Deepen them so they keep their contrast on white. */
+:root[data-theme="light"]{ --seg-pack:#2d6ba8; --seg-ide:#a86f2d; --seg-free:#227048; }
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){ --seg-pack:#2d6ba8; --seg-ide:#a86f2d; --seg-free:#227048; }
+}
+
+/* Respect a reduced-motion preference -- there are transitions on the activity
+   bar, the chips and the tool chips. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
+
+/* ---- a11y utilities ----------------------------------------------------- */
+/* Available to screen readers, invisible on screen -- for labels and live
+   regions whose text would be redundant visually (the active-script name is
+   already shown by the editor tab strip). */
+.visually-hidden{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+/* Skip link: the first tab stop, so a keyboard user is not forced through the
+   whole toolbar and activity bar to reach the editor. Visible only on focus. */
+.skiplink{position:absolute;left:8px;top:-40px;z-index:50;padding:8px 12px;border-radius:0 0 7px 7px;
+  background:var(--accent);color:var(--accent-ink);font-weight:600;text-decoration:none;
+  transition:top .12s}
+.skiplink:focus{top:0}
+
+/* ---- dropdown menu (60_ui.js `menu`) -----------------------------------
+   Replaces a <select> that was impersonating a command menu. Real buttons, so
+   it can carry separators, shortcut hints and correct roles. */
+.menu{min-width:220px;max-width:min(340px,calc(100vw - 16px));z-index:60;padding:5px;
+  background:var(--bar);border:1px solid var(--edge2);border-radius:9px;
+  box-shadow:0 14px 40px rgba(0,0,0,.4)}
+.menu-item{display:flex;align-items:center;gap:12px;width:100%;padding:7px 10px;
+  font:inherit;font-size:12.5px;color:var(--ink);background:transparent;border:0;border-radius:6px;
+  text-align:left;cursor:pointer}
+.menu-item:hover,.menu-item:focus{background:var(--hov);outline:none}
+.menu-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.menu-hint{margin-left:auto;color:var(--dim);font:11px/1 var(--efont)}
+.menu-sep{height:1px;margin:5px 6px;background:var(--edge)}
+
+/* ---- command palette (66_palette.js) -----------------------------------
+   Anchored near the top rather than centred: the list grows downward, and a
+   centred box makes the results jump around as you type. */
+.palette-back{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.45);
+  display:flex;justify-content:center;align-items:flex-start;padding:10vh 16px 16px}
+.palette-back.hidden{display:none}
+.palette{width:min(680px,100%);max-height:70vh;display:flex;flex-direction:column;
+  background:var(--bar);border:1px solid var(--edge2);border-radius:12px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.5)}
+.palette-input{flex:none;padding:14px 16px;font:14px/1.3 var(--efont);color:var(--ink);
+  background:transparent;border:0;border-bottom:1px solid var(--edge);outline:none}
+.palette-list{flex:1;min-height:0;overflow-y:auto;padding:6px}
+.palette-row{display:flex;align-items:baseline;gap:9px;padding:7px 10px;border-radius:7px;
+  cursor:pointer;font-size:12.5px}
+.palette-row.on{background:var(--selrow)}
+.palette-kind{flex:none;min-width:62px;font:10px/1.6 var(--efont);text-transform:uppercase;
+  letter-spacing:.4px;color:var(--accent-ink);background:var(--dim);border-radius:4px;
+  padding:1px 5px;text-align:center}
+.palette-kind.k-ess{background:var(--accent)}
+.palette-kind.k-native{background:var(--seg-ide)}
+.palette-kind.k-tpl{background:var(--seg-free)}
+.palette-kind.k-ex{background:var(--seg-pack)}
+.palette-kind.k-cmd{background:var(--k);color:#fff}
+.palette-label{color:var(--ink);font-family:var(--efont);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.palette-detail{margin-left:auto;padding-left:12px;color:var(--dim);font-size:11px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.palette-empty{padding:18px 12px;color:var(--dim);text-align:center}
+.palette-foot{flex:none;display:flex;gap:16px;padding:7px 14px;border-top:1px solid var(--edge);
+  color:var(--dim);font-size:11px}
+.palette-foot b{color:var(--ink);font:11px/1 var(--efont)}
+
+/* ---- wide modal (the Examples gallery) --------------------------------- */
+.modal-wide{width:min(940px,calc(100vw - 32px));max-height:86vh}
+.modal-search{flex:1;min-width:0;margin:0 10px;font:12px/1 var(--efont);color:var(--ink);
+  background:var(--inbg);border:1px solid var(--edge2);border-radius:6px;padding:6px 9px}
+.modal-body.nopad{padding:0}
+.modal-body.nopad .exlist{max-height:none;padding:12px}
+
+/* a hairline separating dock panels from overlay entries in the activity bar */
+.actrule{width:22px;height:1px;margin:5px 0;background:var(--edge2);flex:none}
+
+@media (max-width: 900px){
+  .palette-back{padding:6vh 10px 10px}
+  .palette-detail{display:none}
+}

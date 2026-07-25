@@ -8,7 +8,9 @@ It's a single self-contained `dist/index.html` (editor, API reference, examples,
 inlined), so it works three ways:
 
 - **Hosted** on GitHub Pages — just open the URL (works in Chrome; loopback is treated as trustworthy).
-- **Downloaded** — grab `dist/index.html` and open it off disk (`file://`).
+- **Downloaded** — grab [`mercs2-lua-ide.html`](https://github.com/loganw234/mercs2-lua-web-ide-ai/releases/latest/download/mercs2-lua-ide.html)
+  from the latest release and open it off disk (`file://`). CI rebuilds that asset on every push, so it's
+  always the current build. (Cloning instead? `python build.py` writes the same file to `dist/index.html`.)
 - **Served by the bridge** — the WS-capable `lua-bridge` can serve this file at
   `http://127.0.0.1:27050/`, the bulletproof path that dodges every mixed-content / private-network quirk.
 
@@ -37,8 +39,12 @@ You can still write, save, and browse everything with no game attached — only 
   never clobber anyone's work, and old uncompressed links still open fine.
 - **Examples gallery** — 45 categorized, smoke-tested examples generated straight from the Ess repo's
   `samples/recipes/` (the framework's living documentation), from "Am I connected?" to full missions.
-  One click opens any of them as a new script to play with.
-- **Two-layer API reference** — the full Ess API (~74 namespaces / 440+ calls, tier-badged Easy / Core / Raw)
+  Opens as a searchable modal (activity bar, or File ▸ Examples gallery); one click opens any of them
+  as a new script to play with.
+- **Command palette** (`Ctrl/Cmd+K`) — one search across every Ess call, engine native, spawnable
+  template, example and file command. Enter inserts at the caret (or runs the command) and closes.
+  Ess ranks above the engine natives, and `Ess.Easy.*` above the rest, same as autocomplete.
+- **Two-layer API reference** — the full Ess API (~80 namespaces / 480+ calls, tier-badged Easy / Core / Raw)
   *plus* the engine's own native functions (40 namespaces / ~770 calls, scraped from the decompiled base-game
   scripts, each with a **real call site from the game** and observed argument counts). Most calls carry a
   real, specific description mined from the wiki (not just "here's the namespace") — click any call for
@@ -77,11 +83,37 @@ python build.py           # src/* -> dist/index.html (standalone)
 Regenerating the data (only when the upstream sources change):
 
 ```
+python tools/sync_assets.py     # fetch vendored files at their pinned tag (see below)
 python tools/gen_api.py         # src/data/CAPABILITIES.md            -> src/data/ess-api.json
 python tools/gen_examples.py    # <ess repo>/samples/recipes + README -> src/data/examples.json
 python tools/scrape_natives.py  # <decompiled game lua>/src           -> src/data/natives.json
 python tools/gen_templates.py   # <spawn menu scripts + wiki>          -> src/data/templates.json
 ```
+
+### Vendored files (`vendor.json`)
+
+`src/data/CAPABILITIES.md` is Ess's file, not this repo's. It used to be copy-pasted in, which recorded
+nothing about *which* version had been copied — so it silently went seven days and 117 API calls stale,
+and the only symptom was this IDE's own Ess-version warning firing against an ancient reference.
+
+It's now pinned in [`vendor.json`](vendor.json) to a release tag plus a sha256, and `tools/sync_assets.py`
+is the only thing that writes it. **Don't hand-edit a vendored file — change it upstream, cut a release,
+repin.**
+
+```
+python tools/sync_assets.py            # fetch at the pinned tag, verify the hash
+python tools/sync_assets.py --update   # repin to Ess's newest release, then fetch
+python tools/sync_assets.py --check    # what CI runs (writes nothing)
+```
+
+`--check` is two checks with deliberately different severities: a file that doesn't match its pin is a
+**hard failure** (the repo is inconsistent), while a pin merely *behind* upstream is a **warning** —
+another repo cutting a release must never break this one's deploy. `.github/workflows/vendor-check.yml`
+runs `--check --strict` weekly, which is where staleness becomes a red run instead of a line in a green
+log. Network trouble is reported, never mistaken for staleness.
+
+The pin doubles as the `Ess.VERSION` stamp in `ess-api.json` (`gen_api.py` reads it), so the reference
+and the version it claims to be can't drift apart.
 
 `gen_api.py` and `scrape_natives.py` both also merge in `src/data/call_docs.json` — real, wiki-sourced
 per-call descriptions (`{"ess": {path: doc}, "natives": {path: doc}}`) that power the hover tooltip and
@@ -103,19 +135,30 @@ node smoke.js                                      # headless boot + behavior te
 - `src/lib/ess-bridge.js` — the vendored WebSocket client (kept in sync with the Ess repo's `tools/`;
   the IDE adds a table serializer to the result wrap — an upstream candidate).
 - `src/app/*.js` — the app, one concern per file (`00_state` → `99_main`), merged in order.
-- `src/data/` — `CAPABILITIES.md` (copied from the Ess repo), `call_docs.json` (hand-curated per-call
-  docs, see above), and the four generated JSONs (`ess-api`/`natives`/`examples`/`templates`).
-- `dist/index.html` — the built standalone page (committed, so Pages + downloads need no build).
+  The AI layer is `79_render` (pure markdown/Lua rendering) → `80_provider` (transport, context
+  autodetection, derived budgets) → `82_assist` (the panel) → `85_ground` / `86_agent`.
+- `src/data/` — `CAPABILITIES.md` (**vendored** from the Ess repo at the tag `vendor.json` pins — managed
+  by `tools/sync_assets.py`, not edited here), `call_docs.json` (hand-curated per-call docs, see above),
+  and the four generated JSONs (`ess-api`/`natives`/`examples`/`templates`).
+- `dist/index.html` — the built standalone page. **Not committed** (gitignored): CI rebuilds it from
+  `src/` on every push, deploys it to Pages, and attaches it to the `latest` release as
+  `mercs2-lua-ide.html`. Run `python build.py` for a local copy.
 
-`.github/workflows/pages.yml` regenerates the API, rebuilds, and deploys `dist/` to GitHub Pages on push.
+`.github/workflows/pages.yml` verifies the vendored pins, regenerates the API, rebuilds, and deploys
+`dist/` to GitHub Pages on push.
 
 ## Keeping the data current
 
-- **Ess API**: refresh `src/data/CAPABILITIES.md` from the Ess repo, re-run `tools/gen_api.py`.
+- **Ess API**: `python tools/sync_assets.py --update`, then re-run `tools/gen_api.py`.
 - **Examples**: re-run `tools/gen_examples.py` (reads the Ess repo's `samples/` directly).
 - **Natives**: re-run `tools/scrape_natives.py` against the decompiled game scripts.
 
 Then `python build.py` and commit.
+
+> **Note:** `gen_examples.py`, `scrape_natives.py` and `gen_templates.py` still resolve their inputs from
+> absolute paths to local checkouts, so only this machine can regenerate them and CI silently produces
+> different results than a local run does. Moving them onto `vendor.json` the way `CAPABILITIES.md` now
+> is would fix that; `gen_api.py` is the worked example.
 
 
 ## License

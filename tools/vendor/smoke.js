@@ -132,7 +132,12 @@ setTimeout(() => {
   ok("panic: stop-loops snippet submitted", /Ess\.Loop\.stop/.test(panicRow.dataset.code));
 
   // ---- layout + log chrome present ----
-  ok("splitters present", !!w.document.getElementById("hsplit") && !!w.document.getElementById("vsplit"));
+  /* The fork replaced the two fixed splitters with the dock tree (61_dock.js),
+     so this asserted on ids that no longer exist -- it had been failing since
+     that refactor, unnoticed, because nothing ran this file. Assert the dock. */
+  ok("dock mounted with panels", !!w.document.getElementById("dockRoot") &&
+     w.document.querySelectorAll(".dleaf").length > 0 && !!w.IDE.dock);
+  ok("activity bar built", w.document.querySelectorAll("#activity .actbtn").length > 0);
   ok("log filter + latest chip present", !!w.document.getElementById("logFilter") && !!w.document.getElementById("latest"));
 
   // ---- update check (fetch stubbed to a future commit above) ----
@@ -184,6 +189,328 @@ setTimeout(() => {
   w.document.getElementById("updSkip").click();
   ok("skip hides + remembers the sha", updbar.classList.contains("hidden") &&
      JSON.parse(w.localStorage.getItem("m2ide.update.v1")).skip === "fffffff");
+
+
+  /* ---- AI layer -----------------------------------------------------------
+   * The assistant is the largest and fastest-moving part of this fork and had
+   * no coverage at all: this file used to be byte-identical to the base IDE's,
+   * so ~3,300 lines of provider/agent/grounding/render code could break in
+   * silence. These exercise the PURE, decidable parts -- the ones where a
+   * regression is a wrong answer rather than a layout nudge.
+   */
+  const R = w.IDE.render, P = w.IDE.provider, A = w.IDE.agent, G = w.IDE.ground;
+
+  ok("ai: render/provider/agent/ground all wired", !!(R && P && A && G));
+
+  /* -- renderer (79_render.js) -- */
+  ok("render: escapes angle brackets", R.esc("<script>") === "&lt;script&gt;");
+  ok("render: escapes quotes too",
+     R.esc('a"b').indexOf('"') === -1, R.esc('a"b'));
+  /* A URL carrying a quote must not be able to close the href and add its own
+     attributes. Model output is not trusted input. */
+  const evil = R.md('see https://x.example/#"onmouseover="steal()" ok');
+  ok("render: a link cannot inject an event handler",
+     !/<a[^>]+onmouseover/i.test(evil), evil.slice(0, 160));
+  ok("render: normal links still render",
+     /<a href="https:\/\/wiki\.mercs2\.tools\/x"/.test(R.md("see https://wiki.mercs2.tools/x here")));
+  ok("render: fenced lua gets Insert/Replace", /ai-insert/.test(R.md("```lua\nreturn 1\n```")));
+  ok("render: fenced non-lua does not", !/ai-insert/.test(R.md("```python\nx=1\n```")));
+  ok("render: a table renders as a table", /<table>/.test(R.md("| a | b |\n|---|---|\n| 1 | 2 |")));
+
+  /* splitThink: BOTH inline shapes. Shape 2 (closing tag only) is what Qwen
+     emits, because its chat template injects the opening tag into the prompt --
+     not handling it looked exactly like "streaming is broken". */
+  const t1 = R.splitThink("<think>reasoning here</think>the answer");
+  ok("render: <think> open+close split",
+     t1.think === "reasoning here" && t1.rest === "the answer", JSON.stringify(t1));
+  const t2 = R.splitThink("reasoning here</think>the answer");
+  ok("render: close-tag-only split (Qwen shape)",
+     t2.think === "reasoning here" && t2.rest === "the answer", JSON.stringify(t2));
+  const t3 = R.splitThink("just an answer");
+  ok("render: no reasoning leaves the text alone", t3.think === "" && t3.rest === "just an answer");
+
+  /* -- derived budgets (80_provider.js) -- */
+  P.set({ modelCtx: 0, logSend: 0, keepRawResults: 0 });
+  const b0 = { page: P.budget("pageChars"), log: P.budget("logLines"), keep: P.budget("keepRaw") };
+  ok("budget: an unknown window keeps the old fixed defaults",
+     b0.page === 14000 && b0.log === 40 && b0.keep === 2, JSON.stringify(b0));
+  P.set({ modelCtx: 40960 });
+  const bSmall = { page: P.budget("pageChars"), keep: P.budget("keepRaw") };
+  P.set({ modelCtx: 1000000 });
+  const bBig = { page: P.budget("pageChars"), keep: P.budget("keepRaw") };
+  ok("budget: scales up with the window",
+     bBig.page > bSmall.page && bBig.keep > bSmall.keep, JSON.stringify({ bSmall, bBig }));
+  ok("budget: stays clamped at the top end",
+     bBig.page <= 120000 && bBig.keep <= 12, JSON.stringify(bBig));
+  P.set({ modelCtx: 0, keepRawResults: 7 });
+  ok("budget: an explicit profile value still wins", P.budget("keepRaw") === 7);
+  P.set({ keepRawResults: 0 });
+
+  /* -- the inspect_game auto-run boundary (86_agent.js) --
+     This decides what the model may run in the user's game WITHOUT asking, so
+     it is the one guard worth asserting directly. */
+  ok("agent: allows an idiomatic Ess read", A.isReadOnly("return Ess.Player.pose(0)"));
+  ok("agent: allows an engine getter", A.isReadOnly("return tostring(Player.GetLocalCharacter())"));
+  ok("agent: refuses an Ess mutator", !A.isReadOnly("return Ess.Loop.stop('demo')"));
+  ok("agent: refuses a spawn", !A.isReadOnly("return Pg.Spawn('x',1,2,3)"));
+  ok("agent: refuses a native setter", !A.isReadOnly("Weather.SetTimeOfDay(0)"));
+  ok("agent: refuses an empty expression", !A.isReadOnly(""));
+
+  /* -- compaction: older tool results shrink, the newest stay verbatim, and the
+        role/id pairing survives (breaking it desynchronises the conversation). -- */
+  const convo = [
+    { role: "user", content: "q" },
+    { role: "tool", tool_call_id: "a", name: "search_wiki", content: "X".repeat(4000) },
+    { role: "tool", tool_call_id: "b", name: "search_api", content: "Y".repeat(4000) },
+    { role: "tool", tool_call_id: "c", name: "get_editor", content: "Z".repeat(4000) }
+  ];
+  const compacted = A.compactConvo(convo);
+  ok("agent: compaction shortens the oldest tool result",
+     compacted[1].content.length < 4000, String(compacted[1].content.length));
+  ok("agent: compaction keeps the newest verbatim",
+     compacted[3].content.length === 4000, String(compacted[3].content.length));
+  ok("agent: compaction preserves tool_call_id pairing",
+     compacted[1].tool_call_id === "a" && compacted[3].tool_call_id === "c");
+
+  /* -- grounding (85_ground.js) -- */
+  const g1 = G.check("Use Ai.Follow(npc) and Pg.Spawn(t)", ["Pg.Spawn is real and documented here"]);
+  ok("ground: flags a name absent from the sources",
+     g1.ungrounded.indexOf("Ai.Follow") !== -1, JSON.stringify(g1));
+  ok("ground: does not flag a name present in the sources",
+     g1.ungrounded.indexOf("Pg.Spawn") === -1, JSON.stringify(g1));
+  ok("ground: ignores filenames", G.check("see mrxfollow.lua", []).ungrounded.length === 0);
+  /* Lowercase method halves matter: an earlier version demanded PascalCase and
+     sailed straight past a fabricated call on a real module. */
+  /* Three-segment Ess names. A single \.name group in API_RE meant only the
+     first TWO segments were extracted, so `Ess.Player.teleportTo` reduced to the
+     real namespace `Ess.Player` and the invented method was never checked --
+     exempting the whole Ess surface, which is the API this IDE is about. */
+  ok("ground: catches a fabricated METHOD on a real Ess namespace",
+     G.check("call Ess.Player.teleportTo(1,2,3)", ["Ess.Player.pose(i)"]).ungrounded
+       .indexOf("Ess.Player.teleportTo") !== -1,
+     JSON.stringify(G.check("call Ess.Player.teleportTo(1,2,3)", ["Ess.Player.pose(i)"])));
+  ok("ground: does NOT flag a real three-segment Ess call",
+     G.check("call Ess.Player.pose(0)", ["Ess.Player.pose(i) returns the pose"]).ungrounded.length === 0);
+  ok("ground: extracts the full dotted path, not just two segments",
+     G.names("Ess.Player.teleportTo(x)").indexOf("Ess.Player.teleportTo") !== -1,
+     JSON.stringify(G.names("Ess.Player.teleportTo(x)")));
+  /* An invented namespace is now reported as the FULL path the model actually
+     wrote (`Ess.Teleporter.go`), which is the more useful message -- it names
+     what to search for rather than a prefix the user never typed. */
+  ok("ground: still catches an invented namespace",
+     G.check("Ess.Teleporter.go()", ["Ess.Player.pose(i)"]).ungrounded.indexOf("Ess.Teleporter.go") !== -1,
+     JSON.stringify(G.check("Ess.Teleporter.go()", ["Ess.Player.pose(i)"])));
+
+  ok("ground: catches a lowercase fabricated method",
+     G.check("call MrxFollow.follow(a,b)", ["MrxFollow exists"]).ungrounded.indexOf("MrxFollow.follow") !== -1);
+
+  /* -- provider shape -- */
+  ok("provider: the ollama preset uses the native adapter",
+     (P.preset("ollama") || {}).api === "ollama", JSON.stringify(P.preset("ollama")));
+  ok("provider: the ollama base URL has no /v1 (native endpoint)",
+     !/\/v1$/.test((P.preset("ollama") || {}).baseUrl || ""));
+  ok("provider: detectContext exists and is async",
+     typeof P.detectContext === "function" && !!P.detectContext().then);
+
+
+  /* ---- File menu / palette / Examples modal --------------------------------
+   * The three panels that moved. These assert the WIRING (a command actually
+   * runs, an insert actually lands in the editor), not the pixels.
+   */
+  const D = w.document;
+
+  /* -- Examples is a modal, not a dock panel -- */
+  ok("examples: no longer a dock panel", !w.IDE.dock.panels().includes("examples"));
+  ok("examples: modal starts hidden", D.getElementById("examplesModal").classList.contains("hidden"));
+  w.IDE.examples.open();
+  ok("examples: opens", !D.getElementById("examplesModal").classList.contains("hidden"));
+  ok("examples: search filters the gallery", (() => {
+    const s = D.getElementById("exSearch");
+    s.value = "zzzznomatch";
+    s.dispatchEvent(new w.Event("input", { bubbles: true }));
+    const n = D.querySelectorAll("#exList .excard").length;
+    s.value = "";
+    s.dispatchEvent(new w.Event("input", { bubbles: true }));
+    return n === 0 && D.querySelectorAll("#exList .excard").length === 45;
+  })());
+  /* Picking an example is terminal: it creates a script AND closes the gallery.
+     The old handler clicked a `.stab` tab the dock refactor had deleted, so it
+     threw on a null querySelector and the button did nothing at all. */
+  const beforeCount = w.IDE.store.list().length;
+  w.IDE.examples.openAsScript({ name: "Palette test example", code: "return 42" });
+  ok("examples: open-as-script creates the script",
+     w.IDE.store.list().length === beforeCount + 1 && w.IDE.store.active().name === "Palette test example");
+  ok("examples: open-as-script closes the gallery",
+     D.getElementById("examplesModal").classList.contains("hidden"));
+
+  /* -- File menu -- */
+  ok("file menu: button exists in the top bar", !!D.getElementById("fileMenu"));
+  ok("file menu: the Actions <select> is gone", !D.getElementById("scActions"));
+  ok("file menu: commands are exported for reuse",
+     (w.IDE.scriptsPanel.commands || []).filter(c => !c.sep).length >= 6);
+  D.getElementById("fileMenu").click();
+  const menuEl = D.querySelector(".menu");
+  ok("file menu: opens a real menu with menuitem roles",
+     !!menuEl && menuEl.getAttribute("role") === "menu" &&
+     menuEl.querySelectorAll('[role="menuitem"]').length >= 6,
+     menuEl ? menuEl.querySelectorAll('[role="menuitem"]').length : "no menu");
+  ok("file menu: marks the button expanded",
+     D.getElementById("fileMenu").getAttribute("aria-expanded") === "true");
+  /* Running a command from the menu must actually run it. "New script" is the
+     safe one to assert (no download, no file picker). */
+  const beforeNew = w.IDE.store.list().length;
+  [...menuEl.querySelectorAll('[role="menuitem"]')]
+    .find(b => /New script/.test(b.textContent)).click();
+  ok("file menu: a command actually runs", w.IDE.store.list().length === beforeNew + 1);
+  ok("file menu: closes after running", !D.querySelector(".menu"));
+
+  /* -- command palette -- */
+  ok("palette: starts hidden", !w.IDE.palette.isOpen());
+  w.IDE.palette.open();
+  ok("palette: opens", w.IDE.palette.isOpen());
+  const pInput = D.getElementById("paletteInput");
+  const type = (v) => { pInput.value = v; pInput.dispatchEvent(new w.Event("input", { bubbles: true })); };
+  ok("palette: empty query shows commands only, not 1,300 API calls",
+     D.querySelectorAll("#paletteList .palette-row").length > 0 &&
+     D.querySelectorAll("#paletteList .palette-row").length <= 12,
+     String(D.querySelectorAll("#paletteList .palette-row").length));
+  type("Ess.Player.pose");
+  const firstRow = D.querySelector("#paletteList .palette-row .palette-label");
+  ok("palette: finds an exact Ess call", firstRow && /Ess\.Player\.pose/.test(firstRow.textContent),
+     firstRow && firstRow.textContent);
+  /* Ess must outrank the engine natives at equal match quality -- searching
+     "player" used to return nothing but Player.* natives and bury Ess.Player.*
+     below the fold, which is backwards for a framework-first IDE. */
+  type("player");
+  ok("palette: Ess ranks above engine natives",
+     /^Ess\./.test((D.querySelector("#paletteList .palette-label") || {}).textContent || ""),
+     (D.querySelector("#paletteList .palette-label") || {}).textContent);
+
+  type("eplpose");
+  ok("palette: subsequence match still finds it",
+     [...D.querySelectorAll("#paletteList .palette-label")].some(e => /Ess\.Player\.pose/.test(e.textContent)));
+  type("zzqqxxnothing");
+  ok("palette: an empty result says so rather than showing junk",
+     !!D.querySelector("#paletteList .palette-empty"));
+
+  /* Enter inserts into the editor via the panel's own templateFor, so a palette
+     insert is byte-identical to the panel's Insert button. */
+  w.IDE.editor.set("");
+  type("Ess.Player.pose");
+  pInput.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  ok("palette: Enter inserts the call into the editor",
+     /Ess\.Player\.pose/.test(w.IDE.editor.get()), JSON.stringify(w.IDE.editor.get()).slice(0, 80));
+  ok("palette: closes after inserting", !w.IDE.palette.isOpen());
+
+  /* Templates are pure string lookup -- the case a palette serves best. */
+  w.IDE.editor.set("");
+  w.IDE.palette.open();
+  const tplName = (w.IDE.templates.list()[0] || {}).name;
+  if (tplName) {
+    type(tplName);
+    pInput.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    ok("palette: inserts a spawn template as a quoted string",
+       w.IDE.editor.get().indexOf('"' + tplName + '"') !== -1,
+       JSON.stringify(w.IDE.editor.get()).slice(0, 80));
+  }
+  if (w.IDE.palette.isOpen()) w.IDE.palette.close();
+
+  /* Ctrl+K from anywhere -- registered in the capture phase so CodeMirror's own
+     keymap cannot swallow it first. */
+  D.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+  ok("palette: Ctrl+K opens it", w.IDE.palette.isOpen());
+  D.dispatchEvent(new w.KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+  ok("palette: Ctrl+K toggles it shut", !w.IDE.palette.isOpen());
+
+
+  /* ---- dock: gutter sizing + collapse ---------------------------------------
+   * The grab bar rendered 48px wide with a stray border because the dock built
+   * `className = "dsplit " + node.dir` -- a bare "row" -- which collided with the
+   * results list's generic `.row` rule (padding: 5px 48px 5px 0). Horizontal
+   * splits inherited it too, eating 48px off the right of every one. `.col` had
+   * no such rule, which is why only the vertical bars looked wrong.
+   */
+  const dsplit = D.querySelector(".dockroot > .dsplit");
+  ok("dock: direction classes are namespaced (no bare .row)",
+     !!D.querySelector(".dsplit.d-row") && !D.querySelector(".dockroot .dsplit.row:not(.d-row)"),
+     dsplit && dsplit.className);
+  ok("dock: gutters carry no result-row padding",
+     [...D.querySelectorAll(".dgutter")].every(g => !/48px/.test(g.className)) &&
+     !!D.querySelector(".dgutter.d-row"));
+  ok("dock: every gutter offers two collapse chevrons",
+     D.querySelector(".dgutter.d-row").querySelectorAll(".dchev").length === 2,
+     String(D.querySelector(".dgutter.d-row").querySelectorAll(".dchev").length));
+
+  /* Collapse is a LAYOUT change, so assert on the tree the dock persists rather
+     than on pixels -- jsdom has no layout engine. */
+  const rootSplit = (() => {
+    let t = null;
+    try { t = JSON.parse(w.localStorage.getItem("m2ide.dock.v1")); } catch (e) {}
+    return t;
+  })();
+  ok("dock: layout persists as a tree", !!rootSplit && rootSplit.t === "split");
+
+  const gut = D.querySelector(".dgutter.d-row");
+  gut.querySelector(".dchev.before").click();
+  ok("dock: a chevron collapses its neighbour to a strip",
+     !!D.querySelector(".dcell.collapsed") && !!D.querySelector(".dstrip"));
+  ok("dock: the strip names what it is hiding",
+     /\w/.test((D.querySelector(".dstrip-label") || {}).textContent || ""),
+     (D.querySelector(".dstrip-label") || {}).textContent);
+  ok("dock: the collapsed side loses its chevron (nothing left to hide)",
+     D.querySelector(".dgutter.d-row").querySelectorAll(".dchev").length === 1);
+  ok("dock: collapse is persisted",
+     (() => { const t = JSON.parse(w.localStorage.getItem("m2ide.dock.v1"));
+              return !!(t.collapsed || []).some(Boolean); })());
+  /* The point of hiding is that the neighbours GROW. The stored sizes are
+     percentages of the whole split, so using them unchanged left the collapsed
+     cell's share as dead space -- the panel hid and nothing expanded. */
+  ok("dock: visible cells renormalise to fill the freed space", (() => {
+    const vis = [...D.querySelectorAll(".dockroot > .dsplit > .dcell")]
+      .filter(c => !c.classList.contains("collapsed"))
+      .map(c => parseFloat(c.style.flexBasis));
+    const total = vis.reduce((a, b) => a + b, 0);
+    return Math.abs(total - 100) < 0.5;
+  })(), [...D.querySelectorAll(".dockroot > .dsplit > .dcell")].map(c => c.style.flexBasis).join(" "));
+
+  D.querySelector(".dstrip").click();
+  ok("dock: clicking the strip restores the panel", !D.querySelector(".dcell.collapsed"));
+  ok("dock: restore returns the original proportions", (() => {
+    const vis = [...D.querySelectorAll(".dockroot > .dsplit > .dcell")]
+      .map(c => parseFloat(c.style.flexBasis));
+    return Math.abs(vis.reduce((a, b) => a + b, 0) - 100) < 0.5;
+  })());
+
+  /* Templates left the dock entirely -- it is palette-served now. */
+  ok("templates: no longer a dock panel", !w.IDE.dock.panels().includes("templates"));
+  ok("templates: its hidden panel markup is gone", !D.getElementById("panelTemplates"));
+  ok("templates: data still available to the palette and linter",
+     w.IDE.templates.list().length > 0, String(w.IDE.templates.list().length));
+  w.IDE.editor.set("");
+  w.IDE.palette.open({ kind: "tpl" });
+  ok("templates: the palette opens scoped to templates only",
+     [...D.querySelectorAll("#paletteList .palette-kind")].every(e => e.textContent === "template") &&
+     D.querySelectorAll("#paletteList .palette-row").length > 0);
+  w.IDE.palette.close();
+
+  /* The sidebar is down to a tab count that actually fits. */
+  ok("dock: default sidebar is three tabs, not five",
+     [...D.querySelectorAll(".dtabs")][0].querySelectorAll(".dtab").length <= 3,
+     String([...D.querySelectorAll(".dtabs")][0].querySelectorAll(".dtab").length));
+
+  /* The theme toggle used to be position:fixed bottom-right, which put it on top
+     of whichever panel was there -- in practice the Assistant's send button. */
+  ok("theme toggle: lives in the top bar, not floating",
+     !!D.querySelector(".bar #themeBtn"));
+  ok("theme toggle: no longer fixed-positioned",
+     w.getComputedStyle(D.getElementById("themeBtn")).position !== "fixed",
+     w.getComputedStyle(D.getElementById("themeBtn")).position);
+  ok("theme toggle: does not overlap the assistant send button", (() => {
+     const t = D.getElementById("themeBtn"), s2 = D.getElementById("aiSend");
+     if (!t || !s2) return true;
+     return !t.compareDocumentPosition ||
+            !(t.getAttribute("style") || "").includes("fixed");
+  })());
 
   console.log(fail ? "\n" + fail + " FAILED, " + pass + " passed" : "\nall " + pass + " passed");
   process.exit(fail ? 1 : 0);

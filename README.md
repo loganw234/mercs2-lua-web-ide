@@ -142,6 +142,37 @@ live-only entry has no argument data and the linter's arg-count check (gated on 
 rather than inventing a warning. It stopped the linter telling you a real engine function "isn't seen
 anywhere in the game's own scripts" just because no shipped script happens to call it.
 
+### Enriched reference (`call_docs.json`)
+
+`ess.json` and the live dump say what EXISTS. They do not say what surprises you, and on this engine that
+is the load-bearing half: getters return `1`/`0` so `not x` never flips, some calls are asynchronous,
+`Loader.Printf` ignores format arguments despite its name, `math.random` and the engine's `math.randf`
+are different generators. Those warnings existed — scattered across deep-dive prose, module pages and
+code comments — attached to nothing.
+
+`call_docs.json` is the curated overlay that attaches them. An entry is either a plain doc string or a
+rich object carrying `doc` / `sig` / `gotcha` / `ret` / `src`, so the original entries needed no
+migration. **`src` is mandatory on anything curated** — an unsourced claim about this engine is exactly
+what the reference is meant to be an antidote to. Generated files are never edited; the overlay merges
+into them at build time.
+
+| | before | after |
+|---|---|---|
+| Ess calls documented | 470 / 548 | **548 / 548** |
+| Ess gotchas / documented returns | 0 / 195 | **135 / 288** |
+| natives documented | 518 / 1332 (39%) | **791 / 1332 (59%)** |
+| native gotchas / signatures | 0 / 0 | **175 / 243** |
+| resident-module functions documented | 0 / 562 | **562 / 562** |
+
+Gotchas surface where they are read: under the description in the API panel, and in the hover tooltip —
+the moment you are on the call, about to write it.
+
+**The ceiling is real.** Around 540 natives exist at runtime, are called by no shipped script, and appear
+in no document. There is no source for them, so they stay undescribed rather than being given plausible
+text. Extraction that produced only "exists per the live `pairs()` enumeration, not traced" was stripped
+before shipping — the `live` flag already says that, and restating it would inflate the coverage number
+while telling a reader nothing.
+
 ### Vendored files (`vendor.json`)
 
 `src/data/CAPABILITIES.md` is Ess's file, not this repo's. It used to be copy-pasted in, which recorded

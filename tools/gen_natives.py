@@ -146,7 +146,7 @@ def main():
     # live-only functions could not receive a doc at all, no matter what anyone wrote for them. Loader
     # was the visible case (nothing in the base game calls it, so all nine arrived bare), but it applied
     # to every live-only entry. Merging after the merge means a curated doc reaches whatever it names.
-    docs, sigs, bridge_ns, consts, globals_ = {}, {}, {}, set(), {}
+    docs, sigs, bridge_ns, consts, globals_, mod_docs = {}, {}, {}, set(), {}, {}
     if CALL_DOCS.exists():
         try:
             cd = json.loads(CALL_DOCS.read_text(encoding="utf-8"))
@@ -154,6 +154,7 @@ def main():
             sigs = cd.get("sigs") or {}
             bridge_ns = cd.get("bridge_ns") or {}
             globals_ = cd.get("globals") or {}
+            mod_docs = cd.get("modules") or {}
             consts = set(cd.get("consts") or [])
         except (OSError, ValueError) as e:
             print("[gen_natives] could not read %s (%s) -- continuing without curated docs"
@@ -209,6 +210,22 @@ def main():
     ns_docs = {ns: meta["doc"] for ns, meta in bridge_ns.items()
                if meta.get("doc") and ns in natives}
 
+    # Fold the curated module documentation in. The dump gives a module's function NAMES; the wiki's
+    # per-module pages give what each one does, and 562 of them had no description at all until now.
+    mod_doc_hits = 0
+    for mod, meta in mod_docs.items():
+        if mod not in modules:
+            continue                          # curated entry for a module the dump does not have
+        if meta.get("doc"):
+            modules[mod]["doc"] = meta["doc"]
+            modules[mod]["src"] = meta.get("src", "")
+        fns = meta.get("fns") or {}
+        known = set(modules[mod]["fns"])
+        kept = {fn: v for fn, v in fns.items() if fn in known}
+        if kept:
+            modules[mod]["fnDocs"] = kept     # {fn: {doc, sig, gotcha, src}}
+            mod_doc_hits += len(kept)
+
     out = {
         "source": scraped.get("source", ""),
         "files": scraped.get("files", 0),
@@ -237,6 +254,9 @@ def main():
         print("[gen_natives] synthesized %d bridge-added entries in %s (%s marked partial -- the "
               "bridge only ADDS to those, so the linter must not call an unlisted member missing)"
               % (added_bridge, ", ".join(sorted(bridge_ns)), ", ".join(partial) or "none"))
+    if mod_doc_hits:
+        print("[gen_natives] modules: %d functions documented across %d modules"
+              % (mod_doc_hits, sum(1 for m in modules.values() if m.get("fnDocs"))))
     if globals_:
         print("[gen_natives] %d bare global(s) recorded: %s"
               % (len(globals_), ", ".join(sorted(globals_))))

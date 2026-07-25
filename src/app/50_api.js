@@ -22,14 +22,15 @@
      game's scripts actually use them" was wrong twice: it is the bridge's API, and no base-game script
      references it at all. */
   var KINDS = (window.MERCS_NATIVES && window.MERCS_NATIVES.kinds) || {};
+  var NSDOCS = (window.MERCS_NATIVES && window.MERCS_NATIVES.nsDocs) || {};
   Object.keys(natives).sort().forEach(function (nsName) {
     var members = natives[nsName];
     var bridge = KINDS[nsName] === "bridge";
     MODEL.push({
       name: nsName, group: bridge ? "lua-bridge" : "game native", native: true, bridge: bridge,
-      doc: bridge
+      doc: NSDOCS[nsName] || (bridge
         ? "Added by the lua-bridge mod (Lua_Loader.asi), not by the game — these exist only while the bridge is loaded, which is exactly when you are running scripts from this IDE."
-        : "The engine's own " + nsName + ".* functions, as the base game's scripts actually use them. Lower-level than Ess — check the example call sites.",
+        : "The engine's own " + nsName + ".* functions, as the base game's scripts actually use them. Lower-level than Ess — check the example call sites."),
       calls: Object.keys(members).sort().map(function (fn) {
         var e = members[fn];
         /* A curated signature wins over an example call: for Loader.* there IS no example (no
@@ -79,6 +80,8 @@
      placeholder names (Object.AddLabel(uGuid, "Prisoner") -> ${uGuid}, ${Prisoner}) */
   function templateFor(c) {
     if (!c.native) return IDE.callTemplate(c);
+    /* math.pi / math.huge are values, not functions -- inserting "math.pi(${})" would be nonsense. */
+    if (c.native.const) return c.path;
     var m = /\(([^]*)\)$/.exec(c.native.example || "");
     var args = m && m[1].trim() ? m[1].split(",").map(function (a) {
       return "${" + (a.trim().replace(/[^\w .:-]/g, "").trim() || "arg") + "}";

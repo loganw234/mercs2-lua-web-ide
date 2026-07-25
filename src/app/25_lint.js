@@ -31,8 +31,14 @@
       cat.items.forEach(function (it) { tplSet[it.name] = 1; });
     });
     var mods = (window.MERCS_NATIVES && window.MERCS_NATIVES.modules) || {};
+    /* Namespaces the bridge only ADDS TO -- `math` keeps the engine's own floor/abs/max/min/randf, which
+       nothing enumerates for us. Listing 21 patched functions and then telling someone math.floor "isn't
+       seen anywhere in the game's own scripts" would be a false alarm on correct code, so a partial
+       namespace opts out of the unknown-member warning entirely. */
+    var partial = {};
+    ((window.MERCS_NATIVES && window.MERCS_NATIVES.partial) || []).forEach(function (n) { partial[n] = 1; });
     return (K = { essPaths: essPaths, essNs: essNs, essList: ess.completions, nat: nat, tplSet: tplSet,
-                  mods: mods });
+                  mods: mods, partial: partial });
   }
 
   /* ---- tiny Levenshtein + did-you-mean ---- */
@@ -217,7 +223,9 @@
               message: p.path + " isn't a lua-bridge function" + (lsug ? " — did you mean Loader." + lsug + "?" : ".") });
           } else if (p && api.nat[p.root] && p.path.split(".").length === 2) {
             var fn = p.path.split(".")[1], members = api.nat[p.root], entry = members[fn];
-            if (!entry) {
+            if (!entry && api.partial[p.root]) {
+              /* we only know part of this namespace -- say nothing */
+            } else if (!entry) {
               var msug = nearest(fn, Object.keys(members));
               if (msug) {
                 warnings.push({ from: p.range[0], to: p.range[1], severity: "warning",

@@ -843,7 +843,29 @@
   "Loader.IsGameFocused": "Whether the foreground window belongs to the game's own process, by process-ID match rather than window-handle or style checks, so it stays correct under borderless/fullscreen/multi-window setups. The same check that gates PopKeyEvents, exposed so a script can branch on focus itself.",
   "Loader.SaveVar": "Persists a number, string or boolean under sKey, surviving a full game restart. New in lua-bridge v0.3.0.",
   "Loader.LoadVar": "Reads back a value saved with SaveVar, preserving its original type. Returns nil for a key that was never saved. New in lua-bridge v0.3.0.",
-  "Loader.WsSend": "Broadcasts a line to every connected WebSocket client as {type:\"ws\", line:\"...\"}. Only exists in the WS-capable bridge build -- which is the one this IDE requires, and the channel every Run result comes back over."
+  "Loader.WsSend": "Broadcasts a line to every connected WebSocket client as {type:\"ws\", line:\"...\"}. Only exists in the WS-capable bridge build -- which is the one this IDE requires, and the channel every Run result comes back over.",
+  "math.sin": "Sine of x, in RADIANS.  Added by lua-bridge, not the engine. Shipped in v0.1.6 -- the Taylor-series CustomSin fallback older wiki snippets carry predates this and is no longer needed.",
+  "math.cos": "Cosine of x, in RADIANS.  Added by lua-bridge, not the engine. Shipped in v0.1.6, same as math.sin.",
+  "math.tan": "Tangent of x, in radians.  Added by lua-bridge, not the engine. New in v0.2.0.",
+  "math.asin": "Arc sine, returning radians.  Added by lua-bridge, not the engine.",
+  "math.acos": "Arc cosine, returning radians.  Added by lua-bridge, not the engine.",
+  "math.atan": "Arc tangent, returning radians. For a full-circle angle from a vector use math.atan2(y, x) instead.  Added by lua-bridge, not the engine.",
+  "math.atan2": "Arc tangent of y/x using the signs of both to pick the correct quadrant -- the one to use for a heading from a direction vector. Note the argument order is (y, x), not (x, y).  Added by lua-bridge, not the engine.",
+  "math.sinh": "Hyperbolic sine.  Added by lua-bridge, not the engine.",
+  "math.cosh": "Hyperbolic cosine.  Added by lua-bridge, not the engine.",
+  "math.tanh": "Hyperbolic tangent.  Added by lua-bridge, not the engine.",
+  "math.sqrt": "Square root. Ess.Raw and most distance maths use it; before v0.2.0 scripts had to hand-roll one.  Added by lua-bridge, not the engine.",
+  "math.log": "Natural logarithm (base e).  Added by lua-bridge, not the engine.",
+  "math.log10": "Base-10 logarithm.  Added by lua-bridge, not the engine.",
+  "math.fmod": "Floating-point remainder of x/y, keeping x's sign -- not the same as Lua's % operator for negative x.  Added by lua-bridge, not the engine.",
+  "math.ldexp": "Returns m * 2^e.  Added by lua-bridge, not the engine.",
+  "math.modf": "Splits x into its integral and fractional parts, returning both.  Added by lua-bridge, not the engine.",
+  "math.frexp": "Splits x into a normalised mantissa and an exponent, so that x = m * 2^e.  Added by lua-bridge, not the engine.",
+  "math.random": "Stock Lua 5.1 semantics: random() gives a float in [0,1), random(n) an integer in [1,n], random(m,n) an integer in [m,n].  Added by lua-bridge, not the engine. NOT the same function as the engine's own math.randf(), which the decompiled game scripts use -- the two are independent RNGs living side by side and neither replaces the other.",
+  "math.randomseed": "Seeds the generator used by math.random. Does not affect the engine's separate math.randf().  Added by lua-bridge, not the engine.",
+  "math.pi": "CONSTANT, not a function: 3.14159... Injected by a Lua polyfill chunk, because luaL_register can only register functions.  Added by lua-bridge, not the engine.",
+  "math.huge": "CONSTANT, not a function: positive infinity, the standard Lua 5.1 sentinel for 'no maximum'.  Added by lua-bridge, not the engine.",
+  "TCP.Send": "Opens a TCP connection, writes sMsg, and closes it.  Added by lua-bridge, not the engine. LOOPBACK ONLY: the implementation blocks any destination outside 127.0.0.0/8 and returns without sending, deliberately, so an untrusted script cannot port-scan your network or exfiltrate data. A send to a non-local host fails SILENTLY -- there is no error, so check the host first if nothing arrives. Ports and the message are capped (host 128 bytes, message 2048)."
  },
  "sigs": {
   "Loader.Printf": "Loader.Printf(sMsg)",
@@ -854,6 +876,42 @@
   "Loader.IsGameFocused": "b = Loader.IsGameFocused()",
   "Loader.SaveVar": "Loader.SaveVar(sKey, xValue)",
   "Loader.LoadVar": "x = Loader.LoadVar(sKey)",
-  "Loader.WsSend": "Loader.WsSend(str, ...)"
- }
+  "Loader.WsSend": "Loader.WsSend(str, ...)",
+  "math.sin": "math.sin(x)",
+  "math.cos": "math.cos(x)",
+  "math.tan": "math.tan(x)",
+  "math.asin": "math.asin(x)",
+  "math.acos": "math.acos(x)",
+  "math.atan": "math.atan(x)",
+  "math.atan2": "math.atan2(y, x)",
+  "math.sinh": "math.sinh(x)",
+  "math.cosh": "math.cosh(x)",
+  "math.tanh": "math.tanh(x)",
+  "math.sqrt": "math.sqrt(x)",
+  "math.log": "math.log(x)",
+  "math.log10": "math.log10(x)",
+  "math.fmod": "math.fmod(x, y)",
+  "math.ldexp": "math.ldexp(m, e)",
+  "math.modf": "i, f = math.modf(x)",
+  "math.frexp": "m, e = math.frexp(x)",
+  "math.random": "math.random([m [, n]])",
+  "math.randomseed": "math.randomseed(x)",
+  "math.pi": "math.pi",
+  "math.huge": "math.huge",
+  "TCP.Send": "TCP.Send(sHost, nPort, sMsg)"
+ },
+ "bridge_ns": {
+  "math": {
+   "partial": true,
+   "doc": "Standard Lua 5.1 math functions that this game's stripped runtime was missing, patched back in by lua-bridge. ADDITIVE -- the engine's own math.floor/abs/max/min and its separate math.randf() are untouched, so this list is not the whole of math."
+  },
+  "TCP": {
+   "partial": false,
+   "doc": "A tiny outbound TCP helper added by lua-bridge. Loopback destinations only, by design."
+  }
+ },
+ "consts": [
+  "math.huge",
+  "math.pi"
+ ]
 }

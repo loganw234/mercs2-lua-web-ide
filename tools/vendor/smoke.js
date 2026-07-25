@@ -130,6 +130,54 @@ setTimeout(() => {
      return scraped.length > 100;
   })());
 
+
+  /* The bridge patches 19 missing math functions plus math.pi/math.huge back into the game's stripped
+     Lua runtime, and adds a one-function TCP namespace. Neither surfaces in the live _G dump -- math is
+     a pre-existing engine table the bridge writes INTO, and TCP did not enumerate -- so both are
+     synthesized from curated entries in call_docs.json. */
+  ok("bridge-added: math and TCP exist in the reference",
+     !!w.MERCS_NATIVES.natives.math && !!w.MERCS_NATIVES.natives.TCP);
+  ok("bridge-added: both are labelled lua-bridge, not engine",
+     w.MERCS_NATIVES.kinds.math === "bridge" && w.MERCS_NATIVES.kinds.TCP === "bridge");
+  ok("bridge-added: the 19 math functions plus 2 constants are present",
+     Object.keys(w.MERCS_NATIVES.natives.math).length === 21,
+     Object.keys(w.MERCS_NATIVES.natives.math).length + " entries");
+  ok("bridge-added: every math entry carries a signature and a doc",
+     Object.values(w.MERCS_NATIVES.natives.math).every(e => e.sig && (e.doc || "").length > 20));
+  ok("bridge-added: TCP.Send documents the loopback-only restriction",
+     /LOOPBACK ONLY/.test(w.MERCS_NATIVES.natives.TCP.Send.doc) &&
+     /SILENTLY/.test(w.MERCS_NATIVES.natives.TCP.Send.doc));
+  ok("bridge-added: TCP.Send names its three arguments",
+     /TCP\.Send\(sHost, nPort, sMsg\)/.test(w.MERCS_NATIVES.natives.TCP.Send.sig));
+  ok("bridge-added: math.random is distinguished from the engine's math.randf",
+     /randf/.test(w.MERCS_NATIVES.natives.math.random.doc));
+
+  /* math is PARTIAL: the bridge only adds to it, and the engine's own floor/abs/max/min/randf are
+     still there but enumerated nowhere. Warning that math.floor "isn't seen in the game's own scripts"
+     would be a false alarm on correct code. */
+  ok("bridge-added: math is marked partial",
+     (w.MERCS_NATIVES.partial || []).indexOf("math") !== -1,
+     JSON.stringify(w.MERCS_NATIVES.partial));
+  ok("lint: an engine math function the bridge did not add is NOT flagged",
+     IDE.lint.validate("local y = math.floor(1.5)").warnings
+       .filter(d => /math\.floor/.test(d.message)).length === 0,
+     JSON.stringify(IDE.lint.validate("local y = math.floor(1.5)").warnings.map(d => d.message)));
+  ok("lint: math.randf (the engine's own RNG) is not flagged either",
+     IDE.lint.validate("local r = math.randf()").warnings
+       .filter(d => /math\.randf/.test(d.message)).length === 0);
+  ok("lint: a patched math function is clean too",
+     IDE.lint.validate("local s = math.sqrt(2)").warnings
+       .filter(d => /math\.sqrt/.test(d.message)).length === 0);
+  /* TCP is NOT partial -- one function is the whole namespace -- so a wrong member still gets caught. */
+  ok("lint: a non-existent TCP member is still flagged",
+     IDE.lint.validate('TCP.Broadcast("x")').warnings.some(d => /TCP\.Broadcast/.test(d.message)),
+     JSON.stringify(IDE.lint.validate('TCP.Broadcast("x")').warnings.map(d => d.message)));
+
+  /* A constant is not callable: inserting "math.pi(${})" would be nonsense. */
+  ok("bridge-added: constants are marked and insert without parentheses",
+     w.MERCS_NATIVES.natives.math.pi.const === 1 &&
+     IDE.api.lookup("math.pi") && !/\(/.test(IDE.api.tierOf("math.pi", true)[0]));
+
   ok("data: examples loaded", w.ESS_EXAMPLES && w.ESS_EXAMPLES.categories.length === 8);
 
   // ---- store ----

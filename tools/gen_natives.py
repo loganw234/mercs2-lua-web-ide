@@ -22,10 +22,27 @@ What it fixes: the linter used to tell you a real engine function "isn't seen an
 scripts -- double-check the name" whenever no shipped script called it. With the live dump merged in, the
 function is known to exist and that warning stops firing on correct code.
 
-Only `kind: "engine"` namespaces are merged. The dump also carries 197 `game_script` namespaces (3,048
-functions) -- resident Lua modules rather than C++ natives. Those are real and callable, but this file
-feeds a panel that says "the engine's own functions", and folding a resident module's globals in there
-would quietly change what that panel means. Left for a deliberate decision.
+`kind: "engine"` namespaces merge into `natives` -- the C++ surface, always reachable.
+
+RESIDENT MODULES GO SOMEWHERE ELSE, ON PURPOSE. The dump also carries `game_script` namespaces:
+resident Lua modules like MrxUtil and MrxGuiBase. They are real and callable, but they are NOT natives
+and they are not unconditionally available, so folding them into `natives` would both misdescribe the
+panel and make the linter treat them as always-present. They land under `modules` instead, because they
+support a check nothing else can do:
+
+    import("Name") only affects THE IMPORTING FILE'S OWN ENVIRONMENT -- confirmed by live testing and
+    documented at wiki resident/index.md. An OnKey script or a console chunk that calls MrxPmc.AddCashQty
+    without importing MrxPmc first fails with:
+        attempt to index global 'MrxPmc' (a nil value)
+
+That is a runtime failure the IDE can see coming before it ever sends the script, which is exactly what
+the pre-send linter is for. 25_lint.js reads `modules` and warns on a module used without its import.
+
+Only the 18 CANONICAL top-level modules are recorded. The other 179 `game_script` entries are dotted
+(MrxGui.FlashWidget, MrxFactionManager.MrxUtil) -- sub-tables reached THROUGH a parent, so the import
+they need is the parent's, and warning on the dotted path would be wrong. Things a module publishes to
+_G directly (MrxCheatBootstrap's _G.Cheat, _G.DebugTeleport) need no import at all, and the dump already
+classifies those as `engine` or omits them, so they are excluded for free rather than by a special case.
 
 Run: python tools/gen_natives.py     (writes src/data/natives.json, which build.py inlines)
 """
@@ -48,9 +65,21 @@ def main():
 
     added_ns = added_fn = confirmed = 0
     live_meta = {}
+    modules = {}
     if LIVE.exists():
         live = json.loads(LIVE.read_text(encoding="utf-8"))
         for ns, info in (live.get("namespaces") or {}).items():
+            # Resident Lua modules: recorded separately, and only the canonical top-level ones --
+            # a dotted entry is reached through its parent, so the parent's import is what matters.
+            if info.get("kind") == "game_script":
+                if "." in ns:
+                    continue
+                modules[ns] = {
+                    "source": info.get("source", ""),
+                    "fns": sorted(info.get("functions") or []),
+                    "ess": sorted(info.get("called_by_ess") or []),
+                }
+                continue
             if info.get("kind") != "engine":
                 continue
             members = natives.setdefault(ns, {})
@@ -84,13 +113,17 @@ def main():
         "files": scraped.get("files", 0),
         "live": live_meta,
         "natives": {ns: natives[ns] for ns in sorted(natives)},
+        "modules": {m: modules[m] for m in sorted(modules)},
     }
     OUT.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
 
     total_fn = sum(len(v) for v in natives.values())
-    print("[gen_natives] wrote %s -- %d namespaces, %d functions" % (OUT.name, len(natives), total_fn))
+    print("[gen_natives] wrote %s -- %d native namespaces, %d functions" % (OUT.name, len(natives), total_fn))
     print("[gen_natives] live dump added %d namespaces and %d functions the scrape never saw; "
           "confirmed %d it had" % (added_ns, added_fn, confirmed))
+    print("[gen_natives] %d resident modules recorded (%d functions) -- these need import(\"Name\") "
+          "before use; 25_lint.js warns when one is missing"
+          % (len(modules), sum(len(m["fns"]) for m in modules.values())))
     return 0
 
 

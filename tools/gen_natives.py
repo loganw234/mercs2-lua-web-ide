@@ -133,15 +133,35 @@ def main():
     # live-only functions could not receive a doc at all, no matter what anyone wrote for them. Loader
     # was the visible case (nothing in the base game calls it, so all nine arrived bare), but it applied
     # to every live-only entry. Merging after the merge means a curated doc reaches whatever it names.
-    docs, sigs = {}, {}
+    docs, sigs, bridge_ns, consts = {}, {}, {}, set()
     if CALL_DOCS.exists():
         try:
             cd = json.loads(CALL_DOCS.read_text(encoding="utf-8"))
             docs = cd.get("natives") or {}
             sigs = cd.get("sigs") or {}
+            bridge_ns = cd.get("bridge_ns") or {}
+            consts = set(cd.get("consts") or [])
         except (OSError, ValueError) as e:
             print("[gen_natives] could not read %s (%s) -- continuing without curated docs"
                   % (CALL_DOCS.name, e))
+
+    # Namespaces the bridge ADDS that the live dump cannot see. dump_natives.py walks _G for tables it
+    # treats as namespaces; `math` is a pre-existing engine table the bridge patches INTO, and `TCP` did
+    # not surface either, so neither arrives from the dump at all. They are synthesized here from the
+    # curated entries, and only for namespaces call_docs explicitly declares -- a stray curated path
+    # must never be able to invent a namespace.
+    added_bridge = 0
+    for path in docs:
+        ns = path.rsplit(".", 1)[0]
+        if ns not in bridge_ns:
+            continue
+        fn = path.rsplit(".", 1)[1]
+        members = natives.setdefault(ns, {})
+        if fn not in members:
+            members[fn] = {"bridge": 1}
+            added_bridge += 1
+        if path in consts:
+            members[fn]["const"] = 1     # a value, not a callable: no argument placeholders
 
     doc_hits = sig_hits = 0
     for ns, members in natives.items():
@@ -157,13 +177,22 @@ def main():
     # Per-namespace provenance, so a consumer can say where a function actually comes from instead of
     # calling everything in `natives` an engine function. Kept as a sibling map rather than folded into
     # each entry: `natives` is {ns: {fn: {...}}} and everything downstream indexes it that way.
-    kinds = {ns: ("bridge" if ns in BRIDGE_NS else "engine") for ns in natives}
+    kinds = {ns: ("bridge" if (ns in BRIDGE_NS or ns in bridge_ns) else "engine")
+             for ns in natives}
+    # A namespace the bridge only ADDS TO (math) is not exhaustively known here, so say so:
+    # 25_lint.js must not claim an unlisted member does not exist.
+    partial = sorted(ns for ns, meta in bridge_ns.items()
+                     if meta.get("partial") and ns in natives)
+    ns_docs = {ns: meta["doc"] for ns, meta in bridge_ns.items()
+               if meta.get("doc") and ns in natives}
 
     out = {
         "source": scraped.get("source", ""),
         "files": scraped.get("files", 0),
         "live": live_meta,
         "kinds": kinds,
+        "partial": partial,
+        "nsDocs": ns_docs,
         "natives": {ns: natives[ns] for ns in sorted(natives)},
         "modules": {m: modules[m] for m in sorted(modules)},
     }
@@ -178,6 +207,10 @@ def main():
           % (len(modules), sum(len(m["fns"]) for m in modules.values())))
     print("[gen_natives] curated: %d docs and %d signatures merged from %s"
           % (doc_hits, sig_hits, CALL_DOCS.name))
+    if added_bridge:
+        print("[gen_natives] synthesized %d bridge-added entries in %s (%s marked partial -- the "
+              "bridge only ADDS to those, so the linter must not call an unlisted member missing)"
+              % (added_bridge, ", ".join(sorted(bridge_ns)), ", ".join(partial) or "none"))
     bridge = sorted(ns for ns in natives if ns in BRIDGE_NS)
     if bridge:
         print("[gen_natives] reclassified as lua-bridge (Lua_Loader.asi), not engine: %s"

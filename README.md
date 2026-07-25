@@ -121,6 +121,18 @@ and perf notes — not the contract, and three different argument idioms in ther
 Curated docs are merged **after** the scrape/live merge, which also fixed a real gap: `call_docs` used to
 be applied inside `scrape_natives.py`, so none of the 543 live-only functions could receive a doc at all.
 
+The same curated file also carries what the bridge *adds* beyond `Loader`: the **19 stdlib `math`
+functions** (plus `math.pi`/`math.huge`) it patches back into this game's stripped Lua runtime, and
+**`TCP.Send`**. Neither surfaces in the live `_G` dump — `math` is a pre-existing engine table the bridge
+writes *into*, and `TCP` doesn't enumerate — so `gen_natives.py` synthesizes them, but only for
+namespaces `call_docs.json` explicitly declares, so a stray path can't invent one.
+
+`math` is marked **partial**, which matters: the bridge is additive and the engine's own
+`math.floor`/`abs`/`max`/`min`/`randf` are still there, enumerated nowhere. Listing 21 patched functions
+and then telling someone `math.floor` "isn't seen anywhere in the game's own scripts" would be a false
+alarm on correct code, so a partial namespace opts out of the unknown-member warning. `TCP` isn't
+partial — one function is the whole namespace — so a wrong member there is still caught.
+
 The same file also records the 18 **resident Lua modules** (`MrxUtil`, `MrxGuiBase`, …) under a
 separate `modules` key rather than folding them in with the natives — they are not engine functions
 and they are not unconditionally available, which is exactly what makes the import check possible.

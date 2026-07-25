@@ -9,6 +9,8 @@
      "path": "Ess.Guid",
      "sig": "Ess.Guid(name)",
      "doc": "pcall-wrapped Pg.GetGuidByName \u2014 returns the guid for a named object, or nil.",
+     "gotcha": "Resolves ONE guid for a name -- if several objects in the world share that template/object name you get an arbitrary one of them. Use Ess.Probe.allByName for the multi-instance case.",
+     "src": "mercs2-lua-essentials/src/13_probe.lua; mercs2-lua-essentials/src/00_core.lua",
      "tier": "core",
      "ret": "uGuid | nil"
     },
@@ -22,6 +24,8 @@
      "path": "Ess.Name",
      "sig": "Ess.Name(guid)",
      "doc": "pcall-wrapped Sys.GuidToString, returning the guid's hash string; wrapped because it's confirmed to throw outright on at least one real object. Distinct from Ess.Object.displayName, which returns the localized human-readable name.",
+     "gotcha": "pcall-wrapped because Sys.GuidToString is CONFIRMED to throw on some objects rather than returning nil. Treat a nil result as \"unreadable\", not as \"no such object\".",
+     "src": "mercs2-lua-essentials/src/00_core.lua",
      "tier": "core",
      "ret": "sHash | nil"
     },
@@ -29,6 +33,8 @@
      "path": "Ess.State",
      "sig": "Ess.State(name, defaults)",
      "doc": "The `_G.X = _G.X or {defaults}` idiom done field-by-field, for scripts that re-execute fully on each keypress/reload. Fixes a real bug where a plain `or` silently drops newly-added default fields once the table already exists; internally keyed as `_G[\"_Ess_state_\" .. name]`.",
+     "gotcha": "The plain `_G.S = _G.S or {defaults}` idiom silently DROPS a newly-added default field whenever the table already exists from an earlier run in the same session -- `or` short-circuits on the whole table the instant it sees _G.S is non-nil. This merges field by field so a later edit actually takes effect.",
+     "src": "mercs2-lua-essentials/src/22_state.lua",
      "tier": "core",
      "ret": "persistent table"
     },
@@ -36,6 +42,8 @@
      "path": "Ess.lastError",
      "sig": "Ess.lastError()",
      "doc": "the most recent swallowed failure (msg/label/count)",
+     "gotcha": "Only reports the most recent SWALLOWED failure -- and on this engine most bad calls never throw at all (14 deliberately-malformed native calls across nine namespaces produced ZERO Lua errors), so a nil here does not mean nothing went wrong. Check Ess.Safe.stats() and guard rejections too.",
+     "src": "mercs2-lua-essentials/src/00_core.lua",
      "tier": "core",
      "ret": "tRecord | nil"
     },
@@ -43,6 +51,8 @@
      "path": "Ess.stop",
      "sig": "Ess.stop(x)",
      "doc": "tear down a closure / handle table / id string / object. true if it did.",
+     "gotcha": "Exists because Ess grew 27 teardown verbs across five structurally different disposal idioms (returned closure, opaque handle table, caller-supplied id string, object with :cancel, tracker with :closeAll). If you're holding a handle and just want it gone, use this rather than guessing which namespace spells teardown which way.",
+     "src": "mercs2-lua-essentials/src/98_stop.lua",
      "tier": "core",
      "ret": "bool"
     },
@@ -64,14 +74,19 @@
      "path": "Ess.AIOrders.command",
      "sig": "Ess.AIOrders.command(guids, behavior, opts, tracker)",
      "doc": "Dispatches guids to one of eleven built-in behaviors (move, face, hold, defend, attack, patrol, follow, flee, enter, deploy, animate), pcall-wrapped so a bad behavior name or runtime error is logged and returns false instead of crashing. Pass a tracker (Ess.Track) to receive spawned anchor props or scheduled follow-up events for cleanup.",
+     "gotcha": "Its first argument is always a TABLE of guids, never a bare guid -- command({uGuid}, \"follow\"). Every \"go to this raw {x,y,z}\" behaviour routes through a spawned TinyGeometry anchor because Ai.Goal's MoveToPos silently returns nil for on-foot humans.",
+     "src": "mercs2-lua-essentials/src/60_aiorders.lua; wiki/helpbot/pack_src/10_gotchas.md",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.AIOrders.group",
      "sig": "Ess.AIOrders.group(name)",
-     "doc": "Reads back a named group's guids; returns an empty table (never nil) for an unknown name.",
-     "tier": "core"
+     "doc": "Returns the guid list registered under a named AI group by Ess.AIOrders.setGroup, so you can re-issue orders to the same squad by name instead of tracking the list yourself.",
+     "gotcha": "An unknown name yields an empty table rather than nil, so you cannot tell \"no such group\" from \"a group that emptied out\".",
+     "src": "60_aiorders.lua:48",
+     "tier": "core",
+     "ret": "The array of guids, or an empty table when the name was never registered."
     },
     {
      "path": "Ess.AIOrders.setGroup",
@@ -97,6 +112,8 @@
      "path": "Ess.Bones.attachFX",
      "sig": "Ess.Bones.attachFX(uGuid, bone, template)",
      "doc": "Spawns an FX at a bone/hardpoint and glues it there via the confirmed 3-call recipe: read the hardpoint's world position, Pg.Spawn the template, then Object.Attach + Object.SetTransformToObject. Rejects a blank template (would CTD Pg.Spawn) and returns nil if any step fails, e.g. a bad bone name.",
+     "gotcha": "A blank template string would CTD Pg.Spawn, so this rejects it rather than passing it through. Bone lookups are HASHED, not text lookups, so declared hp_* hardpoints and raw bone_* skeleton joints resolve through the identical path -- a misspelled name just returns nil.",
+     "src": "mercs2-lua-essentials/src/50_bones.lua",
      "tier": "core",
      "ret": "uFx | nil"
     },
@@ -118,6 +135,8 @@
      "path": "Ess.Bones.waitForReady",
      "sig": "Ess.Bones.waitForReady(uGuid, cb, maxTries)",
      "doc": "Polls Object.GetPosition every 0.1s (via Ess.Loop) until a freshly-spawned model's transform initializes, then calls cb(uGuid); maxTries defaults to 6 (~0.6s) and cb still fires after giving up. Works around freshly-spawned models returning nil hardpoints for ~0.3s; checks overall position, not a specific bone \u2014 poll GetHardpointPosition directly if you already know the bone you need.",
+     "gotcha": "Exists because a freshly Pg.Spawn'd model's hardpoints return nil for ~0.3s -- reading them synchronously at spawn time silently fails and looks like a wrong bone name. The player character is always ready; a just-spawned vehicle is not.",
+     "src": "mercs2-lua-essentials/src/50_bones.lua; wiki/deep-dives/bone-manipulation.md",
      "tier": "core"
     }
    ]
@@ -174,6 +193,8 @@
      "path": "Ess.Camera.lookAtAnchor",
      "sig": "Ess.Camera.lookAtAnchor(x, y, z, i)",
      "doc": "Spawns a small anchor prop (default \"TinyGeometry\" \u2014 never \"Verification Camera\", which triggers a support call-in and despawns in a live world) at (x,y,z) and binds Camera.SetLookAt to it. Works around the engine quirk where Camera.SetPosition silently no-ops until an active SetLookAt binding exists.",
+     "gotcha": "Do NOT switch the anchor template to \"Verification Camera\" -- spawning that into a LIVE, running world triggers a support/camera call-in that fails and despawns it almost immediately; it's only safe in a genuinely paused world. \"TinyGeometry\" is the confirmed-safe mid-gameplay anchor and is the default here.",
+     "src": "mercs2-lua-essentials/src/51_camera.lua",
      "tier": "core",
      "ret": "uAnchor | nil"
     },
@@ -204,7 +225,9 @@
     {
      "path": "Ess.Camera.restoreFov",
      "sig": "Ess.Camera.restoreFov(i, nDuration)",
-     "doc": "Wraps Graphics.Camera.RestoreFovParams(i, nDuration) to restore field of view; takes a player index like fov.",
+     "doc": "Eases the player's field of view back to the game's own default over nDuration seconds (default 1) - the counterpart to Ess.Camera.fov, and what you call to undo a zoom.",
+     "gotcha": "Silent on failure and returns nothing.",
+     "src": "51_camera.lua:153",
      "tier": "core"
     },
     {
@@ -236,7 +259,10 @@
     {
      "path": "Ess.Cinematic.active",
      "sig": "Ess.Cinematic.active()",
-     "tier": "core"
+     "doc": "The live cinematic sequence object, for code that needs to inspect or annotate the running cutscene. Use Ess.Cinematic.isPlaying when a plain yes/no is all you want.",
+     "src": "65_cinematic.lua:358",
+     "tier": "core",
+     "ret": "The sequence object, or nil when nothing is playing."
     },
     {
      "path": "Ess.Cinematic.define",
@@ -321,7 +347,9 @@
     {
      "path": "Ess.Contract.Abort",
      "sig": "Ess.Contract.Abort()",
-     "doc": "Aborts the currently active contract, behaving exactly as the standalone Contract Framework's Abort().",
+     "doc": "Ends the currently active contract right now. Does nothing when no contract is running.",
+     "gotcha": "Aborting counts as a FAILURE - it runs the definition's onFail path, not a neutral cancel.",
+     "src": "80_contract.lua:408",
      "tier": "core"
     },
     {
@@ -333,57 +361,92 @@
     {
      "path": "Ess.Contract.Chase",
      "sig": "Ess.Contract.Chase(t)",
-     "tier": "core"
+     "doc": "Builds a \"run this target down before it escapes\" objective. t.spawns/t.objects/t.where describe the quarry, t.escapeAt plus t.escapeRadius mark the zone that loses it, and t.time and t.haste tune the pursuit.",
+     "src": "80_contract.lua:432",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Collect",
      "sig": "Ess.Contract.Collect(t)",
-     "tier": "core"
+     "doc": "Builds a \"pick these up\" objective. t.items lists what to collect, t.quota how many are needed, and t.radius the pickup range.",
+     "src": "80_contract.lua:421",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Defend",
      "sig": "Ess.Contract.Defend(t)",
-     "tier": "core"
+     "doc": "Builds a \"keep this alive for t.time seconds\" objective, with t.target naming what must survive.",
+     "src": "80_contract.lua:420",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Destroy",
      "sig": "Ess.Contract.Destroy(t)",
-     "tier": "core"
+     "doc": "Builds a \"destroy these\" objective for a contract's `objectives` list. t takes spawns (units to spawn and then kill), objects (guids that already exist), where, and quota (how many count as enough); like every builder it also passes through t.optional, t.bonus and t.msg.",
+     "gotcha": "Builders only assemble a table - nothing spawns, marks or runs until the definition is registered and Ess.Contract.Accept starts it.",
+     "src": "80_contract.lua:418",
+     "tier": "core",
+     "ret": "An objective definition table."
     },
     {
      "path": "Ess.Contract.Enter",
      "sig": "Ess.Contract.Enter(t)",
-     "tier": "core"
+     "doc": "Builds a \"get into this vehicle\" objective. Name an existing guid with t.target or have the contract spawn one with t.spawn, and optionally pin a specific t.seat.",
+     "src": "80_contract.lua:423",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Escort",
      "sig": "Ess.Contract.Escort(t)",
-     "tier": "core"
+     "doc": "Builds an \"escort this unit to a place\" objective. t.spawn is the unit to escort and t.to plus t.radius (default 15) is the destination zone.",
+     "src": "80_contract.lua:422",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Extract",
      "sig": "Ess.Contract.Extract(t)",
-     "tier": "core"
+     "doc": "Builds an exfiltration objective: reach t.at within t.radius (default 15) and stay aboard for t.boardTime, with optional t.heli for the pickup craft and t.victoryLap for the flight out.",
+     "src": "80_contract.lua:429",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Group",
      "sig": "Ess.Contract.Group(t)",
-     "tier": "core"
+     "doc": "Builds a compound objective that wraps a list of other objectives (t.objectives) behind a single HUD line, combined according to t.mode - the way to express \"do all of these\" or \"do any of these\" as one step.",
+     "src": "80_contract.lua:425",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Hold",
      "sig": "Ess.Contract.Hold(t)",
-     "tier": "core"
+     "doc": "Builds a \"stay in this area for t.time seconds\" objective, with t.at plus t.radius (default 15) describing the zone - the hold-the-point goal.",
+     "src": "80_contract.lua:424",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Interact",
      "sig": "Ess.Contract.Interact(t)",
-     "tier": "core"
+     "doc": "Builds a \"use this thing\" objective. t.target or t.spawn identifies the object, t.at gives an optional world position, t.radius (default 4) is how close the player must be, and t.time is how long the interaction must be held.",
+     "src": "80_contract.lua:426",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.List",
      "sig": "Ess.Contract.List()",
-     "tier": "core"
+     "doc": "Every contract definition registered during this level load, in registration order - what a contract-board UI iterates to build its rows.",
+     "gotcha": "Hands back the internal array by reference, not a copy, so mutating what you get corrupts the registry.",
+     "src": "80_contract.lua:447",
+     "tier": "core",
+     "ret": "The registry array of definition tables."
     },
     {
      "path": "Ess.Contract.Protect",
@@ -394,43 +457,67 @@
     {
      "path": "Ess.Contract.Race",
      "sig": "Ess.Contract.Race(t)",
-     "tier": "core"
+     "doc": "Builds a checkpoint race objective: t.checkpoints is the ordered list of points, t.radius how close each one counts, and t.time the limit.",
+     "src": "80_contract.lua:430",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Reach",
      "sig": "Ess.Contract.Reach(t)",
-     "tier": "core"
+     "doc": "Builds a \"get to this place\" objective. t.at is the destination as {x,y,z} or {x=,y=,z=}, and t.radius is how close counts, defaulting to 15.",
+     "src": "80_contract.lua:419",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Register",
      "sig": "Ess.Contract.Register(def)",
-     "doc": "Registers a contract definition (id, title, briefing, category, reward, start, objectives, mode, timeLimit, fail, relations, units, waypoints, support, triggers, callbacks, etc.) \u2014 same field set and behavior as the standalone Contract Framework's Register. Contracts built this way are ephemeral runtime objects that never write to the save.",
+     "doc": "Registers a contract definition so it can be accepted later by id. Requires def.id; re-registering the same id replaces the definition in place without adding a second row to the list.",
+     "gotcha": "The registry is rebuilt from scratch on every level load, so registration belongs in OnLoad. A definition with no objectives only logs a warning and is registered anyway, producing a contract that can never be completed.",
+     "src": "80_contract.lua:440",
      "tier": "core"
     },
     {
      "path": "Ess.Contract.Status",
      "sig": "Ess.Contract.Status()",
-     "doc": "Returns the active contract's status shape: { finished, progress, timeLeft, objectives = {{done=...}, ...} } \u2014 same shape as the standalone Contract Framework's Status().",
-     "tier": "core"
+     "doc": "The live state of the active contract, shaped exactly as a GFx board's status adapter expects: { finished, progress, timeLeft, objectives = { {done=bool}, ... } }. progress is the fraction of objectives complete, and timeLeft appears only when the definition set a timeLimit.",
+     "gotcha": "After a contract ends, the FINISHED snapshot is returned in preference to anything else and keeps being returned until the next Accept clears it - so a non-nil Status() does not mean a contract is running. Check the .finished field first.",
+     "src": "80_contract.lua:454",
+     "tier": "core",
+     "ret": "The status table, or nil when no contract has run and none is active."
     },
     {
      "path": "Ess.Contract.StayInArea",
      "sig": "Ess.Contract.StayInArea(t)",
-     "tier": "core"
+     "doc": "Builds a mission-wide leash: a zone (t.at with t.radius, default 100) the player has to remain inside for the duration of the contract.",
+     "gotcha": "The one builder that does NOT go through the shared wrapper the others use, so it ignores t.optional, t.bonus and t.msg - it is a constraint on the whole contract, not a listed objective.",
+     "src": "80_contract.lua:435",
+     "tier": "core",
+     "ret": "A zone definition table."
     },
     {
      "path": "Ess.Contract.Survive",
      "sig": "Ess.Contract.Survive(t)",
-     "tier": "core"
+     "doc": "Builds a \"stay alive for t.time seconds\" objective, with t.target naming who must survive.",
+     "src": "80_contract.lua:431",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract.Verify",
      "sig": "Ess.Contract.Verify(t)",
-     "tier": "core"
+     "doc": "Builds an \"inspect or secure this target\" objective. t.target or t.spawn names the subject, and t.capture with t.captureHealth turns it into a take-it-alive goal instead of a look-at-it one; t.radius sets the approach distance.",
+     "src": "80_contract.lua:428",
+     "tier": "core",
+     "ret": "An objective definition table for a contract's `objectives` list."
     },
     {
      "path": "Ess.Contract._CleanupAll",
      "sig": "Ess.Contract._CleanupAll(inst)",
+     "doc": "Internal: tears down every task on a contract instance - deletes their engine events, clears their markers and removes every object they spawned - then empties the task list.",
+     "gotcha": "Spawned objects are REMOVED outright, so anything the player is meant to keep must never be registered on a task's guid list.",
+     "src": "80_contract.lua:141",
      "tier": "core"
     },
     {
@@ -442,16 +529,24 @@
     {
      "path": "Ess.Contract._finish",
      "sig": "Ess.Contract._finish(inst, bWin)",
+     "doc": "Internal: ends the live contract, win or lose. Clears the HUD objective and chatter lines, stops any mission music, snapshots the final per-objective state into Ess.Contract.finished for the board's Status(), then on a win pays the reward, logs, shows the fanfare and calls def.onComplete (or logs and calls def.onFail on a loss). Finally it restores faction stances, cleans up every task and closes the sandbox if the contract opened one.",
+     "gotcha": "Returns immediately when the instance is not active, so a double finish is harmless. The snapshot it writes into .finished PERSISTS until the next Accept, which is why Status() keeps reporting a result after the mission is over.",
+     "src": "80_contract.lua:221",
      "tier": "core"
     },
     {
      "path": "Ess.Contract._newTask",
      "sig": "Ess.Contract._newTask()",
-     "tier": "core"
+     "doc": "Internal: creates a fresh task record for one objective - the bag that collects the engine events, spawned guids and marker handles that objective creates, so cleanup can later delete exactly those and nothing else.",
+     "src": "80_contract.lua:90",
+     "tier": "core",
+     "ret": "A task table with :event(h) and :guid(u) collector methods."
     },
     {
      "path": "Ess.Contract._restoreRelations",
      "sig": "Ess.Contract._restoreRelations(inst)",
+     "doc": "Internal: puts back the faction stances a contract changed and drops the handle so the restore cannot run twice. Called from Ess.Contract._finish on every ending, win or lose.",
+     "src": "82_contract_encounter.lua:48",
      "tier": "core"
     },
     {
@@ -531,8 +626,10 @@
     {
      "path": "Ess.Easy.AIOrders.attack",
      "sig": "Ess.Easy.AIOrders.attack(guids, target)",
-     "doc": "One-liner order to attack a target; one of the three most common AIOrders one-liners.",
-     "tier": "easy"
+     "doc": "Orders a list of units to attack one target guid - the one-liner over Ess.AIOrders.command's \"attack\" behavior.",
+     "src": "60_aiorders_easy.lua:7",
+     "tier": "easy",
+     "ret": "true when the behavior ran, false when the behavior threw (the error is logged, not raised)."
     },
     {
      "path": "Ess.Easy.AIOrders.guard",
@@ -543,8 +640,10 @@
     {
      "path": "Ess.Easy.AIOrders.patrol",
      "sig": "Ess.Easy.AIOrders.patrol(guids, points)",
-     "doc": "One-liner order to patrol a set of points; one of the three most common AIOrders one-liners.",
-     "tier": "easy"
+     "doc": "Orders a list of units to patrol a route given as a list of {x,y,z} points.",
+     "src": "60_aiorders_easy.lua:11",
+     "tier": "easy",
+     "ret": "true when the behavior ran, false when it threw (the error is logged, not raised)."
     }
    ]
   },
@@ -562,13 +661,17 @@
     {
      "path": "Ess.Easy.Airstrike.onMe",
      "sig": "Ess.Easy.Airstrike.onMe(i)",
-     "doc": "Reads the player's own position via Ess.Player.pose(i or 0) and calls .at() on it \u2014 a deliberate danger-close self-strike, described by the source's own comment as \"for the brave / the cinematic.\" No-ops quietly if no character exists for that player slot.",
+     "doc": "Calls the same jet-pass-plus-artillery package down on the player's own position - for the cinematic moment, or the brave.",
+     "gotcha": "Silently does nothing when the player has no character (for example index 1 outside co-op).",
+     "src": "58_support.lua:114",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Airstrike.onTarget",
      "sig": "Ess.Easy.Airstrike.onTarget(i)",
-     "doc": "Resolves Ess.Player.targetUnderReticle(i or 0) for a guid, re-reads its position via Ess.Object.pos, and calls .at() on that position if the lookup succeeds. No-ops quietly if there's no target under the reticle.",
+     "doc": "Calls the full airstrike package - a jet pass plus four artillery shells in a 10-unit radius - down on whatever the player's reticle is currently pointed at.",
+     "gotcha": "Nothing happens at all when the reticle is not on a real object or its position cannot be read: no log line, no return value, no feedback.",
+     "src": "58_support.lua:110",
      "tier": "easy"
     }
    ]
@@ -581,6 +684,9 @@
     {
      "path": "Ess.Easy.Camera.fadeIn",
      "sig": "Ess.Easy.Camera.fadeIn()",
+     "doc": "Clears a full-screen fade back to a fully visible picture, by setting the fade amount to 0. The partner to fading out to black before a cutscene.",
+     "gotcha": "Instant - the underlying native takes no duration argument, so there is no cross-fade here. To ease it, step the value yourself over several frames.",
+     "src": "51_camera.lua:179",
      "tier": "easy"
     },
     {
@@ -599,6 +705,9 @@
     {
      "path": "Ess.Easy.Camera.shake",
      "sig": "Ess.Easy.Camera.shake(i)",
+     "doc": "One-call screen shake for an explosion or heavy impact: the confirmed one-shot \"ShakeCameraMedium\" preset, sourced on the player's own character, amplitude 6 for 5 seconds.",
+     "gotcha": "Does nothing at all if the player has no camera or character yet - no log, no return value.",
+     "src": "51_camera.lua:169",
      "tier": "easy"
     },
     {
@@ -637,7 +746,9 @@
     {
      "path": "Ess.Easy.Console.close",
      "sig": "Ess.Easy.Console.close()",
-     "doc": "Closes whichever of the board, the Playground, and the search prompt are currently open.",
+     "doc": "Shuts every piece of the in-game Ess reference console at once: hides and unfocuses the browse board, closes the playground menu, and closes the search text console if it happens to be open.",
+     "gotcha": "Returns nothing, and each piece is closed only if it exists - calling it when nothing is open is a safe no-op.",
+     "src": "96_console.lua:319",
      "tier": "easy"
     },
     {
@@ -649,8 +760,11 @@
     {
      "path": "Ess.Easy.Console.play",
      "sig": "Ess.Easy.Console.play()",
-     "doc": "Interactive playground: opens an Ess.UI.Menu of curated demos (grouped Spawn/World/Player/Support/Goals/Dev/Juice) you can actually run in-game and cycle each demo's parameters on to see their effect live. Each run is wrapped in pcall - success toasts \"Ran: <name>\", failure toasts an error and logs it via Ess.Log. Calling it again while open closes the menu instead of reopening it, the same toggle idiom as Debug.overlay.",
-     "tier": "easy"
+     "doc": "Opens the interactive PLAYGROUND: every built-in demo grouped by category, each runnable live in-game, with any tunable parameters shown as extra rows you select to cycle through their values before hitting \"Run it\".",
+     "gotcha": "It is a toggle - calling it while the playground is already open CLOSES it and returns the old menu instead of opening a second one.",
+     "src": "96_console.lua:398",
+     "tier": "easy",
+     "ret": "The menu object."
     },
     {
      "path": "Ess.Easy.Console.search",
@@ -668,14 +782,20 @@
     {
      "path": "Ess.Easy.Contract.destroy",
      "sig": "Ess.Easy.Contract.destroy(sTitle, tSpawns, tOpts)",
-     "doc": "Ess.Easy.Contract.destroy(sTitle, tSpawns, tOpts) -> sId. Registers and immediately accepts a throwaway single-objective 'destroy' contract under an auto-generated id (\"easy1\", \"easy2\", ...); tOpts = { desc=, reward={cash=,fuel=} }.",
-     "tier": "easy"
+     "doc": "Registers AND immediately accepts a single-objective \"kill these\" contract in one call, so a beginner never has to learn Register/def.id/Accept just to get a fight started. tSpawns is a list of {template, x, y, z, yaw?}; tOpts takes desc and reward = {cash=, fuel=}.",
+     "gotcha": "Accepts immediately, and accepting ABORTS whatever contract was already running - which fails that contract rather than pausing it.",
+     "src": "83_contract_easy.lua:26",
+     "tier": "easy",
+     "ret": "The auto-generated contract id (\"easy1\", \"easy2\", ...)."
     },
     {
      "path": "Ess.Easy.Contract.reach",
      "sig": "Ess.Easy.Contract.reach(sTitle, at, radius, tOpts)",
-     "doc": "Ess.Easy.Contract.reach(sTitle, at, radius, tOpts) -> sId. Registers and immediately accepts a throwaway single-objective 'reach' contract under an auto-generated id (\"easy1\", \"easy2\", ...); tOpts = { desc=, reward={cash=,fuel=} }.",
-     "tier": "easy"
+     "doc": "Registers and immediately accepts a single-objective \"get to this place\" contract. `at` is {x,y,z} and radius is how close counts; tOpts takes desc and reward = {cash=, fuel=}.",
+     "gotcha": "Accepts immediately, and accepting ABORTS whatever contract was already running - which fails that contract rather than pausing it.",
+     "src": "83_contract_easy.lua:33",
+     "tier": "easy",
+     "ret": "The auto-generated contract id (\"easy1\", \"easy2\", ...)."
     }
    ]
   },
@@ -693,9 +813,10 @@
     {
      "path": "Ess.Easy.Debug.isOn",
      "sig": "Ess.Easy.Debug.isOn()",
-     "doc": "Returns whether the debug overlay is currently on.",
+     "doc": "Whether the developer overlay panel (position, aim target, vehicle, health, nearby counts) is currently showing.",
+     "src": "97_easy_debug.lua:127",
      "tier": "easy",
-     "ret": "bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.Easy.Debug.overlay",
@@ -713,12 +834,19 @@
     {
      "path": "Ess.Easy.Followers.hideMarkers",
      "sig": "Ess.Easy.Followers.hideMarkers()",
+     "doc": "Turns off the map markers floating over followers' heads - for a cutscene, a screenshot, or simply a quieter HUD. Ess.Followers.setMarkersEnabled(true) puts them back.",
+     "gotcha": "Returns nothing, and the setting is global to the whole roster rather than per follower.",
+     "src": "66_followers_easy.lua:49",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Followers.orderAttack",
      "sig": "Ess.Easy.Followers.orderAttack(target)",
-     "tier": "easy"
+     "doc": "Orders every follower on the roster to attack one target guid.",
+     "gotcha": "Addresses the WHOLE roster - to move only some of them, name a team with Ess.Squad and use Ess.Easy.Squad.orderTeamAttack instead.",
+     "src": "66_followers_easy.lua:14",
+     "tier": "easy",
+     "ret": "Whatever Ess.Followers.order returns for the \"attack\" behavior."
     },
     {
      "path": "Ess.Easy.Followers.orderEnter",
@@ -729,12 +857,18 @@
     {
      "path": "Ess.Easy.Followers.orderGuard",
      "sig": "Ess.Easy.Followers.orderGuard(at)",
-     "tier": "easy"
+     "doc": "Orders every follower to hold and defend a position, mapping onto the underlying \"defend\" behavior.",
+     "src": "66_followers_easy.lua:22",
+     "tier": "easy",
+     "ret": "Whatever Ess.Followers.order returns for the \"defend\" behavior."
     },
     {
      "path": "Ess.Easy.Followers.orderPatrol",
      "sig": "Ess.Easy.Followers.orderPatrol(points)",
-     "tier": "easy"
+     "doc": "Orders every follower to patrol a route given as a list of {x,y,z} points.",
+     "src": "66_followers_easy.lua:18",
+     "tier": "easy",
+     "ret": "Whatever Ess.Followers.order returns for the \"patrol\" behavior."
     },
     {
      "path": "Ess.Easy.Followers.recruit",
@@ -933,7 +1067,9 @@
     {
      "path": "Ess.Easy.Relations.restore",
      "sig": "Ess.Easy.Relations.restore()",
-     "doc": "Restores whatever the previous Ess.Easy.Relations call (makeHostile/makeAllies/war/sideWith) set, since only one easy-tier handle is tracked at a time.",
+     "doc": "Puts every faction stance the Easy tier changed back the way it found it and drops the handle. Called automatically at the start of each makeHostile/makeAllies/war/sideWith, so the Easy tier can never stack or leak stance changes; call it yourself when an encounter ends.",
+     "gotcha": "Only ever undoes the ONE handle the Easy tier tracks - stances applied through Ess.Relations.apply directly are untouched. Safe to call when nothing is applied.",
+     "src": "61_relations_easy.lua:53",
      "tier": "easy"
     },
     {
@@ -958,13 +1094,18 @@
     {
      "path": "Ess.Easy.Sandbox.arena",
      "sig": "Ess.Easy.Sandbox.arena(id, opts)",
-     "doc": "Turns on all four built-in Sandbox providers (relations, economy, supports, layers) at once - the \"isolate everything for my arena/minigame\" case, with no provider list to specify.",
-     "tier": "easy"
+     "doc": "Opens a sandbox with every built-in provider switched on - layers, economy, supports and relations - the \"isolate everything for my arena or minigame\" preset, so nothing the mode does leaks into the real world state.",
+     "gotcha": "Saves are GATED for the whole life of the sandbox, so leaving one open blocks the player from saving until Ess.Easy.Sandbox.done runs. A false return means nothing was isolated and the gate was already released - there is nothing to finish().",
+     "src": "63_sandbox_easy.lua:8",
+     "tier": "easy",
+     "ret": "true when at least one provider applied, false when the id is already active or every provider failed."
     },
     {
      "path": "Ess.Easy.Sandbox.done",
      "sig": "Ess.Easy.Sandbox.done(id)",
-     "doc": "Alias for Ess.Sandbox.finish(id).",
+     "doc": "Closes the sandbox with that id: runs every provider's restore, un-gates saves and logs the close. The mandatory partner to Ess.Easy.Sandbox.arena.",
+     "gotcha": "Returns nothing, and an unknown id is a completely silent no-op - a typo here leaves saves gated with no error.",
+     "src": "63_sandbox_easy.lua:12",
      "tier": "easy"
     }
    ]
@@ -977,7 +1118,9 @@
     {
      "path": "Ess.Easy.Sound.play",
      "sig": "Ess.Easy.Sound.play(cue)",
-     "doc": "Zero-config plain UI one-shot sound, equivalent to Ess.Sound.cue(nil, sCueName) \u2014 no guid or options to think about.",
+     "doc": "Plays a named sound cue as a plain UI one-shot with no world position, by passing nil for the object guid. Use it for menu clicks, alerts and confirmations; attach the cue to a real guid via Ess.Sound.cue when it should come from somewhere in the world.",
+     "gotcha": "Returns nothing - a bad or unknown cue name only writes a log line.",
+     "src": "56_sound.lua:53",
      "tier": "easy"
     }
    ]
@@ -1039,37 +1182,62 @@
     {
      "path": "Ess.Easy.Squad.assignRole",
      "sig": "Ess.Easy.Squad.assignRole(guid, roleType)",
-     "tier": "easy"
+     "doc": "Tags one unit with a free-form role string such as \"driver\" or \"gunner\". The tactics layer reads \"driver\" specifically when boarding a vehicle.",
+     "gotcha": "The role is free-form and never validated - only \"driver\" has any built-in meaning, so a typo is accepted and simply does nothing.",
+     "src": "67_squad_easy.lua:12",
+     "tier": "easy",
+     "ret": "true, or false when guid is nil."
     },
     {
      "path": "Ess.Easy.Squad.cancelQueue",
      "sig": "Ess.Easy.Squad.cancelQueue(teamName)",
-     "tier": "easy"
+     "doc": "Cancels a team's queued multi-step order: marks the queue cancelled, stops the step loop, runs its onCancel and puts everyone back on plain follow.",
+     "src": "67_squad_easy.lua:40",
+     "tier": "easy",
+     "ret": "true when a queue was cancelled, false when that team had none."
     },
     {
      "path": "Ess.Easy.Squad.clearFormation",
      "sig": "Ess.Easy.Squad.clearFormation(teamName)",
-     "tier": "easy"
+     "doc": "Drops the formation slots holding a team in shape, freeing each unit to move on its own again.",
+     "src": "67_squad_easy.lua:58",
+     "tier": "easy",
+     "ret": "true, or false when the team resolves to nobody."
     },
     {
      "path": "Ess.Easy.Squad.createTeam",
      "sig": "Ess.Easy.Squad.createTeam(teamName, guids)",
-     "tier": "easy"
+     "doc": "Names a group of existing followers as a team so later orders can address them by name instead of by guid list.",
+     "gotcha": "Only guids that are ALREADY Ess.Followers followers are taken - anything else is dropped silently, so a team can come back smaller than the list you passed.",
+     "src": "67_squad_easy.lua:8",
+     "tier": "easy",
+     "ret": "true, or false when the team name is missing or reserved."
     },
     {
      "path": "Ess.Easy.Squad.dismountAndSecure",
      "sig": "Ess.Easy.Squad.dismountAndSecure(teamName, atPos, radius)",
-     "tier": "easy"
+     "doc": "Gets a team out of whatever vehicles they are riding and has them secure a position within a radius - the standard \"pull up, pile out, hold the ground\" move.",
+     "gotcha": "The team argument also accepts a raw guid list. Vehicle drivers are exited explicitly, so the vehicle is left empty behind them.",
+     "src": "67_squad_easy.lua:48",
+     "tier": "easy",
+     "ret": "false when the team resolves to nobody or atPos is missing."
     },
     {
      "path": "Ess.Easy.Squad.mountUp",
      "sig": "Ess.Easy.Squad.mountUp(vehGuid, teamName)",
-     "tier": "easy"
+     "doc": "Boards a team into a vehicle. Anyone tagged with the \"driver\" role boards first so a passenger call cannot claim the wheel, and everyone else follows as a passenger.",
+     "gotcha": "The team argument also accepts a raw guid list, not just a team name - both go through the same resolver.",
+     "src": "67_squad_easy.lua:44",
+     "tier": "easy",
+     "ret": "false immediately when the vehicle guid is missing or the team resolves to nobody."
     },
     {
      "path": "Ess.Easy.Squad.orderTeamAttack",
      "sig": "Ess.Easy.Squad.orderTeamAttack(teamName, target)",
-     "tier": "easy"
+     "doc": "Orders one named team to attack a target guid, leaving every other team and follower alone.",
+     "src": "67_squad_easy.lua:16",
+     "tier": "easy",
+     "ret": "false when the team is unknown or has no live members; otherwise the result of issuing the \"attack\" behavior."
     },
     {
      "path": "Ess.Easy.Squad.orderTeamFollow",
@@ -1080,12 +1248,18 @@
     {
      "path": "Ess.Easy.Squad.orderTeamGuard",
      "sig": "Ess.Easy.Squad.orderTeamGuard(teamName, at)",
-     "tier": "easy"
+     "doc": "Orders one named team to hold and defend a position, mapping onto the underlying \"defend\" behavior.",
+     "src": "67_squad_easy.lua:24",
+     "tier": "easy",
+     "ret": "false when the team is unknown or has no live members; otherwise the result of issuing the \"defend\" behavior."
     },
     {
      "path": "Ess.Easy.Squad.orderTeamPatrol",
      "sig": "Ess.Easy.Squad.orderTeamPatrol(teamName, points)",
-     "tier": "easy"
+     "doc": "Orders one named team to patrol a route of {x,y,z} points.",
+     "src": "67_squad_easy.lua:20",
+     "tier": "easy",
+     "ret": "false when the team is unknown or has no live members; otherwise the result of issuing the \"patrol\" behavior."
     },
     {
      "path": "Ess.Easy.Squad.queue",
@@ -1122,20 +1296,26 @@
     {
      "path": "Ess.Easy.Triggers.after",
      "sig": "Ess.Easy.Triggers.after(seconds, fn)",
-     "doc": "One-liner delay trigger: fires fn after seconds have elapsed.",
-     "tier": "easy"
+     "doc": "Fires fn once after a delay in seconds - a one-shot timer.",
+     "src": "62_triggers_easy.lua:16",
+     "tier": "easy",
+     "ret": "A cancel function; call it to disarm the timer before it fires."
     },
     {
      "path": "Ess.Easy.Triggers.onDeath",
      "sig": "Ess.Easy.Triggers.onDeath(uGuid, fn)",
-     "doc": "One-liner death trigger: fires fn when uGuid dies.",
-     "tier": "easy"
+     "doc": "Fires fn when the given object is destroyed - the \"when this target dies\" hook.",
+     "src": "62_triggers_easy.lua:12",
+     "tier": "easy",
+     "ret": "A cancel function; call it to disarm the trigger before it fires."
     },
     {
      "path": "Ess.Easy.Triggers.onPlayerNear",
      "sig": "Ess.Easy.Triggers.onPlayerNear(x,y,z,r,fn)",
-     "doc": "One-liner proximity trigger: fires fn when the player comes within radius r of (x, y, z), no spec-table syntax required.",
-     "tier": "easy"
+     "doc": "Fires fn once the player comes within r units of the world point (x, y, z) - the ambush/checkpoint trigger without any spec table to learn.",
+     "src": "62_triggers_easy.lua:8",
+     "tier": "easy",
+     "ret": "A cancel function; call it to disarm the trigger before it fires."
     }
    ]
   },
@@ -1210,8 +1390,10 @@
     {
      "path": "Ess.Event.off",
      "sig": "Ess.Event.off(handle)",
-     "doc": "pcall-guarded Event.Delete(handle); returns whether it succeeded.",
-     "tier": "core"
+     "doc": "Deletes an engine event previously created by Ess.Event.on, using the handle that call returned. The manual teardown for a watcher you no longer want firing.",
+     "src": "30_track.lua:135",
+     "tier": "core",
+     "ret": "true when the delete went through, false when the native call threw."
     },
     {
      "path": "Ess.Event.on",
@@ -1230,6 +1412,9 @@
     {
      "path": "Ess.Followers._emit",
      "sig": "Ess.Followers._emit(eventName, ...)",
+     "doc": "Internal: fires every listener registered for an event name through Ess.Followers.on, passing the extra arguments straight through. Each handler runs in its own pcall, so one throwing listener cannot stop the rest.",
+     "gotcha": "An event nobody has subscribed to is a silent no-op returning nil. The rejection message it logs under Ess.DEBUG talks about a marker not being placed, which has nothing to do with the actual cause - do not chase that text.",
+     "src": "66_followers.lua:116",
      "tier": "core"
     },
     {
@@ -1253,8 +1438,11 @@
     {
      "path": "Ess.Followers.count",
      "sig": "Ess.Followers.count()",
+     "doc": "How many followers are on the roster right now.",
+     "gotcha": "Counts by calling Ess.Followers.list(), which PRUNES dead entries from the roster as a side effect - cheap, but not a pure read.",
+     "src": "66_followers.lua:476",
      "tier": "core",
-     "ret": "n"
+     "ret": "The number of live followers."
     },
     {
      "path": "Ess.Followers.dismiss",
@@ -1272,8 +1460,10 @@
     {
      "path": "Ess.Followers.isFollower",
      "sig": "Ess.Followers.isFollower(guid)",
+     "doc": "Whether a guid is currently on the follower roster. This is the membership test Ess.Squad.createTeam uses to decide which guids it will accept into a team.",
+     "src": "66_followers.lua:480",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.Followers.list",
@@ -1285,8 +1475,10 @@
     {
      "path": "Ess.Followers.markersEnabled",
      "sig": "Ess.Followers.markersEnabled()",
+     "doc": "Whether the map markers over followers' heads are currently switched on. Defaults to true for a fresh load.",
+     "src": "66_followers.lua:170",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.Followers.on",
@@ -1305,6 +1497,8 @@
      "path": "Ess.Followers.recruit",
      "sig": "Ess.Followers.recruit(guid, opts)",
      "doc": "runs feeling/LivingWorld/Vip/Role, adds to roster",
+     "gotcha": "Ess.AIOrders' own follow behaviour never reverts the Ai feeling / LivingWorld / Vip state it sets when following ends -- that's the gap this closes. Use dismiss() rather than just dropping the guid, or that state stays applied.",
+     "src": "mercs2-lua-essentials/src/66_followers.lua",
      "tier": "core",
      "ret": "ok"
     },
@@ -1358,6 +1552,8 @@
      "path": "Ess.Gfx.widget",
      "sig": "Ess.Gfx.widget(file, x, y, w, h)",
      "doc": "Builds, positions, and adds a FlashWidget from a deployed .gfx asset, doing the corner-coordinate SetLocation math once. Returns {raw=<FlashWidget>, shown=false}, or nil (logged) on failure. Does not call SetVisible.",
+     "gotcha": "FlashWidget:SetLocation takes CORNER coordinates (x1, y1, x2, y2), NOT (x, y, width, height) -- the wrong form renders slightly small rather than crashing, which is exactly why it shipped unnoticed in contracts.lua after uilib had already fixed it. This wrapper does the x+w/y+h math for you.",
+     "src": "mercs2-lua-essentials/src/40_gfx.lua",
      "tier": "core",
      "ret": "widget | nil"
     }
@@ -1377,13 +1573,17 @@
     {
      "path": "Ess.Hud.hideHint",
      "sig": "Ess.Hud.hideHint(sId, bBroadcast)",
-     "doc": "Clears a hint shown with a matching sId; a different or missing id does not clear it, confirmed by live testing.",
+     "doc": "Clears a native tutorial-style hint popup previously raised by Ess.Hud.hint. Local-only by default; pass bBroadcast=true to opt into the native's own co-op broadcast.",
+     "gotcha": "The sId must MATCH the id passed to Ess.Hud.hint - a different or missing id does NOT clear the popup, which is confirmed behaviour and the reason ids are worth setting.",
+     "src": "57_hud.lua:36",
      "tier": "core"
     },
     {
      "path": "Ess.Hud.hint",
      "sig": "Ess.Hud.hint(sMsg, sId, bBroadcast)",
      "doc": "Wraps MrxTutorialManager.ShowMessage for the native tutorial-style hint popup (icon + sound); confirmed by live testing. No auto-hide timer \u2014 stays up until hideHint() is called with a matching sId. Local-only by default; pass bBroadcast=true to opt into the native's co-op broadcast (network behavior unconfirmed).",
+     "gotcha": "No auto-hide timer -- it stays up until Ess.Hud.hideHint is called with a MATCHING id; a different or missing id does not clear it. Local-only by default; the native's own co-op broadcast behaviour is untested here.",
+     "src": "mercs2-lua-essentials/src/57_hud.lua",
      "tier": "core"
     },
     {
@@ -1422,6 +1622,9 @@
     {
      "path": "Ess.Human.disableWeapons",
      "sig": "Ess.Human.disableWeapons(uChar)",
+     "doc": "Stops a character using weapons at all - what you want for a scripted escort, a surrendering unit, or a character walking through a cutscene.",
+     "gotcha": "Silent on failure and returns nothing. Pair every call with Ess.Human.enableWeapons or the character stays disarmed for the rest of the session.",
+     "src": "14_human.lua:67",
      "tier": "core"
     },
     {
@@ -1439,6 +1642,9 @@
     {
      "path": "Ess.Human.enableWeapons",
      "sig": "Ess.Human.enableWeapons(uChar)",
+     "doc": "Gives a character its weapons back after Ess.Human.disableWeapons.",
+     "gotcha": "Silent on failure and returns nothing.",
+     "src": "14_human.lua:68",
      "tier": "core"
     },
     {
@@ -1450,7 +1656,9 @@
     {
      "path": "Ess.Human.knockdown",
      "sig": "Ess.Human.knockdown(uChar, nDuration)",
-     "doc": "Wraps Human.Knockdown; nDuration defaults to 0.5.",
+     "doc": "Knocks a character off their feet for a number of seconds, defaulting to 0.5 - a non-lethal way to interrupt someone or sell an explosion.",
+     "gotcha": "Silent on failure and returns nothing.",
+     "src": "14_human.lua:70",
      "tier": "core"
     },
     {
@@ -1482,9 +1690,10 @@
     {
      "path": "Ess.Human.secondaryWeapon",
      "sig": "Ess.Human.secondaryWeapon(uChar)",
-     "doc": "Wraps Human.Inventory.GetSecondaryWeapon.",
+     "doc": "The character's holstered secondary weapon, as an object guid.",
+     "src": "14_human.lua:43",
      "tier": "core",
-     "ret": "uGuid|nil Human.Inventory.GetSecondaryWeapon"
+     "ret": "The weapon's guid, or nil when there is none or the read failed."
     },
     {
      "path": "Ess.Human.setAllWeapons",
@@ -1521,6 +1730,8 @@
      "path": "Ess.Impulse.push",
      "sig": "Ess.Impulse.push(g, {forward,up,side or dir, strength, scaleByMass})",
      "doc": "opts.forward/up/side are local-space components (forward = the way it faces); opts.dir={x,y,z} is a world-space direction that overrides those, scaled by opts.strength (default 1). opts.scaleByMass defaults to true \u2014 multiplies by the object's mass (falling back to a DEFAULT_MASS of 1000 if GetMass is unavailable) so the velocity change feels the same on a light bike or a heavy tank; pass false for a raw, mass-independent shove.",
+     "gotcha": "Scales by the object's mass by DEFAULT, because an impulse is mass*dV -- pass scaleByMass=false only if you're supplying the full magnitude yourself, or a light bike and a heavy tank will react completely differently to the same numbers.",
+     "src": "mercs2-lua-essentials/src/16_impulse.lua",
      "tier": "core"
     },
     {
@@ -1539,9 +1750,11 @@
     {
      "path": "Ess.Input.VkToChar",
      "sig": "Ess.Input.VkToChar(vk, bShift)",
-     "doc": "Converts a VK code (plus shift state) to a US-keyboard character: A-Z, 0-9, space, and common punctuation with shifted variants. Ported byte-for-byte from uilib's CHAR table.",
+     "doc": "Turns a Windows virtual-key code into the character it types on a US keyboard, honouring shift for capitals and the shifted number/punctuation rows. The piece every text-entry widget in Ess is built on.",
+     "gotcha": "US layout only - the mapping is a fixed table, so a non-US keyboard produces the wrong characters for punctuation.",
+     "src": "21_input.lua:86",
      "tier": "core",
-     "ret": "sChar | nil"
+     "ret": "A one-character string, or nil for a key with no printable character (arrows, function keys, modifiers)."
     },
     {
      "path": "Ess.Input.clear",
@@ -1567,6 +1780,8 @@
      "path": "Ess.Input.poll",
      "sig": "Ess.Input.poll()",
      "doc": "Call once per tick. Returns pressed (drains the edge-triggered key-event ring buffer, Loader.PopKeyEvents, of keys that went up\u2192down since last drain) and down(vk) (reads the 256-byte Loader.GetKeyboardState snapshot for currently-held keys).",
+     "gotcha": "Call this ONCE per tick and read both fields off the one result -- the edge buffer is DRAINED by the call, so a second poll in the same tick sees an empty press list. Use Ess.Input.held(vk) when something else is already draining the buffer.",
+     "src": "mercs2-lua-essentials/src/21_input.lua",
      "tier": "core",
      "ret": "{ pressed = {vk, ...}, down = function(vk) -> bool }"
     },
@@ -1593,8 +1808,11 @@
     {
      "path": "Ess.Keys.isBound",
      "sig": "Ess.Keys.isBound(key)",
+     "doc": "Whether a key already has a handler bound to it. Accepts either a friendly name (\"f5\", \"escape\", \"a\") or a raw virtual-key number.",
+     "gotcha": "A key name the parser does not recognise also returns false, which is indistinguishable from a real key that simply has nothing bound.",
+     "src": "25_keys.lua:66",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.Keys.off",
@@ -1606,6 +1824,8 @@
      "path": "Ess.Keys.on",
      "sig": "Ess.Keys.on(key, fn)",
      "doc": "on(key, fn). key is a Windows VK number (e.g. 0x74) or a case-insensitive name string resolved via Ess.Keys.vk ('F1'..'F12', 'a'..'z', '0'..'9', and named keys like space/enter/escape/tab/arrows/shift/ctrl). fn(bShift) receives whether Shift was held at the moment the key edge fired. Registering starts the shared dispatch loop if it isn't already running; logs and does nothing if key doesn't resolve or fn isn't a function.",
+     "gotcha": "Reads the SAME edge-triggered key buffer that a focused Ess.UI widget reads -- running Ess.Keys and a focused Ess.UI.Menu on the same keys at once makes them contend and drop presses. Use one, or bind distinct keys.",
+     "src": "mercs2-lua-essentials/src/25_keys.lua",
      "tier": "core"
     },
     {
@@ -1632,6 +1852,8 @@
      "path": "Ess.Layers.begin",
      "sig": "Ess.Layers.begin(sId)",
      "doc": "Opens a layers mode: snapshots the current set of loaded dynamic layers as the baseline and gates saves. Returns false if a mode is already active - only one mode at a time.",
+     "gotcha": "Everything routes through MrxLayerManager, never raw Pg.LoadLayer/UnloadLayer, so its _tLoadedLayers bookkeeping -- the single source of truth the native save reads -- stays consistent with the actual world. Saves are gated for the mode's whole duration, so a crash mid-mode just leaves the pre-mode vanilla save on disk.",
+     "src": "mercs2-lua-essentials/src/64_layers.lua",
      "tier": "core"
     },
     {
@@ -1643,8 +1865,10 @@
     {
      "path": "Ess.Layers.current",
      "sig": "Ess.Layers.current()",
-     "doc": "The live, currently-loaded dynamic-layer set, as a list.",
-     "tier": "core"
+     "doc": "Every dynamic layer loaded right now, read live from the layer manager's own table - the only source of truth for \"what is loaded\", since the engine exposes no getter.",
+     "src": "64_layers.lua:86",
+     "tier": "core",
+     "ret": "An array of lowercase layer names, in arbitrary order."
     },
     {
      "path": "Ess.Layers.expect",
@@ -1667,8 +1891,10 @@
     {
      "path": "Ess.Layers.isLoaded",
      "sig": "Ess.Layers.isLoaded(name)",
-     "doc": "Reads MrxLayerManager._tLoadedLayers directly to check whether a named layer is loaded.",
-     "tier": "core"
+     "doc": "Whether one named dynamic layer is loaded right now. Case-insensitive - the name is lowercased before the lookup.",
+     "src": "64_layers.lua:88",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Layers.remove",
@@ -1679,8 +1905,10 @@
     {
      "path": "Ess.Layers.snapshot",
      "sig": "Ess.Layers.snapshot()",
-     "doc": "The baseline set of layers captured at begin(), as a list.",
-     "tier": "core"
+     "doc": "The set of dynamic layers that were loaded at the moment Ess.Layers.begin ran - the baseline that finishing the mode restores back to. Compare it against Ess.Layers.current to see what a mode has changed.",
+     "src": "64_layers.lua:87",
+     "tier": "core",
+     "ret": "An array of lowercase layer names, or an empty array when no mode is open."
     },
     {
      "path": "Ess.Layers.swap",
@@ -1698,9 +1926,10 @@
     {
      "path": "Ess.Loop.isRunning",
      "sig": "Ess.Loop.isRunning(id)",
-     "doc": "Returns whether a loop is currently registered under id.",
+     "doc": "Whether a loop is currently registered under that id. Check it before Ess.Loop.start when you only want to confirm a loop is armed - start() reschedules a running loop rather than leaving it alone, so an unconditional call keeps pushing the next tick back.",
+     "src": "20_loop.lua:97",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.Loop.list",
@@ -1713,6 +1942,8 @@
      "path": "Ess.Loop.start",
      "sig": "Ess.Loop.start(id, interval, tickFn)",
      "doc": "Registers (or replaces) a self-rescheduling loop under id; tickFn() runs every interval seconds (default 1), returning true/truthy to keep going or false/nil to auto-stop. Calling again with the same id safely supersedes any previous loop under it; a tick that errors is pcall-caught, logged, and treated as stop.",
+     "gotcha": "Calling start() again with the SAME id supersedes the previous loop instead of stacking a second one -- that's what makes it safe to call unconditionally from the top of a re-run OnKey script. Hand-rolled self-rescheduling Event timers do NOT do this and leak a whole extra loop on every keypress.",
+     "src": "mercs2-lua-essentials/src/20_loop.lua",
      "tier": "core"
     },
     {
@@ -1766,6 +1997,8 @@
      "path": "Ess.Math.angleTo",
      "sig": "Ess.Math.angleTo(fromX, fromZ, toX, toZ)",
      "doc": "The yaw that faces from (fromX,fromZ) toward (toX,toZ), in the engine's own convention (calibrated against Ess.Object.spawnAhead). Returns 0 if the two points coincide.",
+     "gotcha": "Exact inverse of Ess.Math.pointAhead -- if the yaw convention ever needs revisiting the two MUST be changed as a pair. Verify facing east/west; the error is invisible at yaw 0/180.",
+     "src": "mercs2-lua-essentials/src/01_math.lua",
      "tier": "core",
      "ret": "yawDegrees"
     },
@@ -1805,19 +2038,28 @@
     {
      "path": "Ess.Math.dist3D",
      "sig": "Ess.Math.dist3D(x1, y1, z1, x2, y2, z2)",
-     "doc": "Same as dist2D but includes the Y term.",
-     "tier": "core"
+     "doc": "Straight-line distance between two world points, height (Y) included. Use Ess.Math.dist2D instead when height should be ignored, which is usually what you want for ground units.",
+     "src": "01_math.lua:67",
+     "tier": "core",
+     "ret": "The distance in world units."
     },
     {
      "path": "Ess.Math.dist3DSq",
      "sig": "Ess.Math.dist3DSq(x1, y1, z1, x2, y2, z2)",
-     "doc": "Same as dist2DSq but includes the Y term.",
-     "tier": "core"
+     "doc": "The squared 3D distance between two points, skipping the square root. Use it when you only ever compare distances - \"which is closer\", \"is it inside the radius\".",
+     "gotcha": "The result is in squared units, so a radius check must compare against r*r, not r. Ess.Math.within3D does that for you.",
+     "src": "01_math.lua:145",
+     "tier": "core",
+     "ret": "The squared distance."
     },
     {
      "path": "Ess.Math.lerp",
      "sig": "Ess.Math.lerp(a, b, t)",
-     "tier": "core"
+     "doc": "Blends between a and b by t: 0 gives a, 1 gives b, 0.5 the midpoint. The workhorse for easing a value over time - a fade amount, a camera FOV, a bar fill.",
+     "gotcha": "t is not clamped, so a value outside 0..1 extrapolates past the endpoints instead of stopping there.",
+     "src": "01_math.lua:45",
+     "tier": "core",
+     "ret": "The blended number."
     },
     {
      "path": "Ess.Math.lerpAngle",
@@ -1836,6 +2078,8 @@
      "path": "Ess.Math.pointAhead",
      "sig": "Ess.Math.pointAhead(x, z, yawDeg, dist)",
      "doc": "The point dist units in front of (x, z) when facing yawDeg \u2014 exactly Ess.Object.spawnAhead's projection, exposed for reuse (placing something ahead of an NPC, aiming a dolly, offsetting a marker). Y is unchanged.",
+     "gotcha": "Forward for a yaw is (+sin, +cos) in (x,z). The mirrored (-sin) convention this used to have is INVISIBLE at yaw 0/180 and MAXIMAL at +-90, so always calibrate facing EAST or WEST -- an earlier calibration done facing north \"passed\" and let the bug survive for months.",
+     "src": "mercs2-lua-essentials/src/01_math.lua",
      "tier": "core",
      "ret": "x2, z2"
     },
@@ -1862,7 +2106,10 @@
     {
      "path": "Ess.Math.sign",
      "sig": "Ess.Math.sign(v)",
-     "tier": "core"
+     "doc": "Reduces a number to just its direction, discarding magnitude. Handy for turning a difference into a step direction.",
+     "src": "01_math.lua:47",
+     "tier": "core",
+     "ret": "1 when positive, -1 when negative, 0 when exactly zero."
     },
     {
      "path": "Ess.Math.smoothstep",
@@ -1880,8 +2127,10 @@
     {
      "path": "Ess.Math.within3D",
      "sig": "Ess.Math.within3D(x1, y1, z1, x2, y2, z2, r)",
-     "doc": "Same as within2D but includes the height term.",
-     "tier": "core"
+     "doc": "Tests whether two world points are within r of each other in full 3D, height included. Built on the squared distance, so there is no square root in the hot path.",
+     "src": "01_math.lua:157",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Math.wrap",
@@ -1899,32 +2148,44 @@
     {
      "path": "Ess.Net.Get",
      "sig": "Ess.Net.Get(key)",
-     "doc": "Shortcut for reading from Shared(\"_\"), the default namespace \u2014 returns the current synced value for key.",
-     "tier": "core"
+     "doc": "Reads a synced value from the default \"_\" namespace - the partner to Ess.Net.Set.",
+     "src": "71_net_wire.lua:173",
+     "tier": "core",
+     "ret": "The value, or nil when the key has never been set."
     },
     {
      "path": "Ess.Net.IsAuthority",
      "sig": "Ess.Net.IsAuthority()",
-     "doc": "Answers \"should I run the sim?\": unconditionally true in single-player, and true in co-op only for the host. Folds single-player into the host check that IsHost() alone doesn't cover.",
-     "tier": "core"
+     "doc": "Whether this machine owns the simulation: true in single-player, and true on the co-op host. The check to gate spawning, scoring and mission logic on so it runs exactly once across the session.",
+     "src": "71_net_wire.lua:151",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Net.IsCoop",
      "sig": "Ess.Net.IsCoop()",
-     "doc": "Returns true if currently in a live co-op session.",
-     "tier": "core"
+     "doc": "Whether a live co-op session is running right now.",
+     "gotcha": "The underlying engine flag comes back as a boolean on some paths and as 1/0 on others; the wrapper normalizes both, which is exactly why you should not read the native directly.",
+     "src": "71_net_wire.lua:149",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Net.IsHost",
      "sig": "Ess.Net.IsHost()",
-     "doc": "True only on the host/authority in co-op. Alone it is false in single-player, since the native Net.IsServer() reads falsy when there's no server role to hold with nobody else connected \u2014 use IsAuthority() if you want single-player included.",
-     "tier": "core"
+     "doc": "Whether this machine is the host of a live co-op session.",
+     "gotcha": "FALSE in single-player, because it requires a co-op session first. For the \"should I run the simulation\" question use Ess.Net.IsAuthority, which also answers true for solo play.",
+     "src": "71_net_wire.lua:150",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Net.Me",
      "sig": "Ess.Net.Me()",
-     "doc": "Returns this machine's player id (0 or 1).",
-     "tier": "core"
+     "doc": "This machine's own player id in the session, used as the `sender` value on every received message.",
+     "src": "71_net_wire.lua:148",
+     "tier": "core",
+     "ret": "0 or 1."
     },
     {
      "path": "Ess.Net.On",
@@ -1935,7 +2196,9 @@
     {
      "path": "Ess.Net.OnRaw",
      "sig": "Ess.Net.OnRaw(name, fn)",
-     "doc": "Registers a raw receiver for channel ch, bypassing serialization entirely \u2014 receives plain number arrays. Must be paired with SendRaw on the sending side, since Send/On and SendRaw/OnRaw are separate registration pairs per channel.",
+     "doc": "Registers a receiver for a raw numeric channel: fn(sender, nums) fires with the peer's player id and the number array exactly as it was sent, with no serialization in between. Pair it with Ess.Net.SendRaw on the same channel name.",
+     "gotcha": "One handler per channel - registering the same name again REPLACES the previous handler rather than adding to a list. Channel names are hashed to 16 bits, so two different names can in principle collide onto the same channel.",
+     "src": "71_net_wire.lua:142",
      "tier": "core"
     },
     {
@@ -1947,42 +2210,59 @@
     {
      "path": "Ess.Net.SendRaw",
      "sig": "Ess.Net.SendRaw(name, nums, reliable)",
-     "doc": "Sends a plain number array on channel ch, bypassing serialization entirely. Must be paired with OnRaw on the receiving side \u2014 Send/On and SendRaw/OnRaw are separate pairs per channel.",
+     "doc": "Sends an array of plain numbers on a channel to the co-op peer, skipping serialization entirely - the expert path when you already have numeric data and want the smallest possible packet. Pass reliable=false for fire-and-forget.",
+     "gotcha": "In co-op nothing goes out until the peer's ready handshake has completed: the send is silently DROPPED, not queued. Numbers must be 24-bit safe, and a payload larger than the per-packet slots is split into several packets and reassembled on the far side.",
+     "src": "71_net_wire.lua:144",
      "tier": "core"
     },
     {
      "path": "Ess.Net.Set",
      "sig": "Ess.Net.Set(key, value)",
-     "doc": "Shortcut for writing into Shared(\"_\"), the default namespace \u2014 sets key to value and broadcasts it.",
+     "doc": "Writes a synced value in the default \"_\" namespace - the shorthand for Ess.Net.setv when you only need one shared bucket.",
+     "gotcha": "Broadcasts on every call, exactly like Ess.Net.setv.",
+     "src": "71_net_wire.lua:172",
      "tier": "core"
     },
     {
      "path": "Ess.Net.Shared",
      "sig": "Ess.Net.Shared(ns)",
-     "doc": "Returns a table whose fields are wired via __index/__newindex to the internal synced-state store (last-writer-wins) \u2014 reading or writing a field directly reads or writes synced network state, with no explicit send/receive call needed.",
-     "tier": "core"
+     "doc": "Returns a plain-looking table for a namespace whose reads and writes route through the synced store: `S.score = 100` broadcasts, and reading S.score on either machine returns the latest value. The simplest layer of Ess.Net - no channels, no callbacks.",
+     "gotcha": "It is a proxy with no real contents, so pairs, ipairs and # all see an empty table. Values are stored at write time, so mutating a nested table in place never syncs - reassign the whole field instead.",
+     "src": "71_net_wire.lua:166",
+     "tier": "core",
+     "ret": "A proxy table backed by the synced store."
     },
     {
      "path": "Ess.Net.Track",
      "sig": "Ess.Net.Track(key, getter, ns)",
-     "doc": "Polls getter() once per heartbeat (Ess.Net.HB, default 2s) and broadcasts only when the return value actually changed since the last check. Idempotent: calling it again with the same (ns, key) replaces the getter in place instead of adding a duplicate watcher, so it's safe to call again on a reload.",
+     "doc": "Registers a local value to be polled and pushed to the peer on the heartbeat: getter() is called every Ess.Net.HB seconds and the result synced under `key` in namespace `ns` (default \"_\"). The right tool for a value that changes constantly, such as health, where broadcasting each change would flood the wire.",
+     "gotcha": "Idempotent - calling again with the same ns and key just swaps the getter, which is what makes it safe to re-run on a reload. There is no untrack: once registered, a key stays on the watch list for the rest of the session.",
+     "src": "71_net_wire.lua:174",
      "tier": "core"
     },
     {
      "path": "Ess.Net.getv",
      "sig": "Ess.Net.getv(ns, key)",
-     "tier": "core"
+     "doc": "Reads the current synced value for a key in a namespace, whether it was set locally or arrived from the peer.",
+     "src": "71_net_wire.lua:165",
+     "tier": "core",
+     "ret": "The value, or nil when that namespace/key has never been set."
     },
     {
      "path": "Ess.Net.hijackCallback",
      "sig": "Ess.Net.hijackCallback(moduleTable, name, isMinePredicate, onMine)",
-     "doc": "Generalized, collision-proof hijack of an always-resident native callback (e.g. MrxFactionManager.NetEventCallback) that's shared with the game's own traffic on the same event id. isMinePredicate(...) is called with the callback's own arguments to check a marker; if true, onMine(...) runs pcall-guarded and the original is NOT called for that packet, otherwise the original passes through untouched. Built on Ess.Override.wrap and never tail-calls the original in either branch.",
+     "doc": "Wraps an existing engine callback so your handler claims only the calls it recognises: isMinePredicate(...) decides, onMine(...) handles those, and everything else falls through to the original untouched. This is the generalized recipe Ess.Net's own wire protocol uses to share the game's faction-event channel without breaking the game's own traffic.",
+     "gotcha": "Both callbacks run inside pcall and their errors are swallowed, so a throwing predicate is treated as \"not mine\" and quietly hands the call on. Only the first four return values of the original are forwarded.",
+     "src": "70_net.lua:36",
      "tier": "core",
-     "ret": "ok"
+     "ret": "Whatever Ess.Override.wrap returns - false when the target is not a table, the named field is not a function, or it is already Ess-wrapped."
     },
     {
      "path": "Ess.Net.setv",
      "sig": "Ess.Net.setv(ns, key, value)",
+     "doc": "Writes a value into a synced namespace, bumps its version number and immediately broadcasts it to the peer. Conflicts resolve last-writer-wins by version.",
+     "gotcha": "Every single write sends a packet, so do not call it on a per-frame tick - use Ess.Net.Track for a value that changes constantly. Keys written by both machines converge unpredictably; keep each key single-writer or host-authoritative.",
+     "src": "71_net_wire.lua:159",
      "tier": "core"
     }
    ]
@@ -1995,15 +2275,19 @@
     {
      "path": "Ess.Object.addLabel",
      "sig": "Ess.Object.addLabel(uGuid, sLabel)",
-     "doc": "Adds a free-form string label tag to an object.",
+     "doc": "Attaches a text label to an object. Labels are the engine's own free-form tagging mechanism - a way to stamp \"mine\" on a spawned unit so later code can recognise it.",
+     "gotcha": "Silent on failure, and nothing is returned.",
+     "src": "11_object.lua:244",
      "tier": "core"
     },
     {
      "path": "Ess.Object.alive",
      "sig": "Ess.Object.alive(uGuid)",
-     "doc": "Wraps Object.IsAlive, truthy()-coerced so an engine 0/1 return can't fool a naive Lua truthiness check.",
+     "doc": "Whether an object is still alive - the check to poll for \"has the target died yet\".",
+     "gotcha": "false covers both \"dead\" and \"the engine call failed\", so it cannot distinguish a corpse from a bad guid. Combine with Ess.Object.valid when you need to tell them apart. The native returns 1/0 here rather than a boolean; the wrapper normalizes it.",
+     "src": "11_object.lua:218",
      "tier": "core",
-     "ret": "bool / .valid(uGuid) -> bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.Object.damage",
@@ -2015,6 +2299,9 @@
     {
      "path": "Ess.Object.disablePhysics",
      "sig": "Ess.Object.disablePhysics(uGuid)",
+     "doc": "Freezes one object out of the physics simulation - useful for pinning a prop in place for a cutscene or stopping a spawned vehicle from rolling away.",
+     "gotcha": "Silent on failure, and nothing is returned.",
+     "src": "11_object.lua:266",
      "tier": "core"
     },
     {
@@ -2034,6 +2321,9 @@
     {
      "path": "Ess.Object.enablePhysics",
      "sig": "Ess.Object.enablePhysics(uGuid)",
+     "doc": "Turns the engine's physics simulation back on for one object, so it falls, collides and reacts to impulses again.",
+     "gotcha": "Silent on failure, and nothing is returned.",
+     "src": "11_object.lua:265",
      "tier": "core"
     },
     {
@@ -2130,13 +2420,17 @@
     {
      "path": "Ess.Object.remove",
      "sig": "Ess.Object.remove(uGuid)",
-     "doc": "Deletes the object outright, as opposed to kill, which destroys it but leaves a corpse/wreck.",
+     "doc": "Deletes an object from the world outright - the counterpart to Ess.Object.spawn, and how mission cleanup gets rid of everything it spawned.",
+     "gotcha": "Nothing is returned, and removing an already-gone guid is a silent no-op, which is what makes double cleanup safe.",
+     "src": "11_object.lua:213",
      "tier": "core"
     },
     {
      "path": "Ess.Object.removeLabel",
      "sig": "Ess.Object.removeLabel(uGuid, sLabel)",
-     "doc": "Removes a free-form string label tag from an object.",
+     "doc": "Strips a previously attached text label from an object. The suffix to Ess.Object.addLabel.",
+     "gotcha": "Silent on failure, and removing a label that was never there is indistinguishable from success.",
+     "src": "11_object.lua:245",
      "tier": "core"
     },
     {
@@ -2148,6 +2442,9 @@
     {
      "path": "Ess.Object.setHealth",
      "sig": "Ess.Object.setHealth(uGuid, n)",
+     "doc": "Sets an object's health outright, without any damage event. Use it to top a unit back up or to soften something before a scripted kill.",
+     "gotcha": "Silent on failure - an invalid guid is a no-op with no return value to check.",
+     "src": "11_object.lua:179",
      "tier": "core"
     },
     {
@@ -2165,13 +2462,17 @@
     {
      "path": "Ess.Object.setVisible",
      "sig": "Ess.Object.setVisible(uGuid, bOn)",
-     "doc": "Sets object visibility via Object.IsVisible's setter counterpart.",
+     "doc": "Shows or hides an object's model without removing it from the world - the object still exists, collides and can be scripted. Anything truthy is coerced to a real boolean before the call.",
+     "gotcha": "Silent on failure, and nothing is returned.",
+     "src": "11_object.lua:236",
      "tier": "core"
     },
     {
      "path": "Ess.Object.setYaw",
      "sig": "Ess.Object.setYaw(uGuid, n)",
-     "doc": "Sets an object's yaw. Whether the unit is degrees or radians is unconfirmed on this engine \u2014 a read-modify-write cycle using Object.yaw() stays self-consistent regardless.",
+     "doc": "Turns an object to face a compass bearing in degrees. Pair it with Ess.Math.angleTo to aim one object at another.",
+     "gotcha": "Returns nothing and never reports failure - a dead or invalid guid just does nothing. Turn Ess.DEBUG on to hear about the swallowed error.",
+     "src": "11_object.lua:153",
      "tier": "core"
     },
     {
@@ -2190,21 +2491,29 @@
     {
      "path": "Ess.Object.spawn",
      "sig": "Ess.Object.spawn(sTemplate, x, y, z, yaw)",
-     "doc": "Spawns via Pg.Spawn. Refuses a blank/whitespace template outright (logs and returns nil, since a blank template would otherwise hard-crash the engine past pcall's ability to catch it). Sets yaw after spawn if given.",
+     "doc": "Creates a new object from a template name at a world position, optionally turned to face `yaw`. The one CREATE verb in Ess.Object - everything else in the namespace drives an object that already exists.",
+     "gotcha": "A blank or whitespace-only template hard-CRASHES the engine and pcall cannot catch a native crash, which is why the string is validated before the call rather than wrapped in one. Never route around this wrapper by calling Pg.Spawn directly with an unvalidated name.",
+     "src": "11_object.lua:353",
      "tier": "core",
-     "ret": "uGuid | nil"
+     "ret": "The new object's guid, or nil when the template was blank or the spawn failed (both cases log)."
     },
     {
      "path": "Ess.Object.spawnAhead",
      "sig": "Ess.Object.spawnAhead(sTemplate, nDist, nHeight, i, tOpts)",
      "doc": "Spawns sTemplate nDist units (default 18) in front of player i (default local), nHeight units up (default 0 \u2014 raise it for aircraft/a midair drop), facing the same way the player faces. Hides the yaw-to-sin/cos trig via Ess.Math.pointAhead.",
+     "gotcha": "\"In front of me\" means in front of the BODY, because Object.GetYaw on a character is chest orientation, not view direction -- stand still, swing the mouse, and the spawn still lands where your torso points. Pass tOpts.useView = true for view-relative placement.",
+     "src": "mercs2-lua-essentials/src/01_math.lua; mercs2-lua-essentials/src/11_object.lua",
      "tier": "core",
      "ret": "uGuid | nil"
     },
     {
      "path": "Ess.Object.speed",
      "sig": "Ess.Object.speed(uGuid)",
-     "tier": "core"
+     "doc": "How fast an object is currently moving, as a single scalar. One native call plus a square root.",
+     "gotcha": "For a plain threshold test (\"is it moving faster than X\") use Ess.Object.speedSq against X*X instead - it skips the square root.",
+     "src": "11_object.lua:303",
+     "tier": "core",
+     "ret": "The speed, or nil when the velocity could not be read (dead or invalid guid)."
     },
     {
      "path": "Ess.Object.speedSq",
@@ -2215,8 +2524,11 @@
     {
      "path": "Ess.Object.valid",
      "sig": "Ess.Object.valid(uGuid)",
-     "doc": "Wraps Object.IsValid, truthy()-coerced so an engine 0/1 return can't fool a naive Lua truthiness check.",
-     "tier": "core"
+     "doc": "Whether a guid still refers to a real object at all. Broader than Ess.Object.alive - a corpse is still a valid object.",
+     "gotcha": "As with alive, a false can also mean the engine call itself threw. The native returns 1/0 and the wrapper normalizes it.",
+     "src": "11_object.lua:222",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Object.vehicleOf",
@@ -2256,8 +2568,11 @@
     {
      "path": "Ess.Objective.new",
      "sig": "Ess.Objective.new(opts)",
-     "doc": "Creates a counted goal that paints \"label   count/target\" on the HUD (bare label if target<=1), advances via :advance()/:set(), and fires onComplete (via pcall) once count reaches target. Options include label, target (floored at 1), slot, show, onProgress/onFail callbacks, and a stable id that makes construction reload-safe by silently cancelling any prior instance with the same id.",
-     "tier": "core"
+     "doc": "Creates a counted goal that renders on the HUD objective line as \"Collect intel   3/5\" and fires onComplete once the count reaches the target. The middle ground between a bare Ess.Hud.objective text line and a whole Ess.Contract. opts takes id, label, target (default 1), slot (default 1), show, onComplete, onProgress and onFail.",
+     "gotcha": "Passing an `id` that is already live silently CANCELS the previous objective under that id. That is what makes an OnKey script safe to re-run, but it also means two unrelated goals must never share an id.",
+     "src": "59_objective.lua:70",
+     "tier": "core",
+     "ret": "The objective object: :advance(n), :set(n), :progress() -> count, target, :isDone(), :label(s), :complete(), :fail(), :cancel()."
     }
    ]
   },
@@ -2338,6 +2653,8 @@
      "path": "Ess.Override.wrap",
      "sig": "Ess.Override.wrap(target, name, newFn)",
      "doc": "Replaces target[name] with newFn in a crash-proof way, avoiding the tail-call bug that breaks the engine's getfenv-based module system. newFn is called as newFn(callOriginal, ...), where callOriginal is a closure that safely invokes the real original \u2014 newFn never touches the original function directly. Refuses (logs + returns false) if target isn't a table, target[name] isn't a function, or that target/name pair has already been wrapped.",
+     "gotcha": "NEVER write `return fOriginal(...)` in a wrapper -- that compiles to a Lua TAIL CALL, and this engine's getfenv(n)-based module system throws \"no function environment for tail call at level 2\" from deep inside the ENGINE's own code, not your mod. Capture the original, call it as a plain statement, return its results on a separate line; this wrapper makes the crashing shape structurally unavailable.",
+     "src": "mercs2-lua-essentials/src/90_override.lua; wiki/deep-dives/custom-contract.md",
      "tier": "core",
      "ret": "ok"
     }
@@ -2417,6 +2734,8 @@
      "path": "Ess.Player.slot",
      "sig": "Ess.Player.slot(i)",
      "doc": "Returns the player-slot guid (distinct from the character guid) that Camera.* and some Ai.* calls want. Note: unlike character(1), slot(1) returns a real, non-nil guid even in single-player, so it is NOT a valid co-op check.",
+     "gotcha": "Ess.Player.slot(1) returns a real, distinct, non-nil guid even in SINGLE-PLAYER -- do not use it as an \"are we in co-op\" check, it will false-positive. Use Ess.Player.character(1) ~= nil for that.",
+     "src": "mercs2-lua-essentials/src/10_player.lua",
      "tier": "core",
      "ret": "uPlayerGuid | nil"
     },
@@ -2436,7 +2755,11 @@
     {
      "path": "Ess.Player.viewYaw",
      "sig": "Ess.Player.viewYaw(i)",
-     "tier": "core"
+     "doc": "The bearing the player is LOOKING along, worked out from whatever the reticle is aimed at - as opposed to the chest/body yaw that Ess.Player.pose returns as its 4th value. Stand still and swing the mouse and these two diverge, so this is the one that matches what the player perceives as \"in front of me\".",
+     "gotcha": "Aiming at open sky, or at something closer than 3 units, silently falls back to the body yaw and returns false as the second value. You always get a usable yaw, so branch on that flag if the difference matters to you.",
+     "src": "10_player.lua:131",
+     "tier": "core",
+     "ret": "yaw in degrees plus a boolean that is true when the bearing came from a real reticle hit; nil, false when the player has no character."
     }
    ]
   },
@@ -2491,6 +2814,8 @@
      "path": "Ess.Probe.nearby",
      "sig": "Ess.Probe.nearby(x, y, z, radius, kind, filter, includeSelf)",
      "doc": "Collapses 11 separate \"find nearby X\" natives (Pg.FastCollectHumans/GroundVehicles/Buildings/Flying/Tanks/Helicopters) into one dispatcher, deduped by guid. kind: \"humans\" | \"vehicles\" (ground+flying) | \"buildings\" | nil/\"any\". filter: optional Object.HasLabel string. includeSelf defaults to false \u2014 the native calls have no concept of \"self\", so without this a query covering the caller's own position would otherwise return the local player's own character(s) indistinguishably.",
+     "gotcha": "An unrecognized `kind` string does NOT error -- it silently falls through to the \"any\" default. A confirmed incident: a typo'd kind plus a radius covering the caller returned only the player's own guid, and a destructive call on that result killed the player. Self-exclusion is on by default here for exactly that reason.",
+     "src": "mercs2-lua-essentials/src/13_probe.lua",
      "tier": "core",
      "ret": "{ uGuid, ... }"
     },
@@ -2512,6 +2837,8 @@
      "path": "Ess.Pursuit.capLevel",
      "sig": "Ess.Pursuit.capLevel(nLevel)",
      "doc": "\u26a0 ONE-WAY RATCHET DOWN for the whole session -- see below",
+     "gotcha": "A SESSION-LENGTH COMMITMENT, not a tunable: Pg.SetMaxPursuitLevel is a one-way ratchet down and nothing raises the ceiling back up -- only a save-load or restart resets it. This logs a loud warning on every call for that reason.",
+     "src": "mercs2-lua-essentials/src/17_pursuit.lua",
      "tier": "core",
      "ret": "ok"
     },
@@ -2561,6 +2888,8 @@
      "path": "Ess.Pursuit.restrictAll",
      "sig": "Ess.Pursuit.restrictAll(bOn)",
      "doc": "gate ORGANIC heat buildup on/off (all factions)",
+     "gotcha": "Gates ORGANIC AI escalation only -- it does not clear an active pursuit and does not block a scripted .start(), despite the name. Ess.Pursuit.clear() is the only off switch for a live chase.",
+     "src": "mercs2-lua-essentials/src/17_pursuit.lua",
      "tier": "core",
      "ret": "ok"
     },
@@ -2582,6 +2911,8 @@
      "path": "Ess.Pursuit.start",
      "sig": "Ess.Pursuit.start(faction, nLevel)",
      "doc": "START a pursuit (real countdown seeded, ~400s at level 3). `faction` = \"VZ\"/\"Allied\"/\"OC\"/... name or a faction guid. NOTE: starting a pursuit alone spawns nothing to chase you -- PlayerState stays \"Stopped\" until faction units actually engage.",
+     "gotcha": "Starting a pursuit spawns NOTHING to chase you -- PlayerState stays \"Stopped\" until faction units actually engage on their own. A real countdown is seeded (~400s at level 3), so the state reads active even while nothing is happening.",
+     "src": "mercs2-lua-essentials/src/17_pursuit.lua",
      "tier": "core",
      "ret": "ok"
     },
@@ -2602,8 +2933,11 @@
     {
      "path": "Ess.Quest.new",
      "sig": "Ess.Quest.new(opts)",
-     "doc": "Ess.Quest.new(opts) -> quest. Sequences opts.steps one at a time on the objective HUD line with no manual event wiring \u2014 steps can be bare-string or {label,target} manual goals, or auto reach/destroy/clear steps built through Ess.Easy.Objective. opts.slot only applies to manual steps; auto steps always render on HUD slot 1. Has no id option, so quests (and their internal step objectives) aren't part of the reload-safe registry.",
-     "tier": "core"
+     "doc": "Builds an ordered sequence of objectives shown one at a time on the HUD objective line, and starts the first step immediately. A step is either manual - a plain string, or { label=, target= } that you advance yourself - or auto-wiring: { reach = {x,y,z,r} }, { destroy = guid } or { clear = {x,y,z,r,faction} }, each of which completes itself off a world event and drops its own map marker. opts takes steps, slot (default 1), showCounter, onStep and onComplete.",
+     "gotcha": "Any step table that is not reach/destroy/clear falls through to a MANUAL step, so a typo in the key produces a step that silently waits forever instead of erroring. The first step starts the moment new() returns - there is no separate start call.",
+     "src": "59_objective.lua:149",
+     "tier": "core",
+     "ret": "The quest object: :advance(n), :skip(), :cancel(), :step() -> i, total, :current() -> the live Objective, :isDone()."
     }
    ]
   },
@@ -2628,6 +2962,8 @@
      "path": "Ess.RNG.new",
      "sig": "Ess.RNG.new(seed)",
      "doc": "Creates an independent RNG stream; omit seed for a time-seeded stream (via Sys.RealTime), or pass one for a reproducible sequence. Uses a ZX-Spectrum-style LCG (state = state*75 % 65537) to avoid the float-precision degeneration a Park-Miller LCG suffers on this engine's 32-bit Lua numbers.",
+     "gotcha": "Exists because this engine's lua_Number is a 32-BIT FLOAT -- integers are only exact to 2^24, so the obvious Park-Miller LCG silently degenerates and can get stuck returning the SAME value on every call (confirmed: every weighted roll in WaveDefense came out identical for a whole play session). Keep any hot integer math of your own under ~2^23 for the same reason.",
+     "src": "mercs2-lua-essentials/src/53_rng.lua",
      "tier": "core",
      "ret": "generator"
     },
@@ -2640,7 +2976,11 @@
     {
      "path": "Ess.RNG.pick",
      "sig": "Ess.RNG:pick(list, weightKey)",
-     "tier": "core"
+     "doc": "Picks one entry from a list using this generator's own deterministic stream, honouring per-entry weights read from `weightKey` (default \"w\"). Entries that are not tables count as weight 1, so a plain list of guids or strings is picked from uniformly. Called as a method on an RNG instance.",
+     "gotcha": "A list whose weights total zero or less quietly returns the FIRST entry instead of failing or picking randomly - an all-zero weight table is not an error.",
+     "src": "53_rng.lua:77",
+     "tier": "core",
+     "ret": "The chosen entry."
     },
     {
      "path": "Ess.RNG.pickN",
@@ -2690,8 +3030,11 @@
     {
      "path": "Ess.Raw.AIOrders.pri",
      "sig": "Ess.Raw.AIOrders.pri(p)",
+     "doc": "Normalises a friendly priority word into the engine's own string constant: \"hi\"/\"high\" become \"HiPri\", \"med\"/\"medium\" become \"MedPri\", \"lo\"/\"low\" become \"LoPri\". Case-insensitive.",
+     "gotcha": "Anything unrecognised - including nil and a typo - falls back to \"HiPri\", so a misspelled priority silently becomes the highest one rather than erroring.",
+     "src": "60_aiorders_raw.lua:17",
      "tier": "raw",
-     "ret": "\"HiPri\"|\"MedPri\"|\"LoPri\""
+     "ret": "One of \"HiPri\", \"MedPri\" or \"LoPri\"."
     },
     {
      "path": "Ess.Raw.AIOrders.priorityTarget",
@@ -2734,7 +3077,9 @@
     {
      "path": "Ess.Raw.Mark.haltPulse",
      "sig": "Ess.Raw.Mark.haltPulse(uGuid)",
-     "doc": "Stops a pulsing marker via Marker.HaltPulse(uGuid); takes the object's guid directly, same rule as pulse.",
+     "doc": "Stops the colour pulse started by Ess.Raw.Mark.pulse on an object's existing marker.",
+     "gotcha": "Takes the OBJECT's own guid, not a marker handle - the pulse pair is the odd one out in this file. Returns nothing and fails silently.",
+     "src": "31_mark_raw.lua:88",
      "tier": "raw"
     },
     {
@@ -2760,16 +3105,25 @@
     {
      "path": "Ess.Raw.Mark.removePda",
      "sig": "Ess.Raw.Mark.removePda(sName)",
+     "doc": "Removes a PDA map blip using the NAME that Ess.Raw.Mark.pda returned - like the radar surface, the PDA removes by name. A nil name is a silent no-op.",
+     "gotcha": "Returns nothing and swallows any failure.",
+     "src": "31_mark_raw.lua:51",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Mark.removeRadar",
      "sig": "Ess.Raw.Mark.removeRadar(sName)",
+     "doc": "Removes a radar objective marker using the NAME that Ess.Raw.Mark.radar returned - the radar API removes by name, not by handle. A nil name is a silent no-op.",
+     "gotcha": "Returns nothing, and a name that was never registered fails silently inside the pcall.",
+     "src": "31_mark_raw.lua:39",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Mark.removeWorld",
      "sig": "Ess.Raw.Mark.removeWorld(handle)",
+     "doc": "Removes a floating in-world icon using the handle Ess.Raw.Mark.world returned.",
+     "gotcha": "This one takes a HANDLE, unlike its radar and PDA siblings which take a name string. Passing the wrong kind is a silent no-op.",
+     "src": "31_mark_raw.lua:67",
      "tier": "raw"
     },
     {
@@ -2809,8 +3163,11 @@
     {
      "path": "Ess.Raw.Relations.set",
      "sig": "Ess.Raw.Relations.set(ga, gb, val)",
+     "doc": "Sets faction ga's raw numeric stance toward faction gb, taking faction guids rather than names.",
+     "gotcha": "One-directional. A mutual stance needs both (ga,gb) and (gb,ga) set, which is what Ess.Relations.apply does for you - setting only one side leaves the other faction still friendly.",
+     "src": "61_relations_raw.lua:23",
      "tier": "raw",
-     "ret": "ok"
+     "ret": "true when the native call went through, false when it threw."
     },
     {
      "path": "Ess.Raw.Relations.snapshot",
@@ -2835,11 +3192,17 @@
     {
      "path": "Ess.Raw.Sandbox.register",
      "sig": "Ess.Raw.Sandbox.register(name, provider)",
+     "doc": "Registers a custom sandbox provider under a name so Ess.Sandbox.begin can list it. A provider is a table with apply(id, opts) and restore(id) - write one for any state not covered by the built-in layers/economy/supports/relations set.",
+     "gotcha": "Registering an existing name replaces the old provider outright, with no warning and no return value.",
+     "src": "63_sandbox_raw.lua:14",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Sandbox.ungateSaves",
      "sig": "Ess.Raw.Sandbox.ungateSaves()",
+     "doc": "Releases the Raw tier's own save-gate holder so the game can write savegames again. The partner to Ess.Raw.Sandbox.gateSaves, for a provider author gating saves by hand without the full Sandbox lifecycle.",
+     "gotcha": "Uses one fixed holder key shared by every Raw-tier caller, so two hand-rolled gates will release each other. Saves stay blocked while ANY other holder (a live Ess.Sandbox or Ess.Layers mode) is still gating.",
+     "src": "63_sandbox_raw.lua:30",
      "tier": "raw"
     }
    ]
@@ -2867,6 +3230,8 @@
      "path": "Ess.Relations.apply",
      "sig": "Ess.Relations.apply(pairsList, label)",
      "doc": "Applies a list of faction-pair stances, setting both directions (a to b and b to a) to the same value and snapshotting both first. When one side is \"PMC\", also calls MrxFactionManager.SetAttitudeMutable on the other faction so its attitude can actually change. Returns an opaque handle; unresolvable faction names are logged and skipped rather than erroring.",
+     "gotcha": "Handle-based on purpose: an earlier id-keyed version had two callers reusing a generic id like \"combat\" restore or overwrite each other's snapshot. Hold the returned handle until you restore -- there is deliberately no global \"restore everything\".",
+     "src": "mercs2-lua-essentials/src/61_relations.lua",
      "tier": "core",
      "ret": "handle"
     },
@@ -2887,9 +3252,10 @@
     {
      "path": "Ess.Relations.isActive",
      "sig": "Ess.Relations.isActive(h)",
-     "doc": "Reports whether a handle from apply() hasn't been restored yet.",
+     "doc": "Whether a handle returned by Ess.Relations.apply is still in force, meaning its faction stance changes have not yet been rolled back.",
+     "src": "61_relations.lua:89",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false - and false for anything that is not a handle table at all."
     },
     {
      "path": "Ess.Relations.restore",
@@ -2900,13 +3266,18 @@
     {
      "path": "Ess.Relations.setFeeling",
      "sig": "Ess.Relations.setFeeling(uGuidA, uGuidB, n)",
-     "doc": "Wraps Ai.SetFeeling for an individual-pair relationship value. Used e.g. to neutralize hostility on one specific subject before starting a scripted \"Follow\" role, without touching that subject's whole faction stance.",
+     "doc": "Sets how one INDIVIDUAL unit feels about another, a per-pair value distinct from the per-faction stance that Ess.Relations.apply works with. The real use is neutralising hostility toward one specific subject - setFeeling(unit, target, 100) - without touching that subject's whole faction, which is exactly what a scripted follow or escort needs.",
+     "gotcha": "Silent on failure and returns nothing. Do not confuse it with the faction-wide relation: changing a feeling leaves the faction stance untouched, and vice versa.",
+     "src": "61_relations.lua:109",
      "tier": "core"
     },
     {
      "path": "Ess.Relations.setPerceivability",
      "sig": "Ess.Relations.setPerceivability(uGuid, n)",
-     "tier": "core"
+     "doc": "Sets how readily AI notices an object - the dial for making a unit harder or easier to spot.",
+     "src": "61_relations.lua:127",
+     "tier": "core",
+     "ret": "true when the native call went through, false when it threw."
     }
    ]
   },
@@ -2933,6 +3304,8 @@
      "path": "Ess.Safe.quiet",
      "sig": "Ess.Safe.quiet(fn, ...)",
      "doc": "Same shape as Ess.Safe.call but never logs \u2014 for calls expected to fail sometimes as part of normal control flow (e.g. probing whether an object has a label), where logging every failure would just be noise.",
+     "gotcha": "This wrapper's whole job is to FAIL SILENTLY -- a stale guid or a nil argument produces no log line, no error and no effect. When a mod \"isn't doing anything\", set Ess.DEBUG = true first; that's what surfaces everything Ess quietly gave up on.",
+     "src": "mercs2-lua-essentials/src/00_core.lua",
      "tier": "core",
      "ret": "ok, a..f"
     },
@@ -2940,6 +3313,8 @@
      "path": "Ess.Safe.reject",
      "sig": "Ess.Safe.reject()",
      "doc": "record a GUARD rejection (the engine was never called)",
+     "gotcha": "Records the OTHER kind of silence: a GUARD REJECTION, where Ess inspected the arguments and returned early WITHOUT ever calling the engine -- no throw for a pcall to catch, no log line, no effect. This is the common failure channel in practice, so a diagnostic built only on caught errors is quiet exactly when you need it; set Ess.DEBUG = true to surface both.",
+     "src": "mercs2-lua-essentials/src/00_core.lua",
      "tier": "core",
      "ret": "nil"
     },
@@ -2993,8 +3368,10 @@
     {
      "path": "Ess.Sandbox.isActive",
      "sig": "Ess.Sandbox.isActive(id)",
+     "doc": "Whether a sandbox is currently open under that id. Worth checking before Ess.Sandbox.begin, which refuses a duplicate id.",
+     "src": "63_sandbox.lua:190",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false."
     }
    ]
   },
@@ -3007,6 +3384,8 @@
      "path": "Ess.Save.gate",
      "sig": "Ess.Save.gate(sHolderKey)",
      "doc": "Adds a holder that suppresses savegames/autosaves while at least one holder is active; sHolderKey defaults to \"default\" if omitted. Idempotent per key \u2014 gating twice with the same key is one holder, needing only one matching ungate() to clear.",
+     "gotcha": "Exists because two independent things both owning Pg.SaveGame is a confirmed real hazard -- one system's restore discarded another's freshly installed wrap and left its save-gate permanently ineffective for the session. Never stash-and-swap Pg.SaveGame yourself; hold this gate instead.",
+     "src": "mercs2-lua-essentials/src/24_save.lua",
      "tier": "core"
     },
     {
@@ -3045,23 +3424,32 @@
     {
      "path": "Ess.SaveVar.get",
      "sig": "Ess.SaveVar:get(key, default)",
-     "tier": "core"
+     "doc": "Reads a value previously written through this namespace, falling back to `default` when the key has never been set.",
+     "src": "22_state.lua:48",
+     "tier": "core",
+     "ret": "The stored value, or `default` when nothing is stored."
     },
     {
      "path": "Ess.SaveVar.ns",
      "sig": "Ess.SaveVar.ns(prefix)",
-     "doc": "Every key gets stored as <prefix>_<key>, so two mods' saved values can never collide.",
+     "doc": "Creates a namespaced handle over the engine's flat save store (Loader.SaveVar/LoadVar). Every key you read or write through it is prefixed with `<prefix>_`, so two mods can use the same key name without colliding.",
+     "src": "22_state.lua:44",
      "tier": "core",
-     "ret": "ns object: ns:get(key,default) / ns:set(key,val) / ns:flag(key) / ns:setFlag(key,bOn)"
+     "ret": "A namespace object supporting :get(key, default), :set(key, value), :flag(key) and :setFlag(key, bOn)."
     },
     {
      "path": "Ess.SaveVar.set",
      "sig": "Ess.SaveVar:set(key, value)",
+     "doc": "Writes a value under this namespace's prefix. The store persists across full game restarts (it lives in lua_loader_data.ini), unlike Ess.State which only survives a script re-run.",
+     "gotcha": "The underlying store only holds numbers, strings and booleans - a table will not survive the round trip.",
+     "src": "22_state.lua:54",
      "tier": "core"
     },
     {
      "path": "Ess.SaveVar.setFlag",
      "sig": "Ess.SaveVar:setFlag(key, bOn)",
+     "doc": "Stores a key as a real boolean, coercing anything truthy to true. The write half of the persistent unlock-flag idiom, with :flag(key) as the read.",
+     "src": "22_state.lua:63",
      "tier": "core"
     }
    ]
@@ -3074,9 +3462,11 @@
     {
      "path": "Ess.ScrollLog.new",
      "sig": "Ess.ScrollLog.new(name, x, y, w, h)",
-     "doc": "Creates a scrolling text buffer keyed by name \u2014 calling again with the same name returns the same existing instance instead of a colliding duplicate box. x/y/w/h default 20, 150, 340, 220.",
+     "doc": "Builds a scrolling message box out of the game's own text-buffer widget - the \"stream of log lines on screen\" panel, with no .gfx asset needed. The returned object offers :add(msg, duration), :setVisible(bOn) and :clearAll().",
+     "gotcha": "`name` is a reuse key: calling again with the same name hands back the SAME instance instead of building a second overlapping box, so two unrelated callers must not share a name. The box starts hidden and the first :add is what makes it visible.",
+     "src": "41_scrolllog.lua:42",
      "tier": "core",
-     "ret": "scrollLog | nil"
+     "ret": "The scroll-log object, or nil when the engine's text-buffer initializer could not be found (logged)."
     }
    ]
   },
@@ -3184,8 +3574,10 @@
     {
      "path": "Ess.Squad.roleOf",
      "sig": "Ess.Squad.roleOf(guid)",
+     "doc": "The role string a unit was tagged with by Ess.Squad.assignRole. Ess.Squad.Tactics.mountUp reads this to board anyone marked \"driver\" first, before a passenger call can claim the wheel.",
+     "src": "67_squad.lua:93",
      "tier": "core",
-     "ret": "roleType|nil"
+     "ret": "The role string, or nil when the unit has no role."
     },
     {
      "path": "Ess.Squad.setFormation",
@@ -3266,8 +3658,11 @@
     {
      "path": "Ess.Str.endsWith",
      "sig": "Ess.Str.endsWith(s, suffix)",
-     "doc": "Literal suffix test; an empty suffix always matches.",
-     "tier": "core"
+     "doc": "Tests whether a string finishes with a given suffix. Both arguments are pushed through tostring first, so a number works as either side.",
+     "gotcha": "An empty suffix always returns true.",
+     "src": "02_str.lua:36",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Str.join",
@@ -3293,8 +3688,11 @@
     {
      "path": "Ess.Str.padRight",
      "sig": "Ess.Str.padRight(s, width, ch)",
-     "doc": "Same as padLeft, but pads on the right.",
-     "tier": "core"
+     "doc": "Pads a string on the RIGHT with a fill character (default a space) until it reaches `width` - the left-aligned half of a fixed-column HUD or log layout.",
+     "gotcha": "Only the first character of `ch` is used, and nothing is ever truncated - an over-long string comes back at full length and will break your column alignment.",
+     "src": "02_str.lua:95",
+     "tier": "core",
+     "ret": "The padded string, or the original unchanged when it is already at or over width."
     },
     {
      "path": "Ess.Str.split",
@@ -3327,9 +3725,11 @@
     {
      "path": "Ess.Str.truncate",
      "sig": "Ess.Str.truncate(s, n, ellipsis)",
-     "doc": "Clips to n characters, appending \"...\" (or a custom ellipsis) only if it actually had to clip.",
+     "doc": "Shortens a string to at most n characters, ending it with an ellipsis (default \"...\") that counts toward the limit. For fitting arbitrary text into a fixed-width widget row.",
+     "gotcha": "When n is no larger than the ellipsis itself, the ellipsis is dropped and you get a hard cut to n characters with no visual hint that anything was removed.",
+     "src": "02_str.lua:118",
      "tier": "core",
-     "ret": "s clip to n chars, appending \"...\" (or your ellipsis) if clipped"
+     "ret": "The shortened string, or the original when it already fits within n."
     }
    ]
   },
@@ -3385,50 +3785,68 @@
      "path": "Ess.Table.compact",
      "sig": "Ess.Table.compact(t)",
      "doc": "Rebuilds a numeric array densely, mutating t in place (and returning it). Fixes the real bug where t[#t] = nil leaves a nil hole that desyncs #/ipairs/table.insert; non-numeric keys are left untouched.",
+     "gotcha": "Rebuilds a numeric array densely because a nil hole desyncs `#t` from ipairs -- ipairs stops at the first gap while # may report a larger length, so data silently disappears instead of erroring.",
+     "src": "mercs2-lua-essentials/src/00_core.lua; wiki/helpbot/pack_src/10_gotchas.md",
      "tier": "core",
      "ret": "t"
     },
     {
      "path": "Ess.Table.contains",
      "sig": "Ess.Table.contains(t, val)",
-     "doc": "Whether val is any value in t, checked via pairs (array or keyed).",
-     "tier": "core"
+     "doc": "Scans a whole table for a value equal to `val`. Uses pairs, so values stored under string keys are searched too.",
+     "src": "00_core.lua:367",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Table.copy",
      "sig": "Ess.Table.copy(t)",
-     "doc": "Shallow copy of t \u2014 nested tables are shared, not cloned.",
-     "tier": "core"
+     "doc": "Duplicates a table one level deep, copying every key from the source (pairs, so map keys come along too).",
+     "gotcha": "Shallow. Nested tables are shared with the original, not cloned, so mutating a sub-table changes both copies.",
+     "src": "00_core.lua:389",
+     "tier": "core",
+     "ret": "A new table with the same keys and values."
     },
     {
      "path": "Ess.Table.count",
      "sig": "Ess.Table.count(t)",
-     "doc": "Total number of entries via pairs \u2014 unlike #t, correct even with non-array keys or holes.",
-     "tier": "core"
+     "doc": "Counts every entry in a table, including the string keys that `#t` cannot see. Reach for it whenever a table is used as a set or a map rather than a list.",
+     "src": "00_core.lua:365",
+     "tier": "core",
+     "ret": "The number of entries."
     },
     {
      "path": "Ess.Table.filter",
      "sig": "Ess.Table.filter(t, fn)",
-     "doc": "New, densely-packed array of elements where fn(v, i) is truthy \u2014 never leaves a hole.",
-     "tier": "core"
+     "doc": "Builds a new array holding only the array elements for which fn(value, index) returns truthy.",
+     "src": "00_core.lua:380",
+     "tier": "core",
+     "ret": "A new, densely packed array - dropped elements leave no holes, so #result is always accurate."
     },
     {
      "path": "Ess.Table.find",
      "sig": "Ess.Table.find(t, fn)",
-     "doc": "First array element (and its index) where fn(v, i) is truthy.",
-     "tier": "core"
+     "doc": "Returns the first array element for which fn(value, index) is truthy, together with where it was found. Use it when you want the matching item itself rather than a yes/no.",
+     "src": "00_core.lua:385",
+     "tier": "core",
+     "ret": "value, index - or nil when nothing matches."
     },
     {
      "path": "Ess.Table.indexOf",
      "sig": "Ess.Table.indexOf(t, val)",
-     "doc": "First array index (via ipairs) whose value equals val.",
-     "tier": "core"
+     "doc": "Finds where a value sits in the array part of a table.",
+     "gotcha": "Walks only the array part (ipairs), so a value stored under a string key is never found. Use Ess.Table.contains for a whole-table search.",
+     "src": "00_core.lua:371",
+     "tier": "core",
+     "ret": "The 1-based index of the first match, or nil when the value is not there."
     },
     {
      "path": "Ess.Table.isEmpty",
      "sig": "Ess.Table.isEmpty(t)",
-     "doc": "True if next(t) == nil.",
-     "tier": "core"
+     "doc": "Reports whether a table holds nothing at all, array part or map part. Cheaper than counting because it only asks for the first key.",
+     "src": "00_core.lua:366",
+     "tier": "core",
+     "ret": "true or false."
     },
     {
      "path": "Ess.Table.keys",
@@ -3439,38 +3857,52 @@
     {
      "path": "Ess.Table.map",
      "sig": "Ess.Table.map(t, fn)",
-     "doc": "New array built by calling fn(v, i) for each array element.",
-     "tier": "core"
+     "doc": "Builds a new array by running fn(value, index) over each element of the array part and keeping the result. The source table is left untouched.",
+     "src": "00_core.lua:375",
+     "tier": "core",
+     "ret": "A new array with one entry per array element of the source."
     },
     {
      "path": "Ess.Table.merge",
      "sig": "Ess.Table.merge(dst, src)",
-     "doc": "Shallow-copies src's keys onto dst (src wins on conflicts), mutating and returning dst. src == nil is a no-op.",
-     "tier": "core"
+     "doc": "Copies src's keys onto dst, with src winning on any collision. The usual way to layer caller-supplied options over a table of defaults.",
+     "gotcha": "Mutates dst in place - the only non-pure helper in this group - and copies only one level deep. A nil src is treated as an empty table rather than an error.",
+     "src": "00_core.lua:394",
+     "tier": "core",
+     "ret": "dst itself, so the call can be chained."
     },
     {
      "path": "Ess.Table.reduce",
      "sig": "Ess.Table.reduce(t, fn, init)",
-     "doc": "Folds the array to one value: acc = fn(acc, v, i), starting from init.",
-     "tier": "core"
+     "doc": "Folds the array part down to a single value: the accumulator starts at init and becomes fn(acc, value, index) for each element. Use it to sum, find a maximum, or build a string from a list.",
+     "src": "00_core.lua:412",
+     "tier": "core",
+     "ret": "The final accumulator - or init unchanged when the array part is empty."
     },
     {
      "path": "Ess.Table.reverse",
      "sig": "Ess.Table.reverse(t)",
-     "doc": "New array with element order flipped.",
-     "tier": "core"
+     "doc": "Builds a new array with the order of the array part flipped end for end. The source is left alone.",
+     "src": "00_core.lua:407",
+     "tier": "core",
+     "ret": "A new array of the same length, reversed."
     },
     {
      "path": "Ess.Table.slice",
      "sig": "Ess.Table.slice(t, i, j)",
-     "doc": "New array of t[i..j], 1-based inclusive. i/j default to 1/#t and are clamped into range.",
-     "tier": "core"
+     "doc": "Extracts elements i through j of the array part, 1-based and inclusive, into a new array. i defaults to 1 and j to #t, and both are clamped to the real bounds.",
+     "src": "00_core.lua:398",
+     "tier": "core",
+     "ret": "A new array of the selected elements (empty if the range collapses)."
     },
     {
      "path": "Ess.Table.values",
      "sig": "Ess.Table.values(t)",
-     "doc": "Every value in t, order unspecified.",
-     "tier": "core"
+     "doc": "Collects every value in a table into a new array, walking the whole table with pairs so map-style string keys are included, not just the array part.",
+     "gotcha": "pairs has no defined order, so the result's ordering is arbitrary even when the source looked like a list.",
+     "src": "00_core.lua:364",
+     "tier": "core",
+     "ret": "A new array holding the values."
     }
    ]
   },
@@ -3482,19 +3914,25 @@
     {
      "path": "Ess.TextConsole.close",
      "sig": "Ess.TextConsole.close()",
-     "doc": "Closes the console and restores player input if lockPlayer was set. Safe to call even if not open.",
+     "doc": "Closes the text console, stops its polling loop, hides the widget and gives the player their controls back if they were locked.",
+     "gotcha": "Returns immediately when the console is not open, so calling it defensively is free.",
+     "src": "21_input.lua:257",
      "tier": "core"
     },
     {
      "path": "Ess.TextConsole.isOpen",
      "sig": "Ess.TextConsole.isOpen()",
+     "doc": "Whether the text console is currently accepting input. Use it to avoid stacking a second prompt on top of a live one.",
+     "src": "21_input.lua:269",
      "tier": "core",
-     "ret": "bool"
+     "ret": "true or false."
     },
     {
      "path": "Ess.TextConsole.open",
      "sig": "Ess.TextConsole.open(opts)",
-     "doc": "Opens a REPL-style typed-input console. opts: prompt defaults to \"> \", text (starting buffer) defaults to \"\", max defaults to 200 characters; lockPlayer defaults to true (disables player movement/actions via Player.SetInputEnabled while typing) \u2014 pass false for an overlay like a chat box that should keep gameplay running underneath.",
+     "doc": "Opens the plain text-entry console - a prompt line the player types into, needing no .gfx asset. opts takes text (initial buffer), prompt (default \"> \"), max (default 200), lockPlayer (default true) and the onSubmit / onCancel / onChange callbacks. Buffered key events are drained first so the key that opened it does not leak into the buffer.",
+     "gotcha": "Enter fires onSubmit and clears the buffer but leaves the console OPEN; only Escape or Ess.TextConsole.close actually closes it. With lockPlayer left at its default the player cannot move until then.",
+     "src": "21_input.lua:238",
      "tier": "core"
     }
    ]
@@ -3508,6 +3946,8 @@
      "path": "Ess.Time.clock",
      "sig": "Ess.Time.clock(maxDelta)",
      "doc": "Returns a clock object with a :delta() method, an auto-advancing per-frame timer. maxDelta defaults to 0.25 seconds.",
+     "gotcha": "Auto-advancing: :delta() returns the time since its OWN last :delta() call and clamps it (default 0.25s), so a long pause or hitch can't blow up per-tick math. Don't mix it with the explicit stamp/elapsed flavour -- elapsed() never advances on its own, which is what makes a cooldown check idempotent.",
+     "src": "mercs2-lua-essentials/src/23_time.lua",
      "tier": "core",
      "ret": "clock"
     },
@@ -3568,6 +4008,8 @@
      "path": "Ess.Time.stamp",
      "sig": "Ess.Time.stamp()",
      "doc": "Creates a real-world time stamp via Sys.RealTimeStamp (pcall-guarded). Keeps advancing through world-pause and slow-motion, unlike mainStamp().",
+     "gotcha": "The REAL-WORLD clock -- it survives world-pause (menus/PDA), unlike Event.TimerRelative's own delta. Use Ess.Time.mainStamp for a gameplay cooldown that should freeze with the game.",
+     "src": "mercs2-lua-essentials/src/23_time.lua",
      "tier": "core",
      "ret": "uStamp"
     }
@@ -3631,6 +4073,8 @@
      "path": "Ess.Track.new",
      "sig": "Ess.Track.new()",
      "doc": "Creates a new tracker object; each :xxx() method on it both registers a teardown for that thing and returns the value you gave it, so you can wrap a spawn/creation call inline without an extra local variable.",
+     "gotcha": "Every Add.../Remove... pair on this engine is leak-prone: the handle is only accepted by its own matching Remove call, and there is NO clear-all native for ANY of them (Event, Marker, radar/PDA blips, quality refs, disposers, context actions). Register handles here at creation time, not at teardown time.",
+     "src": "mercs2-lua-essentials/src/30_track.lua",
      "tier": "core",
      "ret": "tracker"
     },
@@ -3670,6 +4114,8 @@
      "path": "Ess.Triggers.scope",
      "sig": "Ess.Triggers.scope()",
      "doc": "Returns an isolated named-trigger/gate namespace with its own private known/fired id tables, so two independent scopes can't collide even if they reuse the same ids. Ess.Contract gives each running contract instance its own scope.",
+     "gotcha": "Named trigger ids and gate inputs cross-reference BY NAME, so a single shared registry lets two unrelated systems both using an id like \"start\" silently satisfy each other's gates. Take your own scope per independent group of triggers -- the collision is then impossible by construction.",
+     "src": "mercs2-lua-essentials/src/62_triggers.lua",
      "tier": "core",
      "ret": "scope"
     }
@@ -3683,48 +4129,72 @@
     {
      "path": "Ess.UI.Bar",
      "sig": "Ess.UI.Bar(opts)",
-     "doc": "Label-plus-progress-bar constructor. Options: x/y (default 20, 330), w/h (default 300, 36), label, value (initial 0..1, default 0).",
-     "tier": "core"
+     "doc": "Builds a labelled progress bar - health, a capture timer, a download meter. opts takes x/y/w/h, label and value.",
+     "gotcha": ":set takes a FRACTION from 0 to 1, not a percentage, and clamps - passing 50 pins the bar at full.",
+     "src": "45_ui_bar.lua:9",
+     "tier": "core",
+     "ret": "The bar object: :set(v), :label(s), plus the shared :show/:hide/:focus/:blur/:destroy."
     },
     {
      "path": "Ess.UI.Board",
      "sig": "Ess.UI.Board(opts)",
-     "doc": "Two-pane list-plus-details constructor driving contracts.gfx \u2014 the same widget Ess.Contract's own board UI (contract selection, intermission shops) is built on directly. Same options as Ess.UI.List plus detail (initial payload).",
-     "tier": "core"
+     "doc": "Builds the two-pane browse board: a scrolling item list on the left and a detail pane on the right, fed by :detail{ category, rewards, objectives, progress, progressText }. Built for contract browsing but reusable for any list-plus-details screen. opts takes x/y/w/h, title, hint, items, detail, empty, focus and the onSelect / onChoose / onBack callbacks.",
+     "gotcha": "Unlike Ess.UI.List, the selection does NOT wrap at the ends, and both :items() and :select() fire onSelect immediately as a side effect.",
+     "src": "55_ui_board.lua:15",
+     "tier": "core",
+     "ret": "The board object: :items(t), :selected() -> item, index, :select(i), :detail(d), :title(s), :hint(s), plus the shared :show/:hide/:focus/:blur/:destroy."
     },
     {
      "path": "Ess.UI.Chat",
      "sig": "Ess.UI.Chat(opts)",
-     "doc": "Scrolling message-log constructor with an optional typed input line. Options: x/y (default 20, 400), w/h (default 360, 132), title, max scrollback (default 60), onSubmit, and autoHide=seconds to auto-hide the window that many seconds after the last :push() (countdown freezes while focused and re-arms on every push); omit for the old always-visible behavior.",
-     "tier": "core"
+     "doc": "Builds the chat/log widget: a scrolling message area showing the last five wrapped lines, plus an optional typed input line. opts takes x/y/w/h, title, max (backlog, default 60), autoHide (seconds) and onSubmit.",
+     "gotcha": "opts.autoHide only starts counting after a :push, so an idle box with no messages never fades. The widget resizes itself to the number of visible lines, capped at five however large the backlog is.",
+     "src": "54_ui_chat.lua:15",
+     "tier": "core",
+     "ret": "The chat object: :push(text), :prompt(onSubmit), :clear(), :title(s), plus the shared :show/:hide/:focus/:blur/:destroy."
     },
     {
      "path": "Ess.UI.Confirm",
      "sig": "Ess.UI.Confirm(opts)",
-     "doc": "Modal yes/no dialog constructor and singleton (re-calling while open reconfigures and re-shows the same widget). Options: text, title (default \"CONFIRM\"), yes/no (default \"YES\"/\"NO\"), onResult(bool) called exactly once. Left/Right/Up/Down flip the highlighted choice, Enter commits, Esc always resolves false, and the highlight defaults to NO.",
-     "tier": "core"
+     "doc": "Shows the modal yes/no prompt and calls opts.onResult(true or false) with the answer. opts takes title, text, yes, no and onResult; focus is restored to whatever held it when the prompt resolves.",
+     "gotcha": "One shared instance serves the whole framework - opening a second Confirm overwrites the first's callback, which is then never called. The highlight starts on NO, and Escape resolves as false.",
+     "src": "47_ui_confirm.lua:10",
+     "tier": "core",
+     "ret": "The confirm widget object."
     },
     {
      "path": "Ess.UI.Focus",
      "sig": "Ess.UI.Focus(w)",
+     "doc": "Gives one widget exclusive keyboard focus. Also swallows any buffered key events (so the keypress that triggered the change does not leak into the newly focused widget) and wakes the UI heartbeat.",
+     "gotcha": "Exactly one widget hears keys at a time - focusing a new one silently takes focus away from whatever had it, with no notification to the old holder.",
+     "src": "42_ui_engine.lua:99",
      "tier": "core"
     },
     {
      "path": "Ess.UI.Focused",
      "sig": "Ess.UI.Focused()",
-     "tier": "core"
+     "doc": "The widget currently holding keyboard focus.",
+     "src": "42_ui_engine.lua:100",
+     "tier": "core",
+     "ret": "The focused widget object, or nil when nothing has focus."
     },
     {
      "path": "Ess.UI.Input",
      "sig": "Ess.UI.Input(opts)",
-     "doc": "One-shot typed-prompt constructor and singleton. Options: prompt (default \"INPUT -- ENTER SUBMIT   ESC CANCEL\"), text (default \"\"), max (default 120), onSubmit(text), onCancel(). Enter submits, Esc cancels and discards, Backspace deletes one character; long entries truncate from the front past ~40 characters.",
-     "tier": "core"
+     "doc": "Shows the modal single-line text prompt: Enter fires opts.onSubmit(text), Escape fires opts.onCancel, and focus returns to whatever held it before. opts takes prompt, text (initial value), max (default 120), onSubmit and onCancel.",
+     "gotcha": "One shared instance for the whole framework, so a second Input replaces the first's callbacks. Only characters Ess.Input.VkToChar can map are accepted, which means a US keyboard layout.",
+     "src": "48_ui_input.lua:10",
+     "tier": "core",
+     "ret": "The input widget object."
     },
     {
      "path": "Ess.UI.List",
      "sig": "Ess.UI.List(opts)",
-     "doc": "Raw scrolling-list constructor every other multi-row widget is built on. Options: x/y (default 40, 60), w/h (default 320, 360), title, crumb, hint, items, empty (default \"EMPTY\"), focus, onSelect/onChoose/onBack.",
-     "tier": "core"
+     "doc": "Builds the scrolling, keyboard-driven selection list widget. opts takes x/y/w/h, title, crumb, hint, items, empty (the text shown for an empty list), focus, and the onChoose / onBack / onSelect callbacks. Each item is a table with a `label`, or a `header` for a non-selectable section caption.",
+     "gotcha": "Shows 10 rows at a time and WRAPS at both ends - pressing down on the last row jumps to the first. Header entries are skipped by every move and can never become the selection.",
+     "src": "43_ui_list.lua:14",
+     "tier": "core",
+     "ret": "The list object: :items(t), :selected() -> item, index, :select(i), :title/:crumb/:hint, plus the shared :show/:hide/:focus/:blur/:destroy."
     },
     {
      "path": "Ess.UI.Menu",
@@ -3735,14 +4205,20 @@
     {
      "path": "Ess.UI.Panel",
      "sig": "Ess.UI.Panel(opts)",
-     "doc": "Title-bar-plus-up-to-8-lines panel constructor with auto-resizing body. Options: x/y (default 20, 120), w/h (default 300, 200), title, lines (pre-sized slot count, default 0).",
-     "tier": "core"
+     "doc": "Builds a simple text panel of up to eight lines - the readout widget for a stats display or a dev overlay. opts takes x/y/w/h, title and lines.",
+     "gotcha": "Lines are indexed 0..7, not 1..8. Writing a non-blank line auto-grows the panel to fit, but it never shrinks on its own - call :fit or :clear to pull it back in.",
+     "src": "44_ui_panel.lua:12",
+     "tier": "core",
+     "ret": "The panel object: :title(s), :line(i, s), :fit(n), :clear(), plus the shared :show/:hide/:focus/:blur/:destroy."
     },
     {
      "path": "Ess.UI.Toast",
      "sig": "Ess.UI.Toast(text, opts)",
-     "doc": "Function (not a constructor) that shows a transient toast: finds a free slot, or steals the soonest-expiring one once all Ess.UI.TOAST_SLOTS (default 3) are busy, wraps the text, shows it, and starts its countdown. Returns the toast object; most calls are fire-and-forget.",
-     "tier": "core"
+     "doc": "Pops a short, self-expiring notification in the corner of the screen. Text is word-wrapped to two lines, and the toast claims a free slot or, if all are busy, the one expiring soonest. opts takes ttl (seconds, default Ess.UI.TOAST_TTL).",
+     "gotcha": "Only Ess.UI.TOAST_SLOTS (3 by default) toasts exist, so a burst of messages overwrites itself. Anything past the second wrapped line is dropped without a hint.",
+     "src": "46_ui_toast.lua:9",
+     "tier": "core",
+     "ret": "The toast object, which offers :dismiss() to clear it early."
     },
     {
      "path": "Ess.UI._attachCommon",
@@ -3753,11 +4229,16 @@
     {
      "path": "Ess.UI._ensureTick",
      "sig": "Ess.UI._ensureTick()",
+     "doc": "Internal: arms the single shared Ess.UI heartbeat if it is not already running. Deliberately guarded by isRunning rather than calling Ess.Loop.start unconditionally, because start() reschedules a live loop and would keep pushing the next tick back on every :show().",
+     "gotcha": "The tick returns needsTick(), so the heartbeat STOPS ITSELF as soon as nothing needs servicing. Anything that creates new work (a new toast, a size change, a focus grab) has to call this again to wake it back up.",
+     "src": "42_ui_engine.lua:251",
      "tier": "core"
     },
     {
      "path": "Ess.UI._register",
      "sig": "Ess.UI._register(o)",
+     "doc": "Internal: adds a widget to the engine's live list so the shared heartbeat services it - warmup repaints after the async movie load, size easing, and auto-hide countdowns. Every Ess.UI constructor calls it; it is idempotent, so a repeat registration is ignored.",
+     "src": "42_ui_engine.lua:140",
      "tier": "core"
     },
     {
@@ -3769,17 +4250,28 @@
     {
      "path": "Ess.UI.comma",
      "sig": "Ess.UI.comma(n)",
-     "tier": "core"
+     "doc": "Formats a number with thousands separators - 1234567 becomes \"1,234,567\" - for cash, score and ammo readouts.",
+     "gotcha": "Floors to an integer first, so any fractional part is dropped rather than rounded, and a non-number argument silently becomes 0.",
+     "src": "42_ui_engine.lua:62",
+     "tier": "core",
+     "ret": "The formatted string."
     },
     {
      "path": "Ess.UI.fmt_time",
      "sig": "Ess.UI.fmt_time(sec)",
-     "tier": "core"
+     "doc": "Formats a count of seconds as M:SS for a countdown or elapsed-time readout.",
+     "gotcha": "Minutes never roll over into hours and are never zero-padded, so 3700 seconds reads \"61:40\".",
+     "src": "42_ui_engine.lua:68",
+     "tier": "core",
+     "ret": "A string such as \"3:07\"."
     },
     {
      "path": "Ess.UI.navName",
      "sig": "Ess.UI.navName(vk)",
-     "tier": "core"
+     "doc": "Maps a virtual-key code to the semantic navigation direction it means, reading the remappable Ess.UI.KEYS table. Every Ess.UI widget's key handler starts with this call, which is why rebinding Ess.UI.KEYS.up retargets the whole kit at once.",
+     "src": "42_ui_engine.lua:80",
+     "tier": "core",
+     "ret": "One of \"up\", \"down\", \"left\", \"right\", \"enter\", \"esc\" - or nil for any other key."
     },
     {
      "path": "Ess.UI.wrap",
@@ -3817,14 +4309,18 @@
     {
      "path": "Ess.Vec.dot",
      "sig": "Ess.Vec.dot(x1, y1, z1, x2, y2, z2)",
+     "doc": "Dot product of two 3D vectors. With unit directions, the sign answers \"are these two roughly pointing the same way\" - positive means yes, negative means opposed, zero means perpendicular.",
+     "src": "04_vec.lua:55",
      "tier": "core",
-     "ret": "n"
+     "ret": "A single number."
     },
     {
      "path": "Ess.Vec.length",
      "sig": "Ess.Vec.length(x, y, z)",
+     "doc": "Magnitude of a 3D vector given as three loose components - how long a direction/velocity/offset is.",
+     "src": "04_vec.lua:33",
      "tier": "core",
-     "ret": "n"
+     "ret": "The length as a single number."
     },
     {
      "path": "Ess.Vec.lerp",
@@ -3843,14 +4339,20 @@
     {
      "path": "Ess.Vec.scale",
      "sig": "Ess.Vec.scale(x, y, z, s)",
+     "doc": "Multiplies each component of a vector by s. The usual way to turn a unit direction into a shove of a given strength before feeding it to Ess.Object.impulse.",
+     "gotcha": "Returns three separate values, so it expands fully only as the LAST argument of a call. Nesting it inside another Vec call passes just x - capture into locals first.",
+     "src": "04_vec.lua:43",
      "tier": "core",
-     "ret": "x,y,z"
+     "ret": "Three values: the scaled x, y, z."
     },
     {
      "path": "Ess.Vec.sub",
      "sig": "Ess.Vec.sub(x1, y1, z1, x2, y2, z2)",
-     "doc": "a - b, i.e. the vector from b to a.",
-     "tier": "core"
+     "doc": "Component-wise subtraction of the second point from the first, giving the vector that points from point 2 to point 1.",
+     "gotcha": "Same multi-return caveat as the rest of Ess.Vec - it only expands in full as the last argument of a call.",
+     "src": "04_vec.lua:51",
+     "tier": "core",
+     "ret": "Three values: the difference x, y, z."
     },
     {
      "path": "Ess.Vec.toward",
@@ -3869,22 +4371,27 @@
     {
      "path": "Ess.Vehicle.driver",
      "sig": "Ess.Vehicle.driver(uVeh)",
+     "doc": "The character currently in the driver's seat of a vehicle. AI orders must target the driver, not the hull, so this is how you get a usable actor guid out of a vehicle.",
+     "src": "12_vehicle.lua:28",
      "tier": "core",
-     "ret": "uCharGuid | nil"
+     "ret": "The driver's guid, or nil when the seat is empty or the read failed."
     },
     {
      "path": "Ess.Vehicle.enterBestSeat",
      "sig": "Ess.Vehicle.enterBestSeat(uChar, uVeh)",
      "doc": "pcall-wrapped MrxUtil.EnterBestAvailableSeat \u2014 confirmed driver/gunner/passenger/cargo seat priority order.",
+     "gotcha": "Flagged caution (unconfirmed causally but repeatable enough to record): immediately after a Pg.Spawn + enterBestSeat from INSIDE an interior cell, the very next bridge chunk -- even a bare `return 1+1` -- stalled the Lua tick for 30+ seconds with the process still alive, recoverable only by killing the game. Avoid spawning and entering a vehicle from inside an interior.",
+     "src": "mercs2-lua-essentials/src/12_vehicle.lua",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Vehicle.enterSeatExcluding",
      "sig": "Ess.Vehicle.enterSeatExcluding(uChar, uVeh, excludeSeats)",
-     "doc": "Boards a vehicle while never taking a given seat type (e.g. a co-op partner boarding after the driver seat is taken). Loops seat types {\"d\",\"g\",\"p\",\"c\"} in priority order via Vehicle.GetSeatByType + EnterBySeatGuid, skipping any type named in excludeSeats. Verified against the live-confirmed-working DestroyerTool.lua.",
+     "doc": "Puts a character into the best free seat of a vehicle while refusing the seat types you list. Tries driver, gunner, passenger, cargo in that order (\"d\", \"g\", \"p\", \"c\") and takes the first one it can actually board - the way to load passengers without letting them steal the wheel.",
+     "src": "12_vehicle.lua:78",
      "tier": "core",
-     "ret": "ok, sSeatTypeUsed"
+     "ret": "true plus the seat-type letter that was taken, or false, nil when every allowed seat failed."
     },
     {
      "path": "Ess.Vehicle.evictAll",
@@ -3945,9 +4452,11 @@
     {
      "path": "Ess.Vehicle.riders",
      "sig": "Ess.Vehicle.riders(uVeh)",
-     "doc": "Returns all riders in a vehicle. Returns an empty table if none/unreadable, never nil.",
+     "doc": "Everyone currently aboard a vehicle, driver and passengers alike.",
+     "gotcha": "An empty table also means \"the read failed\", so a zero length does not prove the vehicle is really empty.",
+     "src": "12_vehicle.lua:35",
      "tier": "core",
-     "ret": "{ uCharGuid, ... }"
+     "ret": "An array of character guids - empty when there is nobody, never nil."
     },
     {
      "path": "Ess.Vehicle.seatOf",

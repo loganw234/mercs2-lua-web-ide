@@ -41,6 +41,25 @@
     });
   });
 
+  /* Resident Lua modules. Not natives and not always present -- calling one without import("Name")
+     first fails with "attempt to index global 'X' (a nil value)" -- but they ARE a real API surface,
+     562 functions of it, and until their docs existed there was nothing worth showing. Grouped and
+     labelled separately so the panel never implies they are reachable by default. */
+  var MODULES = (window.MERCS_NATIVES && window.MERCS_NATIVES.modules) || {};
+  Object.keys(MODULES).sort().forEach(function (modName) {
+    var m = MODULES[modName], fnDocs = m.fnDocs || {};
+    MODEL.push({
+      name: modName, group: "resident module", native: true, module: true,
+      doc: (m.doc || "A resident Lua module.") +
+           '  Needs import("' + modName + '") in your own script before use.',
+      calls: (m.fns || []).map(function (fn) {
+        var e = fnDocs[fn] || {};
+        return { path: modName + "." + fn, sig: e.sig || modName + "." + fn + "(…)",
+                 native: { doc: e.doc, gotcha: e.gotcha, src: e.src, module: modName } };
+      })
+    });
+  });
+
   /* Bare globals have no namespace to sit under, so they get one synthetic entry rather than a fake
      namespace prefix -- `assert(v)` is called as `assert`, not `globals.assert`, and the panel must not
      imply otherwise. Listed last so it never displaces a real namespace at the top of the tree. */
@@ -60,8 +79,9 @@
     /* A Loader.* call is not a native -- badging it "Native" repeats the same mislabel the
        dump introduced (see KINDS above). */
     if (native) {
-      return KINDS[String(path).split(".")[0]] === "bridge"
-        ? ["bridge", "lua-bridge"] : ["native", "Native"];
+      var root = String(path).split(".")[0];
+      if (MODULES[root]) return ["module", "resident module"];
+      return KINDS[root] === "bridge" ? ["bridge", "lua-bridge"] : ["native", "Native"];
     }
     if (path.indexOf("Ess.Easy") === 0) return ["easy", "Easy — guardrails on"];
     if (path.indexOf("Ess.Raw") === 0) return ["raw", "Raw — building blocks"];

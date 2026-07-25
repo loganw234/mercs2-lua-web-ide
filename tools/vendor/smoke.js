@@ -218,6 +218,58 @@ setTimeout(() => {
   ok("enrichment: the gotcha is escaped, not injected as markup",
      !/<script/i.test(w.document.getElementById("apiDoc").innerHTML));
 
+
+  /* The enriched reference. Every curated fact carries a `src` so a claim can be traced -- an
+     unsourced assertion about this engine is exactly what the reference exists to be an antidote to. */
+  ok("corpus: Ess is fully documented", (() => {
+     const calls = w.ESS_API.namespaces.flatMap(n => n.calls);
+     return calls.length > 500 && calls.every(c => c.doc);
+  })(), (() => { const c = w.ESS_API.namespaces.flatMap(n => n.calls);
+                 return c.filter(x => !x.doc).length + " without a doc"; })());
+  ok("corpus: Ess carries gotchas and documented returns",
+     w.ESS_API.namespaces.flatMap(n => n.calls).filter(c => c.gotcha).length > 100 &&
+     w.ESS_API.namespaces.flatMap(n => n.calls).filter(c => c.ret).length > 250);
+  ok("corpus: all 562 resident-module functions are documented",
+     Object.values(w.MERCS_NATIVES.modules)
+       .reduce((n, m) => n + Object.keys(m.fnDocs || {}).length, 0) === 562);
+  ok("corpus: every module has a summary naming its import requirement",
+     Object.values(w.MERCS_NATIVES.modules).every(m => m.doc && /import/.test(m.doc)));
+  ok("corpus: natives gained real coverage", (() => {
+     let t = 0, d = 0;
+     for (const ns in w.MERCS_NATIVES.natives)
+       for (const fn in w.MERCS_NATIVES.natives[ns]) { t++; if (w.MERCS_NATIVES.natives[ns][fn].doc) d++; }
+     return d / t > 0.5;
+  })());
+
+  /* An "exists but nobody traced it" sentence is not documentation -- the `live` flag already says
+     exactly that. Restating it would inflate the coverage number while telling a reader nothing, so
+     those were stripped rather than shipped. */
+  ok("corpus: no placeholder 'exists per the live pairs()' pseudo-docs shipped", (() => {
+     for (const ns in w.MERCS_NATIVES.natives)
+       for (const fn in w.MERCS_NATIVES.natives[ns]) {
+         const doc = w.MERCS_NATIVES.natives[ns][fn].doc || "";
+         if (/^Exists on |by the live pairs\(\) enumeration/i.test(doc)) return false;
+       }
+     return true;
+  })());
+  /* Every curated gotcha must be traceable. */
+  ok("corpus: every native gotcha carries a source", (() => {
+     for (const ns in w.MERCS_NATIVES.natives)
+       for (const fn in w.MERCS_NATIVES.natives[ns]) {
+         const e = w.MERCS_NATIVES.natives[ns][fn];
+         if (e.gotcha && !e.src) return false;
+       }
+     return true;
+  })());
+  /* Known-good spot checks, each verified against a named source during extraction. */
+  ok("corpus: the Ai.Goal vs Ai.Role trap is recorded",
+     /Role/.test((w.MERCS_NATIVES.natives.Ai.Goal || {}).gotcha || ""),
+     (w.MERCS_NATIVES.natives.Ai.Goal || {}).gotcha);
+  ok("corpus: resident modules are browsable in the panel", (() => {
+     const hit = IDE.api.lookup("MrxUtil.CallWithOptionalArgs");
+     return hit && hit.c && hit.ns.group === "resident module" && /import/.test(hit.ns.doc);
+  })());
+
   ok("data: examples loaded", w.ESS_EXAMPLES && w.ESS_EXAMPLES.categories.length === 8);
 
   // ---- store ----

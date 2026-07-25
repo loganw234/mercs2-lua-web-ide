@@ -163,7 +163,10 @@
           dom.innerHTML = '<div class="htsig">' + escHtml(c ? c.sig : found.ns.name) + "</div>" +
             '<span class="httier ' + tier[0] + '">' + escHtml(tier[1]) + "</span>" +
             (callDoc ? '<div class="htdoc">' + escHtml(callDoc) + "</div>"
-                     : (found.ns.doc ? '<div class="htdoc">' + escHtml(found.ns.doc) + "</div>" : ""));
+                     : (found.ns.doc ? '<div class="htdoc">' + escHtml(found.ns.doc) + "</div>" : "")) +
+            (c && c.ret ? '<div class="htret"><b>returns</b> ' + escHtml(c.ret) + "</div>" : "") +
+            /* Hovering the call you are about to write is the single best moment to be warned. */
+            (c && c.gotcha ? '<div class="htgotcha">' + escHtml(c.gotcha) + "</div>" : "");
         } else {
           dom.innerHTML = '<div class="htsig">' + escHtml(nat.path) + '</div><span class="httier native">Native</span>' +
             (nat.entry.doc ? '<div class="htdoc">' + escHtml(nat.entry.doc) + "</div>" : "") +

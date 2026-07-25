@@ -8,27 +8,27 @@
     {
      "path": "Ess.Guid",
      "sig": "Ess.Guid(name)",
-     "doc": "Pg.GetGuidByName, pcall-wrapped, one canonical name",
+     "doc": "pcall-wrapped Pg.GetGuidByName \u2014 returns the guid for a named object, or nil.",
      "tier": "core",
      "ret": "uGuid | nil"
     },
     {
      "path": "Ess.Log",
      "sig": "Ess.Log(msg)",
-     "doc": "prefixed Loader.Printf, used by the rest of Ess",
+     "doc": "Routes every Ess.* log message through Loader.Printf with a consistent \"[Ess] \" prefix so lines are easy to grep out of lua_loader_printf.log. Guarded so a missing Loader global can't make Ess.Log itself throw.",
      "tier": "core"
     },
     {
      "path": "Ess.Name",
      "sig": "Ess.Name(guid)",
-     "doc": "Sys.GuidToString, pcall-wrapped (confirmed to throw on some objects)",
+     "doc": "pcall-wrapped Sys.GuidToString, returning the guid's hash string; wrapped because it's confirmed to throw outright on at least one real object. Distinct from Ess.Object.displayName, which returns the localized human-readable name.",
      "tier": "core",
      "ret": "sHash | nil"
     },
     {
      "path": "Ess.State",
      "sig": "Ess.State(name, defaults)",
-     "doc": "-executes fully on each keypress/reload; only _G survives between runs) -- but merges field BY FIELD instead of a blind top-level `or`.",
+     "doc": "The `_G.X = _G.X or {defaults}` idiom done field-by-field, for scripts that re-execute fully on each keypress/reload. Fixes a real bug where a plain `or` silently drops newly-added default fields once the table already exists; internally keyed as `_G[\"_Ess_state_\" .. name]`.",
      "tier": "core",
      "ret": "persistent table"
     },
@@ -63,7 +63,7 @@
     {
      "path": "Ess.AIOrders.command",
      "sig": "Ess.AIOrders.command(guids, behavior, opts, tracker)",
-     "doc": "along in vehicles on its own (see BEHAVIORS.follow below for the confirmed setup sequence)",
+     "doc": "Dispatches guids to one of eleven built-in behaviors (move, face, hold, defend, attack, patrol, follow, flee, enter, deploy, animate), pcall-wrapped so a bad behavior name or runtime error is logged and returns false instead of crashing. Pass a tracker (Ess.Track) to receive spawned anchor props or scheduled follow-up events for cleanup.",
      "tier": "core",
      "ret": "ok"
     },
@@ -76,7 +76,7 @@
     {
      "path": "Ess.AIOrders.setGroup",
      "sig": "Ess.AIOrders.setGroup(name, guids)",
-     "doc": "/ .group(name) -> guids A standalone stand-in for ContractFramework's `inst.groups` -- lets `attack`/`follow`/`enter` target ANOTHER named group without needing a contract instance to hold the registry.",
+     "doc": "Registers a named group of guids. A standalone stand-in for ContractFramework's inst.groups, letting behaviors like attack/follow/enter target another named group without a contract instance.",
      "tier": "core"
     }
    ]
@@ -89,35 +89,35 @@
     {
      "path": "Ess.Bones.aimVector",
      "sig": "Ess.Bones.aimVector(uGuid, hpBase, hpTip)",
-     "doc": "-> \"hp_barreltip_cannon\" muzzle gives the barrel line).",
+     "doc": "Returns the vector between two hardpoints on the same object as its aim/facing axis (e.g. a turret's barrel line). Confirmed live on the Allied Destroyer's cannon (hp_seat_cannon to hp_barreltip_cannon); returns nil if either hardpoint fails to resolve.",
      "tier": "core",
      "ret": "dx, dy, dz | nil"
     },
     {
      "path": "Ess.Bones.attachFX",
      "sig": "Ess.Bones.attachFX(uGuid, bone, template)",
-     "doc": "-call recipe: read the bone's world position, spawn the FX there, attach it to the bone, then snap its transform exactly onto the bone so it doesn't drift before the next tick.",
+     "doc": "Spawns an FX at a bone/hardpoint and glues it there via the confirmed 3-call recipe: read the hardpoint's world position, Pg.Spawn the template, then Object.Attach + Object.SetTransformToObject. Rejects a blank template (would CTD Pg.Spawn) and returns nil if any step fails, e.g. a bad bone name.",
      "tier": "core",
      "ret": "uFx | nil"
     },
     {
      "path": "Ess.Bones.detachFX",
      "sig": "Ess.Bones.detachFX(uGuid, uFx)",
-     "doc": "-op, not an error) so callers don't need their own nil-guard around cleanup.",
+     "doc": "Reverses attachFX via Object.Detach then Object.Remove. Nil-safe \u2014 passing a nil uFx is a no-op, not an error, so cleanup code doesn't need its own guard.",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Bones.probeNames",
      "sig": "Ess.Bones.probeNames(uGuid, prefixes, suffixes)",
-     "doc": "-name sweep: builds every `prefix..suffix` combination, pcall-probes Object.GetHardpointPosition for each, and returns the hits (as {name=, x=, y=, z=}) plus how many candidates were tried in total.",
+     "doc": "Sweeps every prefix+suffix combination through a pcall'd Object.GetHardpointPosition, returning the hits plus total candidates tried. Research/discovery tool only \u2014 GetHardpointPosition is hash-keyed, so a hit proves the string is a valid handle for some real bone, not that it's that bone's true name.",
      "tier": "core",
      "ret": "{ {name=,x=,y=,z=}, ... }, nTried"
     },
     {
      "path": "Ess.Bones.waitForReady",
      "sig": "Ess.Bones.waitForReady(uGuid, cb, maxTries)",
-     "doc": "CONFIRMED GOTCHA: a freshly Pg.Spawn'd model's hardpoints return nil for ~0.3s after spawn -- reading them synchronously at spawn time silently fails.",
+     "doc": "Polls Object.GetPosition every 0.1s (via Ess.Loop) until a freshly-spawned model's transform initializes, then calls cb(uGuid); maxTries defaults to 6 (~0.6s) and cb still fires after giving up. Works around freshly-spawned models returning nil hardpoints for ~0.3s; checks overall position, not a specific bone \u2014 poll GetHardpointPosition directly if you already know the bone you need.",
      "tier": "core"
     }
    ]
@@ -130,7 +130,7 @@
     {
      "path": "Ess.Camera.beginCinematic",
      "sig": "Ess.Camera.beginCinematic(i, nBlend)",
-     "doc": "enters cinematic mode and blends in.",
+     "doc": "Enters cinematic mode and arms the blend time, recording {p, c} per player index in Ess.Camera._cine. Use blend 0 for a per-tick moving camera \u2014 the default 1s blend restarts on every placeCamera and makes the camera rubber-band.",
      "tier": "core"
     },
     {
@@ -142,63 +142,63 @@
     {
      "path": "Ess.Camera.endCinematic",
      "sig": "Ess.Camera.endCinematic(i)",
-     "doc": "release control back to the player and stop any watch/orbit follow loop.",
+     "doc": "Releases camera control back to the player and stops any active watch/orbit loop.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.fade",
      "sig": "Ess.Camera.fade(nAmount)",
-     "doc": "Graphics.Effect.CameraFade (0=clear, 1=black) -- a THIRD distinct native table, see below .lookAtObject(uGuid, bone, i) / .lookAtPoint(x,y,z,i) / .hold(i) / .endCinematic(i) / .panicRevert()",
+     "doc": "Wraps Graphics.Effect.CameraFade(nAmount), a global screen fade with no guid/index \u2014 0 is clear, 1 is black. Takes no duration; every confirmed real call site passes a bare 0 or 1.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.followHardpoint",
      "sig": "Ess.Camera.followHardpoint(uGuid, hp, i, interval)",
-     "doc": "-ops: re-read the hardpoint's world position every `interval` seconds (default 0.05) and push it straight into Camera.SetPosition.",
+     "doc": "Keeps the camera pointed at a moving hardpoint by re-reading Object.GetHardpointPosition and pushing it into Camera.SetPosition every interval seconds (default 0.05). Requires an existing SetLookAt binding, and is explicitly not a fix for the vehicle gunning camera.",
      "tier": "core",
      "ret": "stop()"
     },
     {
      "path": "Ess.Camera.fov",
      "sig": "Ess.Camera.fov(i, nAngle, nDuration)",
-     "doc": "/ .restoreFov(i, nDuration) CONFIRMED (wiki/namespaces/graphics.md): Graphics.Camera.SetFovParams(nCameraIndex, nAngle, nDuration) / RestoreFovParams(nCameraIndex, nDuration) -- blends the field-of-view to a new angle over nDuration seconds, then reverts.",
+     "doc": "Wraps Graphics.Camera.SetFovParams(i, nAngle, nDuration) to blend field of view \u2014 takes a player index, not a camera guid, unlike most other Ess.Camera calls.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.hold",
      "sig": "Ess.Camera.hold(i)",
-     "doc": "pin the current framing.",
+     "doc": "Pins the current camera framing via Camera.Hold(c, true, false).",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.lookAtAnchor",
      "sig": "Ess.Camera.lookAtAnchor(x, y, z, i)",
-     "doc": "-ops on this engine until an active Camera.SetLookAt binding exists -- not even a hardcoded oversized test teleport moves the camera without one.",
+     "doc": "Spawns a small anchor prop (default \"TinyGeometry\" \u2014 never \"Verification Camera\", which triggers a support call-in and despawns in a live world) at (x,y,z) and binds Camera.SetLookAt to it. Works around the engine quirk where Camera.SetPosition silently no-ops until an active SetLookAt binding exists.",
      "tier": "core",
      "ret": "uAnchor | nil"
     },
     {
      "path": "Ess.Camera.lookAtObject",
      "sig": "Ess.Camera.lookAtObject(uGuid, sBone, i)",
-     "doc": "lock the camera onto an object (optionally a specific bone/ hardpoint).",
+     "doc": "Locks the camera onto an object (optionally a specific bone), auto-tracking it as it moves. Object-track only works on character bones, not vehicle hardpoints \u2014 for a vehicle, look at its pilot's bone instead.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.lookAtPoint",
      "sig": "Ess.Camera.lookAtPoint(x, y, z, i)",
-     "doc": "lock the camera onto a fixed world point (coord form).",
+     "doc": "Locks the camera onto a fixed world point.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.panicRevert",
      "sig": "Ess.Camera.panicRevert()",
-     "doc": "force-release EVERY active cinematic (the always-works escape hatch; the lua-bridge still accepts commands while control is locked, so this can be fired blind to recover).",
+     "doc": "Force-releases every active cinematic camera at once \u2014 the always-works, fire-blind escape hatch; lua-bridge still accepts commands while control is locked, so it can be fired blind to recover.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.placeCamera",
      "sig": "Ess.Camera.placeCamera(x, y, z, i)",
-     "doc": "put the cinematic camera at a fixed world vantage.",
+     "doc": "Sets a fixed world vantage point via Camera.SetPosition.",
      "tier": "core"
     },
     {
@@ -210,20 +210,20 @@
     {
      "path": "Ess.Camera.shake",
      "sig": "Ess.Camera.shake(i, sPreset, uSource, nAmplitude, nDuration)",
-     "doc": "Camera.Shake (per-player camera guid)",
+     "doc": "Wraps Camera.Shake; defaults to the one-shot \"ShakeCameraMedium\" preset. \"ShakeCameraConstantlyRandom\" is ongoing and needs a matching stopShake call or it runs until the player leaves the level.",
      "tier": "core"
     },
     {
      "path": "Ess.Camera.staleAxisDecay",
      "sig": "Ess.Camera.staleAxisDecay(axes, timeoutMs)",
-     "doc": "tracker:update(tInput, now)  tracker.values[name]",
+     "doc": "Forces a controller axis back to 0 after it's idle for timeoutMs (default 150ms), working around the engine's ControllerInput event omitting idle axes instead of sending a final 0. Call tracker:update(tInput, now) once per input event; tracker.values[name] always reads the current, possibly-decayed value.",
      "tier": "core",
      "ret": "tracker"
     },
     {
      "path": "Ess.Camera.stopShake",
      "sig": "Ess.Camera.stopShake(i, uSource)",
-     "doc": "for the \"ConstantlyRandom\" preset takes the player INDEX directly, NOT a camera guid (see below)",
+     "doc": "Stops an ongoing \"ShakeCameraConstantlyRandom\" shake started via shake.",
      "tier": "core"
     }
    ]
@@ -241,7 +241,7 @@
     {
      "path": "Ess.Cinematic.define",
      "sig": "Ess.Cinematic.define(id, steps, opts)",
-     "doc": "register a reusable cutscene under a name.",
+     "doc": "Registers a reusable `steps`/`opts` pair under a string `id` for later playback via `playNamed`. The registry resets fresh on every script load, so re-defining the same id within one load is fine.",
      "tier": "core"
     },
     {
@@ -254,26 +254,26 @@
     {
      "path": "Ess.Cinematic.play",
      "sig": "Ess.Cinematic.play(steps, opts)",
-     "doc": "steps = { {type=, <params>, hold=}, ... }   (see STEP handlers below for each type's params) opts  = { camera=(true, take over the screen), blend=(0, instant cuts), skippable=(true), skipKey=(0x1B ESC), startFade=(false, open on black), i=(0 player index), onDone=fn(ctx) } Each step fires in order; the timeline advances `hold` seconds after firing it (hold 0 / omitted = fire the NEXT step the same tick, so several actions can start together). A {type=\"wait\"} step just holds. ALWAYS restores camera/control on finish, skip, or stop -- a cutscene can never strand the player. Skippable: pressing ESC fast-forwards -- every remaining step still FIRES (so mission actors that a cutscene spawns/positions all end up in place), just with zero holds.",
+     "doc": "Plays an ordered list of `{type=, <params>, hold=}` step tables as a cutscene timeline: each step fires, then the timeline waits `hold` seconds before the next (0/omitted makes the next step fire the same tick). Takes over the screen via `Ess.Camera.beginCinematic` by default (opts.camera=false skips takeover); opts also cover blend, skippable/skipKey, startFade, player index `i`, and an `onDone(ctx)` callback that fires after camera/control are fully restored. Only one cutscene plays at a time \u2014 calling play() while one is active stops it first. Returns the running sequence or nil.",
      "tier": "core",
      "ret": "seq | nil"
     },
     {
      "path": "Ess.Cinematic.playNamed",
      "sig": "Ess.Cinematic.playNamed(id, extraOpts)",
-     "doc": "play a defined cinematic.",
+     "doc": "Plays a cutscene previously registered with `define`. `extraOpts`, if given, is shallow-merged over the defined opts rather than replacing them, so the same cutscene can be replayed with e.g. a different `onDone` each time.",
      "tier": "core"
     },
     {
      "path": "Ess.Cinematic.skip",
      "sig": "Ess.Cinematic.skip()",
-     "doc": "fast-forward the active cutscene (drain remaining steps instantly)",
+     "doc": "Fast-forwards the active cutscene \u2014 every remaining step still fires (so any actor it spawns or positions still ends up correct), but all remaining `hold` durations collapse to zero.",
      "tier": "core"
     },
     {
      "path": "Ess.Cinematic.stop",
      "sig": "Ess.Cinematic.stop(seq)",
-     "doc": "end it now, restore control, run onDone",
+     "doc": "Ends a cutscene immediately (the given `seq`, or the active one if omitted), restoring camera/control and running its `onDone` callback.",
      "tier": "core"
     }
    ]
@@ -286,28 +286,28 @@
     {
      "path": "Ess.Color.hex",
      "sig": "Ess.Color.hex(s)",
-     "doc": "parse \"#RRGGBB\" / \"RRGGBB\" / \"#RGB\" (short form)",
+     "doc": "Parses \"#RRGGBB\", \"RRGGBB\", or short \"#RGB\"/\"RGB\" (each digit doubled), case-insensitive. Returns nil on wrong length or non-hex digits.",
      "tier": "core",
      "ret": "r, g, b | nil"
     },
     {
      "path": "Ess.Color.hsv",
      "sig": "Ess.Color.hsv(h, s, v)",
-     "doc": "h in [0,360), s and v in [0,1] -> rgb (rainbows, distinct tints)",
+     "doc": "Standard HSV-to-RGB conversion. h is in [0, 360) and wraps; s/v are in [0, 1] and are clamped.",
      "tier": "core",
      "ret": "r, g, b"
     },
     {
      "path": "Ess.Color.lerp",
      "sig": "Ess.Color.lerp(c1, c2, t)",
-     "doc": "blend two { r, g, b } colours, t in [0,1] (health-bar gradients)",
+     "doc": "Blends two colors, each a {r,g,b} table (or one with .r/.g/.b keys) \u2014 e.g. for a health-bar gradient. t is clamped to [0, 1].",
      "tier": "core",
      "ret": "r, g, b"
     },
     {
      "path": "Ess.Color.of",
      "sig": "Ess.Color.of(name)",
-     "doc": "look up a preset by name (\"red\", \"orange\", ...)",
+     "doc": "Looks up a preset in Ess.Color.NAMES by name (case-insensitive); nil if the name isn't a preset.",
      "tier": "core",
      "ret": "r, g, b | nil"
     }
@@ -327,7 +327,7 @@
     {
      "path": "Ess.Contract.Accept",
      "sig": "Ess.Contract.Accept(idOrDef)",
-     "doc": "Ess.Contract.Abort()  Ess.Contract.Status()  Ess.Contract.List() ContractFramework.lua's own version was only ever a stub placeholder (`C.UI = C.UI or {}`, never implemented -- \"need a .gfx; see README\"). Reusing Ess.UI here instead of hand-rolling a second widget implementation is the whole point of absorbing uilib first.",
+     "doc": "Accepts a registered contract by id or def. Its co-op gate checks the native Net.IsMultiplayer()/Net.IsClient() directly rather than Ess.Net's IsCoop/IsClient helpers, because Net.IsClient() can read true even in single-player, which would silently no-op every accept if gated on that alone. Aborts any prior active instance first (only one active contract at a time).",
      "tier": "core"
     },
     {
@@ -494,31 +494,31 @@
     {
      "path": "Ess.Easy.Confirm",
      "sig": "Ess.Easy.Confirm(text, onYes, onNo)",
-     "doc": "pop a yes/no dialog; onNo is optional (default: do nothing).",
+     "doc": "Positional-callback wrapper over Ess.UI.Confirm(text, onYes, onNo); onNo is optional.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Menu",
      "sig": "Ess.Easy.Menu(title, entries)",
-     "doc": "opens immediately, one flat level, no bools/tables to configure.",
+     "doc": "Opens a flat one-level menu immediately \u2014 no :category nesting or :switch. entries accepts an ordered {{label,fn},...} array or a {[label]=fn} map; use Ess.UI.Menu directly for the full nested builder.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Objective",
      "sig": "Ess.Easy.Objective(label, target, onComplete)",
-     "doc": "a manual counted goal (you call :advance())",
+     "doc": "Ess.Easy.Objective(label, target, onComplete) -> obj. Bare call to the callable table: a plain manual goal, equivalent to Ess.Objective.new{label=label, target=target, onComplete=onComplete}. No id/slot/show/onProgress/onFail support \u2014 use Ess.Objective.new directly for those.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Quest",
      "sig": "Ess.Easy.Quest(steps, onComplete)",
-     "doc": "a one-liner Ess.Quest",
+     "doc": "Ess.Easy.Quest(steps, onComplete) -> quest. One-liner form of Ess.Quest.new{steps=steps, onComplete=onComplete}; no slot/showCounter/onStep control at this tier \u2014 use Ess.Quest.new directly for those.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Toast",
      "sig": "Ess.Easy.Toast(msg)",
-     "doc": "fire-and-forget notification.",
+     "doc": "Shorthand for Ess.UI.Toast(tostring(msg)).",
      "tier": "easy"
     }
    ]
@@ -537,7 +537,7 @@
     {
      "path": "Ess.Easy.AIOrders.guard",
      "sig": "Ess.Easy.AIOrders.guard(guids, at)",
-     "doc": "\"guard\" is the friendlier name for the \"defend\" behavior -- hold an area, fight anything inside it.",
+     "doc": "One-liner order to hold/guard an area at a position; the friendlier name for the \"defend\" behavior.",
      "tier": "easy"
     },
     {
@@ -556,7 +556,7 @@
     {
      "path": "Ess.Easy.Airstrike.at",
      "sig": "Ess.Easy.Airstrike.at(x,y,z)",
-     "doc": "---- Easy presets: a jet pass plus a few shells on a spot / your target / your own head ----",
+     "doc": "One-tap preset: calls Ess.Support.airstrike(x, y, z) with all defaults immediately followed by Ess.Support.artillery(x, y, z, { count = 4, radius = 10 }) \u2014 one flyby plus 4 shells scattered across a 20x20-unit square.",
      "tier": "easy"
     },
     {
@@ -592,7 +592,7 @@
     {
      "path": "Ess.Easy.Camera.orbit",
      "sig": "Ess.Easy.Camera.orbit(uGuid, {radius=, speed=, smooth=})",
-     "doc": "smoothly orbit a target (radius/height/speed/startAngle) chase + orbit DAMP the follow through Ess.Vec.lerp by DEFAULT (jitter-free on a fast subject) -- pass smooth=false for the old exact-snap, or smoothFactor (0..1, higher=snappier) to tune the damping.",
+     "doc": "Eases the camera toward its target position each tick via Ess.Vec.lerp rather than snapping, smoothing out per-tick jitter from a fast-moving subject. smooth defaults to true, smoothFactor defaults to 0.2 (0..1; higher = snappier, lower = glassier); confirmed working live in-game (orbit around a heli, hard-launched car).",
      "tier": "easy",
      "ret": "stop()"
     },
@@ -604,7 +604,7 @@
     {
      "path": "Ess.Easy.Camera.watch",
      "sig": "Ess.Easy.Camera.watch(uGuid, {chase=, angle=})",
-     "doc": "watch a target (e.g. a heli you spawned) fly in; default = static locked shot, opts.chase = follow from opts.angle",
+     "doc": "With chase=true, eases the camera toward its target each tick via Ess.Vec.lerp instead of snapping (same follow-damping as orbit). smooth defaults to true, smoothFactor defaults to 0.2; confirmed working live in-game.",
      "tier": "easy",
      "ret": "stop()"
     }
@@ -618,13 +618,13 @@
     {
      "path": "Ess.Easy.Cinematic.play",
      "sig": "Ess.Easy.Cinematic.play(steps, onDone)",
-     "doc": "the zero-opts entry (skippable cutscene, camera takeover).",
+     "doc": "Zero-opts entry point for cinematics: skippable and takes camera control by default, with no options beyond an optional `onDone` callback.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Cinematic.shot",
      "sig": "Ess.Easy.Cinematic.shot(at, lookAt, seconds)",
-     "doc": "build one static camera shot on a world point, held `seconds`.",
+     "doc": "Sugar that builds one static `{type=\"camera\", ...}` step from `at`/`lookAt`/`seconds`, so a hand-authored steps list can read as a storyboard, e.g. `{ shot(a,b,4), shot(c,d,3), ... }`.",
      "tier": "easy"
     }
    ]
@@ -643,7 +643,7 @@
     {
      "path": "Ess.Easy.Console.open",
      "sig": "Ess.Easy.Console.open()",
-     "doc": "browse the full registry, grouped by namespace.",
+     "doc": "Opens an in-game searchable browser of the whole Ess.Easy.* surface, built on Ess.UI.Board for the list+details view and Ess.TextConsole for the search box.",
      "tier": "easy"
     },
     {
@@ -687,7 +687,7 @@
     {
      "path": "Ess.Easy.Debug.hide",
      "sig": "Ess.Easy.Debug.hide()",
-     "doc": "force it off.",
+     "doc": "Forces the dev overlay off unconditionally, unlike overlay() which only toggles it.",
      "tier": "easy"
     },
     {
@@ -700,7 +700,7 @@
     {
      "path": "Ess.Easy.Debug.overlay",
      "sig": "Ess.Easy.Debug.overlay(opts)",
-     "doc": "toggle the overlay on/off (call again to hide). opts (all optional): x, y (screen pos), interval (refresh s, default 0.2), radius (nearby scan, default 40), i (player index). Returns the panel, or nil when toggled off.",
+     "doc": "Toggles a live on-screen dev overlay panel (an Ess.UI.Panel) showing position, aim target, vehicle/health, and nearby unit counts, refreshed every opts.interval seconds (default 0.2). Optional opts: x/y screen position (default 20, 40), radius for the nearby scan (default 40), i player index (default 0), plus an undocumented opts.w panel width (default 360). Calling it again while active tears the panel down and returns nil; toggle state survives OnKey re-runs but resets on a world reload.",
      "tier": "easy"
     }
    ]
@@ -758,13 +758,13 @@
     {
      "path": "Ess.Easy.Fun.dance",
      "sig": "Ess.Easy.Fun.dance()",
-     "doc": "make your character do the \"technoviking\" dance.",
+     "doc": "Your character does the 'technoviking' dance via Human.PlayRawAnimation. Pure easter egg.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Fun.fanfare",
      "sig": "Ess.Easy.Fun.fanfare(bWin)",
-     "doc": "play the mission-success (or, with false, mission-fail) music sting.",
+     "doc": "Plays the mission-success (or, with bWin=false, mission-fail) music sting via MrxMusic.PlayFanfare, the same call mrxtaskcontract.lua uses. Defaults to the win sting.",
      "tier": "easy"
     }
    ]
@@ -777,7 +777,7 @@
     {
      "path": "Ess.Easy.Human.giveWeapon",
      "sig": "Ess.Easy.Human.giveWeapon(char, templateName)",
-     "doc": "spawn-free \"just give them a gun by name\"",
+     "doc": "Live-confirmed: Pg.GetGuidByName resolves a weapon template name (e.g. \"Grenade Launcher\") to a guid distinct from any weapon already carried, and Human.Inventory.EquipWeapon on it genuinely adds a new weapon (verified via an exact before/after GetAllWeapons count change). No blank-template guard needed \u2014 GetGuidByName on a bad name just returns nil/false, it doesn't hard-crash the engine.",
      "tier": "easy",
      "ret": "ok"
     }
@@ -791,19 +791,19 @@
     {
      "path": "Ess.Easy.Impulse.knockback",
      "sig": "Ess.Easy.Impulse.knockback(uGuid, fromGuid, strength)",
-     "doc": "shove uGuid directly AWAY from fromGuid (default source = you) with a slight upward lift -- the \"the blast sent them flying\" feel.",
+     "doc": "Shoves uGuid directly away from fromGuid (default source: you) with a slight upward lift \u2014 \"the blast sent them flying.\" World-direction, mass-scaled; strength defaults to 10.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Impulse.launch",
      "sig": "Ess.Easy.Impulse.launch(uGuid, strength)",
-     "doc": "pop something straight UP (a hop, or a big launch).",
+     "doc": "Pops the target straight up \u2014 a hop or a big launch. strength defaults to 12.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Impulse.speedBoost",
      "sig": "Ess.Easy.Impulse.speedBoost(g)",
-     "doc": "a forward SPEED BOOST (the Spy Hunter effect).",
+     "doc": "A forward speed boost (the Spy Hunter effect). Defaults to the vehicle you're driving (or you on foot). strength defaults to 8 (real usage: 6-8 for a strong boost); mass-scaled so it feels consistent across vehicle weights.",
      "tier": "easy"
     }
    ]
@@ -816,19 +816,19 @@
     {
      "path": "Ess.Easy.Mark.enemy",
      "sig": "Ess.Easy.Mark.enemy(uGuid)",
-     "doc": "radar+PDA, no world icon -- matches WaveDefense's real convention (don't clutter the world with icons for every enemy).",
+     "doc": "Preset: marks an object with radar + PDA only (no floating world icon), kind \"action\" \u2014 matches WaveDefense's convention of not cluttering the world with icons for every enemy.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Mark.objective",
      "sig": "Ess.Easy.Mark.objective(uGuid)",
-     "doc": "all three surfaces -- matches ContractFramework's convention for a real mission objective.",
+     "doc": "Preset: marks an object on all three surfaces (radar, PDA, and floating world icon), kind \"action\" \u2014 matches the Contract Framework's \"mark everything\" convention for a real mission objective.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Mark.zone",
      "sig": "Ess.Easy.Mark.zone(x, y, z, r)",
-     "doc": "world ring only -- the ground-disc \"go here\" case, no radar/PDA clutter.",
+     "doc": "Preset: drops a ground ring only at (x,y,z) with radius r, no radar/PDA clutter \u2014 the \"go here\" case. Internally calls Ess.Mark.zone with world=true, since on zone() \"world\" means the ring, not the floating icon.",
      "tier": "easy"
     }
    ]
@@ -841,25 +841,25 @@
     {
      "path": "Ess.Easy.Objective.clear",
      "sig": "Ess.Easy.Objective.clear(x, y, z, r, faction, label, onDone)",
-     "doc": "POLLS the area's population and completes when every `faction` unit in it is dead -- the \"eliminate the enemies here\" goal the engine has no clean per-kill event for. Shows \"N left\".",
+     "doc": "Ess.Easy.Objective.clear(x, y, z, r=40, faction, label, onDone) -> obj. Completes once every matching unit in the zone is dead; since there's no per-kill event, it polls Ess.Probe.nearby(x,y,z,r,\"humans\",faction) every second via Ess.On.tick(1,...), live-updating the label with the remaining count (e.g. \"Clear the area   4 left\"). faction is an Object.HasLabel string, or nil to count every human in radius; marks the zone with a ground ring only. Default label \"Clear the area\".",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Objective.destroy",
      "sig": "Ess.Easy.Objective.destroy(guid, label, onDone)",
-     "doc": "that object dies (marks it on radar/PDA/world)",
+     "doc": "Ess.Easy.Objective.destroy(guid, label, onDone) -> obj. Completes when the object at guid dies; marks it on radar, PDA, and world icon via Ess.Easy.Mark.objective and wires Ess.On.death(guid). Default label \"Destroy the target\".",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Objective.reach",
      "sig": "Ess.Easy.Objective.reach(x, y, z, r, label, onDone)",
-     "doc": "enter the radius (drops a \"go here\" ground ring)",
+     "doc": "Ess.Easy.Objective.reach(x, y, z, r=8, label, onDone) -> obj. Completes the instant the player comes within r (default 8, \"you're here\"-comfortable) of (x,y,z); drops a ground-ring marker (Ess.Easy.Mark.zone) and wires Ess.On.enterArea to auto-advance on entry, both torn down the instant the objective resolves. Default label \"Reach the marker\".",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Objective.survive",
      "sig": "Ess.Easy.Objective.survive(seconds, label, onDone, onFail)",
-     "doc": "completes after N s; FAILS if the player dies",
+     "doc": "Ess.Easy.Objective.survive(seconds, label, onDone, onFail) -> obj. A countdown (seconds clamped to >=1, falls back to 30) that fires onDone and completes at zero, live-showing \"Survive   Ns\" via Ess.On.tick(1,...); also resolves the local player's guid once at construction and, only if resolved, wires Ess.On.death to :fail() early if they die first (silently unwired otherwise). Drops no map marker.",
      "tier": "easy"
     }
    ]
@@ -872,7 +872,7 @@
     {
      "path": "Ess.Easy.Player.freeSupport",
      "sig": "Ess.Easy.Player.freeSupport(bOn)",
-     "doc": "ignore all airstrike/support stock + unlock requirements, so you can call any support for free.",
+     "doc": "Ignores all airstrike/support stock and unlock requirements so any support call-in is free. bOn defaults to true; pass false to turn it back off.",
      "tier": "easy"
     },
     {
@@ -884,31 +884,31 @@
     {
      "path": "Ess.Easy.Player.giveAllRewards",
      "sig": "Ess.Easy.Player.giveAllRewards()",
-     "doc": "dispense every unlock reward at once.",
+     "doc": "Dispenses every unlock reward at once (MrxRewardData.DispenseAllRewards).",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Player.giveGrapplingHook",
      "sig": "Ess.Easy.Player.giveGrapplingHook()",
-     "doc": "unlock the grappling hook.",
+     "doc": "Unlocks the grappling hook (MrxPmc.AddEquipment('GrapplingHook')).",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Player.skin",
      "sig": "Ess.Easy.Player.skin(sCode, i)",
-     "doc": "change the player's whole-figure costume/skin.",
+     "doc": "Swaps player i's whole-figure costume via Player.SetOutfit \u2014 only a full '*_hum_*' model works, not individual body parts. A reload restores your normal look. A skin swap re-inits the model, so its bones aren't ready for ~0.3s \u2014 wait before attaching bone FX to a just-skinned character.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Player.unlockAllHQs",
      "sig": "Ess.Easy.Player.unlockAllHQs()",
-     "doc": "unlock every HQ/outpost.",
+     "doc": "Unlocks every HQ/outpost (MrxHqManager.UnlockAllHq).",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Player.unlockFastTravel",
      "sig": "Ess.Easy.Player.unlockFastTravel()",
-     "doc": "unlock every landing zone so you can fast-travel anywhere.",
+     "doc": "Unlocks every landing zone (MrxTransit.UnlockAllLandingZones).",
      "tier": "easy"
     }
    ]
@@ -921,13 +921,13 @@
     {
      "path": "Ess.Easy.Relations.makeAllies",
      "sig": "Ess.Easy.Relations.makeAllies(factionList)",
-     "doc": "every pair within the list becomes mutually allied.",
+     "doc": "Makes every pair of factions within factionList mutually allied.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Relations.makeHostile",
      "sig": "Ess.Easy.Relations.makeHostile(factions)",
-     "doc": "every faction in the list becomes hostile to PMC.",
+     "doc": "Makes every faction in factionList hostile to PMC. Tracks one handle internally; calling any Easy.Relations function again first restores whatever the previous call set.",
      "tier": "easy"
     },
     {
@@ -939,13 +939,13 @@
     {
      "path": "Ess.Easy.Relations.sideWith",
      "sig": "Ess.Easy.Relations.sideWith(friend, foe)",
-     "doc": "YOU (PMC) join `friend` against `foe` in one call: PMC allies `friend`, PMC is hostile to `foe`, and `friend` is at war with `foe`.",
+     "doc": "PMC allies friend, is hostile to foe, and friend/foe go to war - one call for \"I'm helping side A crush side B\".",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Relations.war",
      "sig": "Ess.Easy.Relations.war(a, b)",
-     "doc": "make two factions fight EACH OTHER (mutually hostile), independent of the player.",
+     "doc": "Makes two factions fight each other, independent of the player - the case makeHostile can't express.",
      "tier": "easy"
     }
    ]
@@ -990,43 +990,43 @@
     {
      "path": "Ess.Easy.Spawn.airstrike",
      "sig": "Ess.Easy.Spawn.airstrike(sRound)",
-     "doc": "call a shell down on your own head (a classic sandbox gag).",
+     "doc": "The simpler, older beginner-tier preset \u2014 a single shell dropped on your own head \u2014 that predates Ess.Support and Ess.Easy.Airstrike; still current, documented on the Ess.Easy page.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Spawn.crate",
      "sig": "Ess.Easy.Spawn.crate(sType)",
-     "doc": "a supply drop that parachutes down just in front of you.",
+     "doc": "Drops a supply crate that parachutes in front of you, spawned high so the chute deploys. Default 'Supply Drop (Light MG)'; also 'Supply Drop (Blueprints)', 'Supply Drop (Treasure)'.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Spawn.enemies",
      "sig": "Ess.Easy.Spawn.enemies(nCount, opts)",
-     "doc": "drop a squad of hostiles a short way in front of you and set them ON you: an instant firefight in one line.",
+     "doc": "Drops nCount (default 3) hostiles a short distance in front of you and, unless opts.attack is false, immediately orders them to attack opts.target (default: you) \u2014 an instant firefight in one line. opts: template (default 'VZ Soldier'), dist (14), spread (3), attack (default true), target. Returns the spawned guids.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Spawn.explosion",
      "sig": "Ess.Easy.Spawn.explosion(type)",
-     "doc": "a big boom ~10 units in front of you (in front, not on your face, so it's dramatic without instakilling).",
+     "doc": "One-liner that spawns an explosion in front of the player, as used for the F6 hotkey in the hotkey_toolkit.lua recipe.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Spawn.fx",
      "sig": "Ess.Easy.Spawn.fx(t, x,y,z)",
-     "doc": "an effect at a world location.",
+     "doc": "Spawns a particle/FX at a world location \u2014 a plain Ess.Object.spawn.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Spawn.fxOn",
      "sig": "Ess.Easy.Spawn.fxOn(sTemplate, uGuid, sBone)",
-     "doc": "an effect on an object.",
+     "doc": "Spawns an FX on an object. With sBone it's glued to that bone (via Ess.Bones.attachFX) and follows the object as it animates; without one it's a one-shot at the object's current position. Remove a bone-bound one with Ess.Bones.detachFX(uGuid, handle).",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.Spawn.weapon",
      "sig": "Ess.Easy.Spawn.weapon(sName)",
-     "doc": "drop a weapon PICKUP on the ground in front of you (walk over it to grab it).",
+     "doc": "Spawns a weapon pickup on the ground in front of you (walk over it to grab it). Default 'RPG'; also Sniper Rifle, Assault Rifle, Minigun, Shotgun, Grenade Launcher, C4, Anti-Material Rifle, Pistol. For straight-into-your-hands instead, use Ess.Easy.Human.giveWeapon.",
      "tier": "easy"
     }
    ]
@@ -1109,7 +1109,7 @@
     {
      "path": "Ess.Easy.Time.slowmo",
      "sig": "Ess.Easy.Time.slowmo(n, seconds)",
-     "doc": "scale(n) that auto-restores after `seconds` (default 0.2, 2)",
+     "doc": "Applies Ess.Time.scale(n) immediately (default n=0.2) and schedules a single Ess.Time.restoreScale() via Ess.Loop after seconds of real time (default 2). Uses Ess.Time.stamp() rather than mainStamp() so the restore timer isn't itself slowed by the scale it just applied.",
      "tier": "easy"
     }
    ]
@@ -1147,7 +1147,7 @@
     {
      "path": "Ess.Easy.Vehicle.summon",
      "sig": "Ess.Easy.Vehicle.summon(template)",
-     "doc": "spawn a vehicle in front + hop in the driver seat -- the whole \"give me a <vehicle>\" thought in ONE line",
+     "doc": "Spawns a template a short way in front of the local player (via Ess.Object.spawnAhead) and drops the player into the best seat (Ess.Vehicle.enterBestSeat). Midair by default \u2014 opts.dist(18)/opts.height(10) override. Returns nil if the template name was wrong.",
      "tier": "easy",
      "ret": "uVeh | nil"
     }
@@ -1161,19 +1161,19 @@
     {
      "path": "Ess.Easy.World.brightness",
      "sig": "Ess.Easy.World.brightness(n)",
-     "doc": "overall light level (0.05 ~ near-black, 1 = normal)",
+     "doc": "Sets overall light level: ~0.05 is near-black, 1 is normal, above 1 blows out. Persistent across zones like .tint until resetAtmosphere().",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.World.clearWanted",
      "sig": "Ess.Easy.World.clearWanted()",
-     "doc": "instantly lose all heat (clear the pursuit/wanted level)",
+     "doc": "One-liner that clears the player's wanted/heat level; used as the plain (non-Shift) F8 hotkey action in the hotkey_toolkit.lua recipe.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.World.hellscape",
      "sig": "Ess.Easy.World.hellscape()",
-     "doc": "fun preset: dark + deep red",
+     "doc": "One-liner that triggers a chaotic 'hellscape' world effect; used as the Shift-held variant of the F8 hotkey in the hotkey_toolkit.lua recipe.",
      "tier": "easy"
     },
     {
@@ -1185,19 +1185,19 @@
     {
      "path": "Ess.Easy.World.removeMapBoundary",
      "sig": "Ess.Easy.World.removeMapBoundary()",
-     "doc": "drop the invisible walls fencing the player into the unlocked map",
+     "doc": "Drops the single world boundary fencing you into the story-unlocked map, including the Fiona-voiced warning + static. Host/server-authoritative \u2014 no-ops on a co-op client \u2014 and only clears whichever main boundary is currently active, with no clean restore. For a client-safe full unlock use Ess.Player.removeBoundaries() instead.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.World.resetAtmosphere",
      "sig": "Ess.Easy.World.resetAtmosphere()",
-     "doc": "undo any tint/brightness back to the region default",
+     "doc": "Stops the zone-change keeper that re-applies tint/brightness/hellscape and calls Graphics.Atmosphere.Restore to let the natural look return.",
      "tier": "easy"
     },
     {
      "path": "Ess.Easy.World.tint",
      "sig": "Ess.Easy.World.tint(r, g, b)",
-     "doc": "wash the world in an ambient color (0..255)",
+     "doc": "Washes the world in an ambient color, 0-255 each. Defaults to a deep red (220, 30, 30). Persistent by default \u2014 a keeper re-applies it across zone changes until resetAtmosphere() is called.",
      "tier": "easy"
     }
    ]
@@ -1216,7 +1216,7 @@
     {
      "path": "Ess.Event.on",
      "sig": "Ess.Event.on(eventType, args, cb, tracker)",
-     "doc": "getting the shape wrong doesn't error, it just silently never fires, so double-check against wiki/namespaces/event.md if a handler seems dead.",
+     "doc": "Wraps Event.Create(eventType, args, cb) in a pcall; on failure logs via Ess.Log and returns nil instead of a broken handle. Pass a tracker as the 4th arg to auto-register the handle on it (tracker:event(handle)).",
      "tier": "core",
      "ret": "handle"
     }
@@ -1324,40 +1324,40 @@
     {
      "path": "Ess.Gfx.call",
      "sig": "Ess.Gfx.call(widget, fn, args)",
-     "doc": "-wrapped Lua -> movie call (`CallActionScriptCallback`).",
+     "doc": "pcall-wrapped CallActionScriptCallback(fn, args); args defaults to {}.",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Gfx.menuNav",
      "sig": "Ess.Gfx.menuNav(widget, keys)",
-     "doc": "menu navigation has to be driven from Lua by polling and forwarding into the movie's own compiled AS2 menu logic (custom-ui.md's confirmed pattern: Lua only ever says \"up\"/\"down\"/\"pick this one\" via CallActionScriptCallback(\"Move\"/\"Choose\", ...), the movie owns selection state and visuals).",
+     "doc": "Polls Ess.Input for up/down/enter and forwards Move/Choose calls into a movie's own compiled AS2 menu logic, since a HUD FlashWidget gets no native input of its own. Edge-triggered via Ess.Input.poll; returns a stop() function.",
      "tier": "core",
      "ret": "stop()"
     },
     {
      "path": "Ess.Gfx.onEvent",
      "sig": "Ess.Gfx.onEvent(widget, name, cb)",
-     "doc": "-wrapped movie -> Lua binding (`SetFlashEventHandler`).",
+     "doc": "pcall-wrapped SetFlashEventHandler that hides the native mandatory two-arg (_, v) callback shape and trailing {} argument \u2014 your cb just receives v.",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Gfx.setVisible",
      "sig": "Ess.Gfx.setVisible(widget, bOn)",
-     "doc": "KNOWN BUG THIS FIXES: the getter is `GetVisible()`, not `IsVisible()` (which doesn't exist -- calling it nil-calls and gets silently swallowed by pcall, so nothing visibly breaks, it just never toggles).",
+     "doc": "Works around a real engine bug: the getter is GetVisible() (not IsVisible()) and returns 1/0, so a naive not w:GetVisible() toggle never flips. Tracks its own widget.shown boolean instead of reading the getter back.",
      "tier": "core"
     },
     {
      "path": "Ess.Gfx.warmupRerender",
      "sig": "Ess.Gfx.warmupRerender(rt, ticks)",
-     "doc": "CONFIRMED GOTCHA: `SetSwfFile` is asynchronous -- a repaint call made immediately after building the widget can silently drop (the movie hasn't finished loading yet).",
+     "doc": "Re-runs a zero-arg repaint thunk rt every 0.05s for ticks ticks (default 8), so at least one repaint lands after SetSwfFile's async movie load actually finishes.",
      "tier": "core"
     },
     {
      "path": "Ess.Gfx.widget",
      "sig": "Ess.Gfx.widget(file, x, y, w, h)",
-     "doc": "widget = { raw = <FlashWidget>, shown = bool }",
+     "doc": "Builds, positions, and adds a FlashWidget from a deployed .gfx asset, doing the corner-coordinate SetLocation math once. Returns {raw=<FlashWidget>, shown=false}, or nil (logged) on failure. Does not call SetVisible.",
      "tier": "core",
      "ret": "widget | nil"
     }
@@ -1371,7 +1371,7 @@
     {
      "path": "Ess.Hud.banner",
      "sig": "Ess.Hud.banner(sMsg)",
-     "doc": "a clean, icon-free, centered text banner via the EventFanfare \"custom\" trick (CONFIRMED live-tested)",
+     "doc": "Shows a clean, icon-free, centered text banner via Hud.EventFanfare:Commence, using a registered custom sType that points at a non-existent texture so no icon or gold header appears \u2014 just centered text. Confirmed by live testing.",
      "tier": "core"
     },
     {
@@ -1383,19 +1383,19 @@
     {
      "path": "Ess.Hud.hint",
      "sig": "Ess.Hud.hint(sMsg, sId, bBroadcast)",
-     "doc": "the native tutorial-style hint popup (icon+sound), stays up until hidden -- CONFIRMED reusable for arbitrary text, live- tested with a screenshot (wiki/snippets.md)",
+     "doc": "Wraps MrxTutorialManager.ShowMessage for the native tutorial-style hint popup (icon + sound); confirmed by live testing. No auto-hide timer \u2014 stays up until hideHint() is called with a matching sId. Local-only by default; pass bBroadcast=true to opt into the native's co-op broadcast (network behavior unconfirmed).",
      "tier": "core"
     },
     {
      "path": "Ess.Hud.objective",
      "sig": "Ess.Hud.objective(sText, nSlot)",
-     "doc": "set the persistent objective-tray line (nil clears it); nSlot defaults to 1 (the \"current objective\" line)",
+     "doc": "Sets the Hud.ObjectiveTray line at nSlot (default 1, the 'current objective' line) via SetSlotToText/ClearSlot; passing nil for sText clears that slot. Written and internally consistent but not yet confirmed via live testing.",
      "tier": "core"
     },
     {
      "path": "Ess.Hud.radio",
      "sig": "Ess.Hud.radio(sText, nHold)",
-     "doc": "a transient radio-chatter subtitle that auto-clears after nHold s",
+     "doc": "Shows a transient radio-chatter subtitle on ObjectiveTray slot 3, self-clearing after nHold seconds (default 5). Uses a generation counter so a newer radio() call's pending clear-timer won't wipe out a message that superseded it.",
      "tier": "core"
     }
    ]
@@ -1408,14 +1408,14 @@
     {
      "path": "Ess.Human.allWeapons",
      "sig": "Ess.Human.allWeapons(uChar)",
-     "doc": "Human.Inventory.GetAllWeapons (never nil, empty table)",
+     "doc": "Wraps Human.Inventory.GetAllWeapons \u2014 never nil, returns an empty table if the character has none.",
      "tier": "core",
      "ret": "{ uGuid, ... }"
     },
     {
      "path": "Ess.Human.ammo",
      "sig": "Ess.Human.ammo(uWeapon)",
-     "doc": "Weapon.GetReserveAmmo",
+     "doc": "Wraps Weapon.GetReserveAmmo. Returns 0 rather than nil on failure.",
      "tier": "core",
      "ret": "n"
     },
@@ -1427,13 +1427,13 @@
     {
      "path": "Ess.Human.doAction",
      "sig": "Ess.Human.doAction(uChar, sActionName)",
-     "doc": "Human.DoAction -- e.g. \"Cower\"/\"Stand\"/\"Proximity\"",
+     "doc": "Wraps Human.DoAction (e.g. \"Cower\"/\"Stand\"/\"Proximity\"). No-ops on a blank/non-string action name.",
      "tier": "core"
     },
     {
      "path": "Ess.Human.dropWeapon",
      "sig": "Ess.Human.dropWeapon(uChar, uWeapon)",
-     "doc": "Human.Inventory.DropWeapon",
+     "doc": "Wraps Human.Inventory.DropWeapon.",
      "tier": "core"
     },
     {
@@ -1444,7 +1444,7 @@
     {
      "path": "Ess.Human.equipWeapon",
      "sig": "Ess.Human.equipWeapon(uChar, uWeapon)",
-     "doc": "Human.Inventory.EquipWeapon -- the confirmed-working form; the top-level Human.EquipWeapon has zero real call sites anywhere in the decompiled corpus, so this deliberately does NOT expose that one.",
+     "doc": "Wraps Human.Inventory.EquipWeapon, the confirmed-working form. The top-level Human.EquipWeapon has zero real call sites in the decompiled corpus, so it's deliberately not exposed.",
      "tier": "core"
     },
     {
@@ -1456,27 +1456,27 @@
     {
      "path": "Ess.Human.maxAmmo",
      "sig": "Ess.Human.maxAmmo(uWeapon)",
-     "doc": "Weapon.GetMaxReserveAmmo",
+     "doc": "Wraps Weapon.GetMaxReserveAmmo. Returns 0 rather than nil on failure.",
      "tier": "core",
      "ret": "n"
     },
     {
      "path": "Ess.Human.primaryWeapon",
      "sig": "Ess.Human.primaryWeapon(uChar)",
-     "doc": "Human.Inventory.GetPrimaryWeapon",
+     "doc": "Wraps Human.Inventory.GetPrimaryWeapon.",
      "tier": "core",
      "ret": "uGuid|nil"
     },
     {
      "path": "Ess.Human.refillAmmo",
      "sig": "Ess.Human.refillAmmo(uWeapon)",
-     "doc": "the confirmed \"set to GetMaxReserveAmmo\" one-liner, independently duplicated across pmccon001.lua/vzacon001.lua",
+     "doc": "The confirmed \"set to GetMaxReserveAmmo\" one-liner, independently duplicated across pmccon001.lua/vzacon001.lua in the shipped source.",
      "tier": "core"
     },
     {
      "path": "Ess.Human.reloadAll",
      "sig": "Ess.Human.reloadAll(uChar)",
-     "doc": "Human.Inventory.ReloadAll(uChar, false)",
+     "doc": "Calls Human.Inventory.ReloadAll(uChar, false).",
      "tier": "core"
     },
     {
@@ -1489,19 +1489,19 @@
     {
      "path": "Ess.Human.setAllWeapons",
      "sig": "Ess.Human.setAllWeapons(uChar, tWeaponGuids)",
-     "doc": "Human.Inventory.SetAllWeapons",
+     "doc": "Wraps Human.Inventory.SetAllWeapons.",
      "tier": "core"
     },
     {
      "path": "Ess.Human.setAmmo",
      "sig": "Ess.Human.setAmmo(uWeapon, n)",
-     "doc": "Weapon.SetReserveAmmo",
+     "doc": "Wraps Weapon.SetReserveAmmo.",
      "tier": "core"
     },
     {
      "path": "Ess.Human.setInfiniteAmmo",
      "sig": "Ess.Human.setInfiniteAmmo(uChar, bOn)",
-     "doc": "Object.SetInfiniteAmmo -- maxes reserve ammo forever",
+     "doc": "Wraps Object.SetInfiniteAmmo (actually on the Object namespace, not Human/Weapon, but kept here as a character-ammo concern). Confirmed live-tested: keeps reserve ammo maxed forever, but the magazine currently being fired still empties normally and needs a reload (grenades: infinite reserve, still thrown one at a time).",
      "tier": "core"
     }
    ]
@@ -1514,19 +1514,19 @@
     {
      "path": "Ess.Impulse.mass",
      "sig": "Ess.Impulse.mass(uGuid)",
-     "doc": "the mass getter, surfaced at the Core tier too.",
+     "doc": "The mass getter, surfaced at the Core tier too (same underlying call as Ess.Raw.Impulse.mass).",
      "tier": "core"
     },
     {
      "path": "Ess.Impulse.push",
      "sig": "Ess.Impulse.push(g, {forward,up,side or dir, strength, scaleByMass})",
-     "doc": "shove an object.",
+     "doc": "opts.forward/up/side are local-space components (forward = the way it faces); opts.dir={x,y,z} is a world-space direction that overrides those, scaled by opts.strength (default 1). opts.scaleByMass defaults to true \u2014 multiplies by the object's mass (falling back to a DEFAULT_MASS of 1000 if GetMass is unavailable) so the velocity change feels the same on a light bike or a heavy tank; pass false for a raw, mass-independent shove.",
      "tier": "core"
     },
     {
      "path": "Ess.Impulse.spin",
      "sig": "Ess.Impulse.spin(uGuid, opts)",
-     "doc": "an OFF-CENTER impulse to make something roll / flip (spyhunter's barrel roll).",
+     "doc": "An off-center impulse to make something roll/flip. opts.forward/up/side is the local-space impulse; opts.at={x,y,z} is the local offset it's applied at (the lever arm \u2014 further from center = more spin). opts.scaleByMass behaves as in push.",
      "tier": "core"
     }
    ]
@@ -1546,7 +1546,7 @@
     {
      "path": "Ess.Input.clear",
      "sig": "Ess.Input.clear()",
-     "doc": "flush the pending key-event ring buffer",
+     "doc": "Discards every buffered key event (Loader.ClearKeyEvents, pcall-guarded). Canonical use: a script activated by a keypress drains the buffer once on activate so its own trigger key doesn't immediately fire an action on the first tick.",
      "tier": "core"
     },
     {
@@ -1559,21 +1559,21 @@
     {
      "path": "Ess.Input.hijackController",
      "sig": "Ess.Input.hijackController(onInput)",
-     "doc": "niche -- see caveat below; low priority to verify further, most mods don't need this",
+     "doc": "Unverified/reasoned-through: hides the PDA widget and installs your handler on the ControllerInput event, the only callback that still ticks during a world-pause. Always call the returned release() when done; while hijacked the PDA underneath still claims arrows/Enter/Esc, so a keyboard UI layered on top must use letter keys.",
      "tier": "core",
      "ret": "release()"
     },
     {
      "path": "Ess.Input.poll",
      "sig": "Ess.Input.poll()",
-     "doc": "-> bool } The ONLY correct input-polling shape on this engine: Loader.PopKeyEvents() (an edge-triggered ring buffer -- each byte is a VK code that went up->down since the last drain) for discrete presses, PLUS Loader.GetKeyboardState() (a 256-byte snapshot) for \"is this held right now.\" Call this ONCE per tick and read both fields off the result.",
+     "doc": "Call once per tick. Returns pressed (drains the edge-triggered key-event ring buffer, Loader.PopKeyEvents, of keys that went up\u2192down since last drain) and down(vk) (reads the 256-byte Loader.GetKeyboardState snapshot for currently-held keys).",
      "tier": "core",
      "ret": "{ pressed = {vk, ...}, down = function(vk) -> bool }"
     },
     {
      "path": "Ess.Input.usingController",
      "sig": "Ess.Input.usingController()",
-     "doc": "Gui.ControllerInUse -- for branching HUD hint text (\"Press A\" vs \"Press E\"), the common case",
+     "doc": "Wraps Gui.ControllerInUse(), guarded (returns false if the function doesn't exist) and normalized since this engine's getters sometimes return 1/0 instead of a real boolean. Use for branching HUD hint text, e.g. \"Press A\" vs \"Press E\".",
      "tier": "core",
      "ret": "bool"
     }
@@ -1587,7 +1587,7 @@
     {
      "path": "Ess.Keys.clear",
      "sig": "Ess.Keys.clear()",
-     "doc": "drop every binding",
+     "doc": "clear(). Drops every registered hotkey binding at once (Ess.Keys._map = {}).",
      "tier": "core"
     },
     {
@@ -1599,19 +1599,19 @@
     {
      "path": "Ess.Keys.off",
      "sig": "Ess.Keys.off(key)",
-     "doc": "stop handling that key",
+     "doc": "off(key). Unbinds that one key; a no-op if it wasn't bound or doesn't resolve.",
      "tier": "core"
     },
     {
      "path": "Ess.Keys.on",
      "sig": "Ess.Keys.on(key, fn)",
-     "doc": "key = a VK number (0x74) OR a name (\"F5\", \"space\", \"a\", \"1\", \"up\") -- fn(bShift)",
+     "doc": "on(key, fn). key is a Windows VK number (e.g. 0x74) or a case-insensitive name string resolved via Ess.Keys.vk ('F1'..'F12', 'a'..'z', '0'..'9', and named keys like space/enter/escape/tab/arrows/shift/ctrl). fn(bShift) receives whether Shift was held at the moment the key edge fired. Registering starts the shared dispatch loop if it isn't already running; logs and does nothing if key doesn't resolve or fn isn't a function.",
      "tier": "core"
     },
     {
      "path": "Ess.Keys.vk",
      "sig": "Ess.Keys.vk(key)",
-     "doc": "resolve a name to its Windows VK code (the map this uses)",
+     "doc": "vk(name) -> number | nil. Resolves a key name to its Windows VK code using the same lookup table on/off/isBound use internally; a raw number passed in is returned unchanged.",
      "tier": "core",
      "ret": "number | nil"
     }
@@ -1625,19 +1625,19 @@
     {
      "path": "Ess.Layers.add",
      "sig": "Ess.Layers.add(vLayers, fCb)",
-     "doc": "load layer(s) (culls dupes/nonexistent; refuses static)",
+     "doc": "Loads layer(s) (a string or a list); culls duplicates/nonexistent entries and refuses (logs, skips) any STATIC layer.",
      "tier": "core"
     },
     {
      "path": "Ess.Layers.begin",
      "sig": "Ess.Layers.begin(sId)",
-     "doc": "open a mode: snapshot baseline + gate saves. false if already open.",
+     "doc": "Opens a layers mode: snapshots the current set of loaded dynamic layers as the baseline and gates saves. Returns false if a mode is already active - only one mode at a time.",
      "tier": "core"
     },
     {
      "path": "Ess.Layers.composite",
      "sig": "Ess.Layers.composite(fCb)",
-     "doc": "OPTIONAL: force a VISIBLE recomposite (WaitForStreaming)",
+     "doc": "Optional: forces a visible recomposite via MrxState. Not needed if the mode also teleports/fast-travels the player. Best-effort - logs and no-ops if MrxState is unavailable.",
      "tier": "core"
     },
     {
@@ -1649,19 +1649,19 @@
     {
      "path": "Ess.Layers.expect",
      "sig": "Ess.Layers.expect(spec)",
-     "doc": "Declarative convergence: make the world match { present = {...}, absent = {...} }, issuing only the minimal add/remove.",
+     "doc": "Declarative convergence: diffs the declared {present=, absent=} set against what's actually loaded and issues only the minimal add/remove, fixing drift instead of blindly re-applying everything.",
      "tier": "core"
     },
     {
      "path": "Ess.Layers.finish",
      "sig": "Ess.Layers.finish(fCb)",
-     "doc": "restore baseline + un-gate saves",
+     "doc": "Restores exactly to the recorded baseline (diffing current state against it, not a tracked delta), so it's correct even if something else changed layers mid-mode, then un-gates saves.",
      "tier": "core"
     },
     {
      "path": "Ess.Layers.isActive",
      "sig": "Ess.Layers.isActive()",
-     "doc": "---- public API ----------------------------------------------------------------------------",
+     "doc": "True while a layers mode is open.",
      "tier": "core"
     },
     {
@@ -1673,7 +1673,7 @@
     {
      "path": "Ess.Layers.remove",
      "sig": "Ess.Layers.remove(vLayers, fCb)",
-     "doc": "unload layer(s) (refuses static)",
+     "doc": "Unloads layer(s); same STATIC-layer refusal as add.",
      "tier": "core"
     },
     {
@@ -1685,7 +1685,7 @@
     {
      "path": "Ess.Layers.swap",
      "sig": "Ess.Layers.swap(vRemove, vAdd, fCb)",
-     "doc": "remove-then-add, sequenced (the mission idiom)",
+     "doc": "Remove-then-add, sequenced so the removal's callback chains into the add - the standard mission idiom for swapping layer sets.",
      "tier": "core"
     }
    ]
@@ -1712,7 +1712,7 @@
     {
      "path": "Ess.Loop.start",
      "sig": "Ess.Loop.start(id, interval, tickFn)",
-     "doc": "tickFn() returns true to keep going, false/nil to auto-stop",
+     "doc": "Registers (or replaces) a self-rescheduling loop under id; tickFn() runs every interval seconds (default 1), returning true/truthy to keep going or false/nil to auto-stop. Calling again with the same id safely supersedes any previous loop under it; a tick that errors is pcall-caught, logged, and treated as stop.",
      "tier": "core"
     },
     {
@@ -1725,7 +1725,7 @@
     {
      "path": "Ess.Loop.stop",
      "sig": "Ess.Loop.stop(id)",
-     "doc": "cancels a running loop early; its next scheduled tick will see it's gone and quietly not reschedule (no error, no dangling reference).",
+     "doc": "Cancels a running loop early. Its next scheduled tick sees it's gone and quietly does not reschedule \u2014 no error.",
      "tier": "core"
     }
    ]
@@ -1738,20 +1738,20 @@
     {
      "path": "Ess.Mark.clear",
      "sig": "Ess.Mark.clear(handle)",
-     "doc": "tears down every surface a handle actually used, plus the zone anchor prop if there was one.",
+     "doc": "Tears down every marker surface present in a handle, plus the zone's anchor prop if it has one. Safe to call on a partial handle \u2014 any missing/nil field is simply skipped.",
      "tier": "core"
     },
     {
      "path": "Ess.Mark.object",
      "sig": "Ess.Mark.object(uGuid, opts)",
-     "doc": "opts: radar=true, pda=true, world=true (floating icon), disc=false (ground ring), kind=, rgb=, radius= (disc), discAlpha=, size=/dist= (floating-icon size + draw-distance)",
+     "doc": "Marks an existing object's uGuid across whichever surfaces opts enable (radar/pda/world/disc; radar, pda, and world default to true). Returns a compound handle table {uGuid, radarName?, pdaName?, worldHandle?, discHandle?} covering only the surfaces actually drawn.",
      "tier": "core",
      "ret": "handle"
     },
     {
      "path": "Ess.Mark.zone",
      "sig": "Ess.Mark.zone(x, y, z, radius, opts)",
-     "doc": "opts: world=true (ground ring), radar=true, pda=true, icon=false (ALSO a floating icon), kind=, rgb=, discAlpha=, size=/dist= (floating-icon size + draw-distance)",
+     "doc": "Marks a bare world point by first spawning an invisible TinyGeometry anchor at (x,y,z) via Ess.Object.spawn, then marking that anchor. Returns nil if the anchor fails to spawn; the returned handle owns the anchor, so Ess.Mark.clear removes the anchor prop too.",
      "tier": "core",
      "ret": "handle"
     }
@@ -1765,14 +1765,14 @@
     {
      "path": "Ess.Math.angleTo",
      "sig": "Ess.Math.angleTo(fromX, fromZ, toX, toZ)",
-     "doc": "-- the yaw that FACES from->to",
+     "doc": "The yaw that faces from (fromX,fromZ) toward (toX,toZ), in the engine's own convention (calibrated against Ess.Object.spawnAhead). Returns 0 if the two points coincide.",
      "tier": "core",
      "ret": "yawDegrees"
     },
     {
      "path": "Ess.Math.approach",
      "sig": "Ess.Math.approach(cur, target, maxStep)",
-     "doc": "move `cur` toward `target` by at most `maxStep` (a frame-rate-independent ease when maxStep = speed*dt).",
+     "doc": "Moves cur toward target by at most maxStep \u2014 a frame-rate-independent ease when maxStep = speed * dt.",
      "tier": "core"
     },
     {
@@ -1785,21 +1785,21 @@
     {
      "path": "Ess.Math.clamp01",
      "sig": "Ess.Math.clamp01(v)",
-     "doc": "Ess.Math.remap(v, inLo,inHi, outLo,outHi) -> n  (linear rescale)",
+     "doc": "Clamps to the unit range [0, 1] \u2014 the common case for a lerp/ease parameter.",
      "tier": "core",
      "ret": "n"
     },
     {
      "path": "Ess.Math.dist2D",
      "sig": "Ess.Math.dist2D(x1, z1, x2, z2)",
-     "doc": "Ess.Math.dist3D(x1,y1,z1, x2,y2,z2) -> n",
+     "doc": "Horizontal (X/Z-plane) distance between two points, ignoring height.",
      "tier": "core",
      "ret": "n"
     },
     {
      "path": "Ess.Math.dist2DSq",
      "sig": "Ess.Math.dist2DSq(x1, z1, x2, z2)",
-     "doc": "squared distances -- skip the sqrt when you only COMPARE (\"which is closer\", \"is it within r\").",
+     "doc": "dist2D without the sqrt \u2014 use when you only need to compare distances (\"which is closer\").",
      "tier": "core"
     },
     {
@@ -1822,27 +1822,27 @@
     {
      "path": "Ess.Math.lerpAngle",
      "sig": "Ess.Math.lerpAngle(a, b, t)",
-     "doc": "interpolate angle a -> b (DEGREES) the SHORTEST way, so 350 -> 10 eases +20 through zero, not -340 the long way round.",
+     "doc": "Interpolates angle a -> b (degrees) the shortest way, so 350 -> 10 eases +20 through zero rather than -340 the long way. t is in [0, 1]; result normalized to [-180, 180) \u2014 the correct lerp for a turning yaw.",
      "tier": "core"
     },
     {
      "path": "Ess.Math.normDeg",
      "sig": "Ess.Math.normDeg(deg)",
-     "doc": "-- normalize an angle (shortest-turn friendly)",
+     "doc": "Normalizes an angle so a difference of two yaws reads as the shortest turn (350 and 10 differ by 20, not 340). Handy for facing checks and smooth turn easing.",
      "tier": "core",
      "ret": "n in [-180, 180)"
     },
     {
      "path": "Ess.Math.pointAhead",
      "sig": "Ess.Math.pointAhead(x, z, yawDeg, dist)",
-     "doc": "-- project (x,z) forward by a yaw (spawnAhead math)",
+     "doc": "The point dist units in front of (x, z) when facing yawDeg \u2014 exactly Ess.Object.spawnAhead's projection, exposed for reuse (placing something ahead of an NPC, aiming a dolly, offsetting a marker). Y is unchanged.",
      "tier": "core",
      "ret": "x2, z2"
     },
     {
      "path": "Ess.Math.remap",
      "sig": "Ess.Math.remap(v, inLo, inHi, outLo, outHi)",
-     "doc": "linear rescale: map v from [inLo,inHi] onto [outLo,outHi] (\"a 0..maxHealth into a 0..1 bar,\" \"a distance into an alpha\").",
+     "doc": "Linearly rescales v from [inLo, inHi] onto [outLo, outHi]. A degenerate input range (inLo == inHi) returns outLo instead of dividing by zero; does not clamp the output, so an out-of-range v extrapolates past [outLo, outHi].",
      "tier": "core"
     },
     {
@@ -1855,7 +1855,7 @@
     {
      "path": "Ess.Math.round",
      "sig": "Ess.Math.round(v, decimals)",
-     "doc": "Ess.Math.approach(cur, target, maxStep) -> n  (ease toward)",
+     "doc": "Rounds v to the nearest value; decimals defaults to 0 (nearest integer).",
      "tier": "core",
      "ret": "n"
     },
@@ -1867,14 +1867,14 @@
     {
      "path": "Ess.Math.smoothstep",
      "sig": "Ess.Math.smoothstep(t)",
-     "doc": "Ess.Math.lerpAngle(a,b,t) -> deg (shortest path)   Ess.Math.wrap(v,lo,hi) -> n",
+     "doc": "Eases a 0..1 t to 0..1 with zero slope at both ends (3t\u00b2 - 2t\u00b3), clamping t first. Feed it to lerp for an ease-in-out.",
      "tier": "core",
      "ret": "n (ease 0..1)"
     },
     {
      "path": "Ess.Math.within2D",
      "sig": "Ess.Math.within2D(x1, z1, x2, z2, r)",
-     "doc": "is the second point within radius r of the first, on the ground plane? The `dx*dx + dz*dz <= r*r` range test, named -- no sqrt, no way to fumble the squaring.",
+     "doc": "Is the second point within radius r of the first, on the ground plane? A named dx*dx + dz*dz <= r*r test with no sqrt \u2014 the check every proximity trigger/\"reached the zone\" poll open-codes.",
      "tier": "core"
     },
     {
@@ -1886,7 +1886,7 @@
     {
      "path": "Ess.Math.wrap",
      "sig": "Ess.Math.wrap(v, lo, hi)",
-     "doc": "wrap v into the half-open range [lo, hi) -- keep an index, an angle, or a cursor in-band.",
+     "doc": "Wraps v into the half-open range [lo, hi) \u2014 for keeping an index, angle, or cursor in-band. hi <= lo returns lo.",
      "tier": "core"
     }
    ]
@@ -1929,7 +1929,7 @@
     {
      "path": "Ess.Net.On",
      "sig": "Ess.Net.On(name, fn)",
-     "doc": "===== public: messages + raw =====",
+     "doc": "Registers a receiver for channel name; fn(sender, value) is invoked when a message arrives on that channel (sender is the 0/1 player id).",
      "tier": "core"
     },
     {
@@ -1941,7 +1941,7 @@
     {
      "path": "Ess.Net.Send",
      "sig": "Ess.Net.Send(name, value, reliable)",
-     "doc": "-- any value: str/num/bool/table",
+     "doc": "Serializes value (string/number/bool/nil/nested table) and sends it chunked over the wire on channel name. reliable defaults to true; pass false for an unreliable send.",
      "tier": "core"
     },
     {
@@ -2020,14 +2020,14 @@
     {
      "path": "Ess.Object.displayName",
      "sig": "Ess.Object.displayName(uGuid)",
-     "doc": "Ess.Object.playerControlled(uGuid) -> bool",
+     "doc": "Returns the localized, human-readable name (Object.GetLocalizedName) for HUD/labels \u2014 distinct from Ess.Name(guid), which is the guid's hash string.",
      "tier": "core",
      "ret": "s"
     },
     {
      "path": "Ess.Object.distance",
      "sig": "Ess.Object.distance(uGuidA, uGuidBOrX, yOrIgnoreY, z, bIgnoreY)",
-     "doc": "collapses Object.GetDistanceFrom's two confirmed forms into one call",
+     "doc": "Collapses Object.GetDistanceFrom's two forms \u2014 object-to-object (uGuidA, uGuidB, bIgnoreY) and object-to-coordinates (uGuidA, x, y, z, bIgnoreY) \u2014 into one call, dispatching on whether the 2nd argument is a number.",
      "tier": "core",
      "ret": "n | nil"
     },
@@ -2039,26 +2039,26 @@
     {
      "path": "Ess.Object.faceObject",
      "sig": "Ess.Object.faceObject(uGuid, uTarget)",
-     "doc": "same, but face another object's CURRENT position.",
+     "doc": "Like faceToward, but faces another object's current position rather than a fixed point.",
      "tier": "core"
     },
     {
      "path": "Ess.Object.faceToward",
      "sig": "Ess.Object.faceToward(uGuid, x, y, z)",
-     "doc": "Ess.Object.faceObject(uGuid, uTarget)  (turn to face)",
+     "doc": "Turns the object to face a world point using ground-plane yaw (y is accepted for call convenience but unused). Uses Ess.Math.angleTo so the convention matches the engine's own.",
      "tier": "core"
     },
     {
      "path": "Ess.Object.hasLabel",
      "sig": "Ess.Object.hasLabel(uGuid, sLabel)",
-     "doc": "Labels: a free-form string tag the engine and other scripts read (e.g.",
+     "doc": "Checks whether an object carries a free-form string tag (labels like \"PMC\"/\"Disposable\"/\"garage\" that the engine and other scripts read).",
      "tier": "core",
      "ret": "bool / .addLabel(uGuid, s) / .removeLabel(uGuid, s)"
     },
     {
      "path": "Ess.Object.heal",
      "sig": "Ess.Object.heal(uGuid)",
-     "doc": "CONFIRMED \"heal to full\" idiom seen in real scripts: Object.SetHealth(uGuid, Object.GetMaxHealth(uGuid)).",
+     "doc": "The confirmed \"heal to full\" idiom: Object.SetHealth(uGuid, Object.GetMaxHealth(uGuid)).",
      "tier": "core"
     },
     {
@@ -2078,7 +2078,7 @@
     {
      "path": "Ess.Object.impulse",
      "sig": "Ess.Object.impulse(uGuid, x, y, z, bLocal)",
-     "doc": "Object.ApplyImpulse (launch/knockback)",
+     "doc": "Wraps Object.ApplyImpulse, the confirmed launch/knock-around primitive; real call sites scale the impulse by the object's mass since heavier things need a bigger push. bLocal defaults to true (impulse in the object's own space). This is the bare call \u2014 see Ess.Impulse for mass-scaling + directional + preset helpers.",
      "tier": "core"
     },
     {
@@ -2090,7 +2090,7 @@
     {
      "path": "Ess.Object.kill",
      "sig": "Ess.Object.kill(uGuid)",
-     "doc": "Ess.Object.kill / .remove -- both one-way per the Object namespace's own notes: Kill destroys (leaves a corpse/wreck), Remove deletes the object outright.",
+     "doc": "Destroys the object, leaving a corpse/wreck (distinct from remove, which deletes outright). Confirmed not instantaneous: alive(uGuid) still reads true in the same tick as the kill and flips to false a moment later \u2014 poll alive() over a couple ticks rather than checking immediately after.",
      "tier": "core"
     },
     {
@@ -2110,20 +2110,20 @@
     {
      "path": "Ess.Object.playerControlled",
      "sig": "Ess.Object.playerControlled(uGuid)",
-     "doc": "LIVE DISCOVERY (this wrapper's testing): despite the wiki signature claiming a boolean, Object.IsPlayerControlled actually returns the CONTROLLING PLAYER'S GUID (a userdata) when the object is player-controlled, and a falsy value otherwise -- so a plain truthy() check would wrongly report the real player as NOT controlled (a guid isn't == true or == 1).",
+     "doc": "Live discovery: Object.IsPlayerControlled actually returns the controlling player's guid (userdata), not a plain boolean, so a naive truthy() check would misreport the real player as not controlled. This wrapper instead checks \"returned a real value\" (v ~= nil and v ~= false and v ~= 0).",
      "tier": "core"
     },
     {
      "path": "Ess.Object.pollVehicleChange",
      "sig": "Ess.Object.pollVehicleChange(uChar, onChange, interval)",
-     "doc": "->guid transition.",
+     "doc": "Watches a character for entering/exiting a vehicle by polling Vehicle.GetFromRider on a heartbeat (default 0.5s), firing onChange(uVehicleOrNil, uPrevVehicleOrNil) on the nil<->guid transition. Polls rather than hooking because there's no native \"entered a vehicle\" event for an unknown target vehicle. Returns a stop() function to end the watch early.",
      "tier": "core",
      "ret": "stop()"
     },
     {
      "path": "Ess.Object.pos",
      "sig": "Ess.Object.pos(uGuid)",
-     "doc": "Ess.Object.setPos(uGuid, x,y,z)   (teleport an OBJECT)",
+     "doc": "pcall-wrapped Object.GetPosition \u2014 the native throws on an invalid/dead guid, this returns nil instead.",
      "tier": "core",
      "ret": "x,y,z | nil"
     },
@@ -2142,7 +2142,7 @@
     {
      "path": "Ess.Object.revive",
      "sig": "Ess.Object.revive(uGuid, nDelay)",
-     "doc": "confirmed with an optional delay second arg (e.g.",
+     "doc": "nDelay is an optional, confirmed second argument passed through to Object.Revive.",
      "tier": "core"
     },
     {
@@ -2153,13 +2153,13 @@
     {
      "path": "Ess.Object.setInvincible",
      "sig": "Ess.Object.setInvincible(uGuid, bOn, sReason)",
-     "doc": "Ess.Object.invincible(uGuid) -> bool  (the getter)",
+     "doc": "sReason is mandatory here (unlike the native, which allows omitting it) \u2014 every real call site tags a reason (\"Survival\"/\"Hijack\"/\"HQ\") so a toggle can always be attributed. An invalid/missing reason logs a warning and falls back to \"Ess\" rather than failing.",
      "tier": "core"
     },
     {
      "path": "Ess.Object.setPos",
      "sig": "Ess.Object.setPos(uGuid, x, y, z)",
-     "doc": "teleport an OBJECT.",
+     "doc": "Teleports an object. Confirmed unreliable on freshly-spawned/AI humans (streaming/physics can snap them back) \u2014 use Ess.Player.teleport for the player or Ess.Vehicle.followGhost for a dynamic follow. Solid for props/vehicles and for placing a just-spawned object before it streams in.",
      "tier": "core"
     },
     {
@@ -2197,7 +2197,7 @@
     {
      "path": "Ess.Object.spawnAhead",
      "sig": "Ess.Object.spawnAhead(sTemplate, nDist, nHeight, i, tOpts)",
-     "doc": "spawn in front of the player (hides the yaw->sin/cos \"in front of me\" trig a beginner won't know; tOpts.useView=true places it where you're LOOKING, not body-facing)",
+     "doc": "Spawns sTemplate nDist units (default 18) in front of player i (default local), nHeight units up (default 0 \u2014 raise it for aircraft/a midair drop), facing the same way the player faces. Hides the yaw-to-sin/cos trig via Ess.Math.pointAhead.",
      "tier": "core",
      "ret": "uGuid | nil"
     },
@@ -2221,7 +2221,7 @@
     {
      "path": "Ess.Object.vehicleOf",
      "sig": "Ess.Object.vehicleOf(uChar)",
-     "doc": "-> vehicle guid (driver OR passenger) or nil.",
+     "doc": "Unifies 4 overlapping entry points across 2 namespaces (Object.InSeat/InVehicle, Player.GetControlledObject, Vehicle.GetFromRider) into the confirmed idiom Vehicle.GetFromRider(char) \u2014 works for driver or passenger.",
      "tier": "core",
      "ret": "uVehicleGuid | nil"
     },
@@ -2235,14 +2235,14 @@
     {
      "path": "Ess.Object.visible",
      "sig": "Ess.Object.visible(uGuid)",
-     "doc": "Ess.Object.setVisible(uGuid, bOn)",
+     "doc": "Wraps Object.IsVisible, a real boolean-returning native here \u2014 distinct from the FlashWidget GetVisible footgun documented elsewhere in Ess.",
      "tier": "core",
      "ret": "bool"
     },
     {
      "path": "Ess.Object.yaw",
      "sig": "Ess.Object.yaw(uGuid)",
-     "doc": "Ess.Object.setYaw(uGuid, n)",
+     "doc": "Reads an object's yaw. Whether the unit is degrees or radians is unconfirmed on this engine (sample scripts disagree) \u2014 reading then writing back is self-consistent regardless.",
      "tier": "core",
      "ret": "n | nil"
     }
@@ -2269,31 +2269,31 @@
     {
      "path": "Ess.On.death",
      "sig": "Ess.On.death(guid, fn)",
-     "doc": "fn() when that object dies (a real Event.ObjectDeath hook)",
+     "doc": "death(guid, fn) -> stop(). A real Event.ObjectDeath hook (not a poll) that fires fn() once when the object dies; fn takes no arguments. If guid is falsy, returns a no-op stop() immediately instead of erroring.",
      "tier": "core"
     },
     {
      "path": "Ess.On.enterArea",
      "sig": "Ess.On.enterArea(x, y, z, r, fn, i)",
-     "doc": "fn(px,py,pz) the moment player i enters radius r -- fires ONCE",
+     "doc": "enterArea(x,y,z,r, fn [,i]) -> stop(). Polls every 0.25s; fires once when player i (default 0) comes within horizontal radius r of (x,z) \u2014 y is not part of the distance check. Calls fn(px, y, pz) where y is the value you armed it with, not a measured height, then stops itself.",
      "tier": "core"
     },
     {
      "path": "Ess.On.exitArea",
      "sig": "Ess.On.exitArea(x, y, z, r, fn, i)",
-     "doc": "fn(...) the moment they leave (after being inside) -- fires ONCE",
+     "doc": "exitArea(x,y,z,r, fn [,i]) -> stop(). Polls every 0.25s; only counts as 'leaving' after the player has actually been inside the radius first, so arming while already outside won't fire on the next tick. Fires fn(px, y, pz) once, then stops.",
      "tier": "core"
     },
     {
      "path": "Ess.On.healthBelow",
      "sig": "Ess.On.healthBelow(guid, pct, fn)",
-     "doc": "fn(hp) when guid drops below pct% of its health at arm time -- ONCE",
+     "doc": "healthBelow(guid, pct, fn) -> stop(). Polls every 0.4s. The baseline is NOT max health \u2014 it's whatever Ess.Object.health(guid) first reads back when the hook arms, captured once. Fires fn(hp) the first time hp <= base * (pct/100) (pct defaults to 50), then stops; arming against an already-damaged target means the percentage is relative to health at arm time, not true max.",
      "tier": "core"
     },
     {
      "path": "Ess.On.insideArea",
      "sig": "Ess.On.insideArea(x, y, z, r, fn, i)",
-     "doc": "fn(...) EVERY tick while they're inside (a live \"zone\" callback)",
+     "doc": "insideArea(x,y,z,r, fn [,i]) -> stop(). Polls every 0.25s and calls fn(px, y, pz) on every tick the player is inside the radius (a live zone callback), doing nothing on ticks they're outside. Never auto-stops \u2014 call the returned stop() yourself.",
      "tier": "core"
     },
     {
@@ -2305,19 +2305,19 @@
     {
      "path": "Ess.On.playerHurt",
      "sig": "Ess.On.playerHurt(fn, i)",
-     "doc": "fn(newHp, lost) whenever player i's health DROPS (repeats)",
+     "doc": "playerHurt(fn [,i]) -> stop(). Polls every 0.2s against player i's (default 0) character health, calling fn(newHp, lost) any tick health is lower than the previous tick's reading (lost is the delta). Keeps running until you call stop().",
      "tier": "core"
     },
     {
      "path": "Ess.On.tick",
      "sig": "Ess.On.tick(interval, fn)",
-     "doc": "fn() every `interval` seconds (a named, reload-safe Ess.Loop)",
+     "doc": "tick(interval, fn) -> stop(). A named, reload-safe Ess.Loop.start(id, interval or 1, fn) under an auto-generated id, so multiple Ess.On.tick hooks never collide with each other or with Ess.Loop ids you manage yourself. fn() runs every interval seconds (default 1), its return value is ignored, and the loop keeps going until stop().",
      "tier": "core"
     },
     {
      "path": "Ess.On.vehicle",
      "sig": "Ess.On.vehicle(fn, i)",
-     "doc": "fn(nowVeh, prevVeh) on entering/leaving a vehicle (poll idiom)",
+     "doc": "vehicle(fn [,i]) -> stop(). A thin pass-through: resolves player i's character via Ess.Player.character(i or 0), then returns Ess.Object.pollVehicleChange(char, fn) directly. Returns a no-op stop() if there's no character.",
      "tier": "core"
     }
    ]
@@ -2330,14 +2330,14 @@
     {
      "path": "Ess.Override.mergeIntoLiveTable",
      "sig": "Ess.Override.mergeIntoLiveTable(t, key, data)",
-     "doc": "NEVER replacing t[key] with a new table object if one is already there.",
+     "doc": "Appends each entry in the data list onto the existing table at t[key], creating t[key] fresh only if it doesn't exist yet, and never replacing an existing table object there. Prefer this over wrap() when the thing you're modding is data a live table already holds \u2014 since tables are references, every existing reader of t[key] sees the appended entries immediately with no cache/refresh needed. Refuses (logs + returns false) if t isn't a table.",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Override.wrap",
      "sig": "Ess.Override.wrap(target, name, newFn)",
-     "doc": "-contract.md, cost a real crash on an already-shipped mission before it was understood): `SomeModule.SomeFunction = function(...) return fOriginal(...) end` compiles as a Lua TAIL CALL -- the current stack frame is replaced rather than a new one pushed.",
+     "doc": "Replaces target[name] with newFn in a crash-proof way, avoiding the tail-call bug that breaks the engine's getfenv-based module system. newFn is called as newFn(callOriginal, ...), where callOriginal is a closure that safely invokes the real original \u2014 newFn never touches the original function directly. Refuses (logs + returns false) if target isn't a table, target[name] isn't a function, or that target/name pair has already been wrapped.",
      "tier": "core",
      "ret": "ok"
     }
@@ -2351,86 +2351,86 @@
     {
      "path": "Ess.Player.camera",
      "sig": "Ess.Player.camera(i)",
-     "doc": "resolves index -> Player.GetCamera(slot) in one call",
+     "doc": "Resolves a player index straight to Player.GetCamera(slot) in one call.",
      "tier": "core",
      "ret": "uCameraGuid | nil"
     },
     {
      "path": "Ess.Player.character",
      "sig": "Ess.Player.character(i)",
-     "doc": "i=0 (or nil) local, i=1 secondary co-op partner",
+     "doc": "Returns the player's character guid. `i=0`/nil is the local character (single-player-safe); `i=1` is the co-op secondary character and reliably returns nil outside co-op rather than being coerced into something odd.",
      "tier": "core",
      "ret": "uCharGuid | nil"
     },
     {
      "path": "Ess.Player.giveCash",
      "sig": "Ess.Player.giveCash(n)",
-     "doc": "routes through MrxPmc.AddCashQty (HUD-updating)",
+     "doc": "Adds cash via MrxPmc.AddCashQty(n, false, \"[Ess]\") \u2014 never Player.SetCash/AddCash, which are confirmed to silently skip the HUD refresh. No player-index argument; always this machine's own wallet.",
      "tier": "core"
     },
     {
      "path": "Ess.Player.giveFuel",
      "sig": "Ess.Player.giveFuel(n)",
-     "doc": "routes through MrxPmc.AddFuelQty (HUD-updating)",
+     "doc": "Adds fuel via MrxPmc.AddFuelQty(n).",
      "tier": "core"
     },
     {
      "path": "Ess.Player.inVehicle",
      "sig": "Ess.Player.inVehicle(i)",
-     "doc": "what the player is doing right now",
+     "doc": "Returns the vehicle the player is currently in (driver or passenger), nil on foot \u2014 just Ess.Object.vehicleOf on the player's character. Written and internally consistent but not yet confirmed via live testing.",
      "tier": "core",
      "ret": "uVehicleGuid|nil / .onFoot(i) -> bool"
     },
     {
      "path": "Ess.Player.onFoot",
      "sig": "Ess.Player.onFoot(i)",
-     "doc": "the complement: true when the player isn't in any vehicle.",
+     "doc": "The complement of inVehicle: true exactly when inVehicle(i) returns nil. Same (not yet live-confirmed) status as inVehicle.",
      "tier": "core"
     },
     {
      "path": "Ess.Player.pose",
      "sig": "Ess.Player.pose(i)",
-     "doc": "-stop \"where is this player, facing which way\" -- promoted from uilib's private pose() helper.",
+     "doc": "One-stop \"where is this player, facing which way\": returns x, y, z, yaw, character guid, player-slot guid. yaw defaults to 0 if unreadable; x/y/z are nil if there's no character (e.g. i=1 outside co-op).",
      "tier": "core",
      "ret": "x, y, z, yaw, uChar, uPlayerSlot"
     },
     {
      "path": "Ess.Player.removeBoundaries",
      "sig": "Ess.Player.removeBoundaries()",
-     "doc": "lifts every active out-of-bounds volume, all players",
+     "doc": "Clears every currently-active out-of-bounds volume for every connected player at once. Only clears what's active right now \u2014 doesn't disable the boundary system, so a later mission/area transition can add a new one.",
      "tier": "core",
      "ret": "nCleared"
     },
     {
      "path": "Ess.Player.rumble",
      "sig": "Ess.Player.rumble(i, fLength)",
-     "doc": "Pg.Rumble -- controller haptic feedback",
+     "doc": "Controller haptic feedback via Pg.Rumble. fLength defaults to 0.2 (real call sites use ~0.15s).",
      "tier": "core"
     },
     {
      "path": "Ess.Player.setInputEnabled",
      "sig": "Ess.Player.setInputEnabled(bOn, i)",
-     "doc": "freeze/restore gameplay input (Player.SetInputEnabled)",
+     "doc": "Freezes (false) or restores (true) gameplay input via Player.SetInputEnabled. Confirmed to leave the keyboard-event stream Lua UI reads (Loader.PopKeyEvents) intact, so a chat box can still type while the world is frozen.",
      "tier": "core"
     },
     {
      "path": "Ess.Player.slot",
      "sig": "Ess.Player.slot(i)",
-     "doc": "the player-SLOT guid (distinct from the character guid)",
+     "doc": "Returns the player-slot guid (distinct from the character guid) that Camera.* and some Ai.* calls want. Note: unlike character(1), slot(1) returns a real, non-nil guid even in single-player, so it is NOT a valid co-op check.",
      "tier": "core",
      "ret": "uPlayerGuid | nil"
     },
     {
      "path": "Ess.Player.targetUnderReticle",
      "sig": "Ess.Player.targetUnderReticle(i)",
-     "doc": "\"what am I aiming at\" -- the flagship reason the wiki's whole Engine Namespaces section exists at all",
+     "doc": "Wraps Player.GetTargetUnderReticle but reorders the return so the guid comes first (matching Ess.Player convention) instead of the native's coordinates-first, guid-last order.",
      "tier": "core",
      "ret": "uGuid|nil, x, y, z"
     },
     {
      "path": "Ess.Player.teleport",
      "sig": "Ess.Player.teleport(x, y, z, yaw, onDone)",
-     "doc": "warp the player(s) to a world spot -- the CONFIRMED MrxUtil.TeleportHeroesToLocations idiom (NOT raw SetPosition)",
+     "doc": "Warps all connected heroes to one spot (co-op safe) via the confirmed MrxUtil.TeleportHeroesToLocations idiom, deliberately not raw Object.SetPosition (unreliable on characters). onDone fires once the warp completes. Caution: teleporting out of an interior cell unloads it and drops the player onto open-world terrain instead of round-tripping back to the interior coordinate.",
      "tier": "core"
     },
     {
@@ -2448,14 +2448,14 @@
     {
      "path": "Ess.Points.bucket",
      "sig": "Ess.Points.bucket(spawnList)",
-     "doc": "-> infantry tier, r<=15 -> vehicle tier, r>15 -> heli tier (matches MissionForge's own radius-tier convention).",
+     "doc": "Splits a spawn-point list into infantry/vehicle/heli tiers by radius (r<=5 infantry, r<=15 vehicle, r>15 heli). If no point qualifies for infantry, .inf falls back to the full input list instead of being empty.",
      "tier": "core",
      "ret": "{ inf = {...}, veh = {...}, heli = {...} }"
     },
     {
      "path": "Ess.Points.ideal",
      "sig": "Ess.Points.ideal(pts, refX, refZ, opts)",
-     "doc": "opts = {minDist=18, maxDist=80, maxCount=24}",
+     "doc": "Nearest-first point selection around (refX, refZ), scored by squared horizontal distance only (Y ignored). Three-tier fallback so it's never empty: points within [opts.minDist, opts.maxDist] (default 18/80) capped at opts.maxCount (default 24); if fewer than 4 match, drop the maxDist ceiling; if still zero, return every point unfiltered.",
      "tier": "core",
      "ret": "{ p, ... }"
     }
@@ -2476,28 +2476,28 @@
     {
      "path": "Ess.Probe.describeSafe",
      "sig": "Ess.Probe.describeSafe(uGuid)",
-     "doc": "-line \"what is this\" for logging/debugging: name, position, health, faction -- every field individually pcall-guarded so ONE bad field can't blank out the whole description.",
+     "doc": "Builds a one-line \"what is this\" description (name, position, health, faction) for logging/debugging, with every field individually pcall-guarded so one bad field can't blank out the whole description.",
      "tier": "core",
      "ret": "sDescription"
     },
     {
      "path": "Ess.Probe.getFaction",
      "sig": "Ess.Probe.getFaction(uGuid)",
-     "doc": "-> MrxFactionManager.GetFactionAbbrev fallback chain.",
+     "doc": "Resolves an object's faction abbreviation via a MrxUtil.GetFaction -> MrxFactionManager.GetFactionAbbrev fallback chain.",
      "tier": "core",
      "ret": "sAbbrev | nil"
     },
     {
      "path": "Ess.Probe.nearby",
      "sig": "Ess.Probe.nearby(x, y, z, radius, kind, filter, includeSelf)",
-     "doc": "-confirmed 2026-07-22 (wiki namespaces/pg.md) -- same (x,y,z,radius) shape.",
+     "doc": "Collapses 11 separate \"find nearby X\" natives (Pg.FastCollectHumans/GroundVehicles/Buildings/Flying/Tanks/Helicopters) into one dispatcher, deduped by guid. kind: \"humans\" | \"vehicles\" (ground+flying) | \"buildings\" | nil/\"any\". filter: optional Object.HasLabel string. includeSelf defaults to false \u2014 the native calls have no concept of \"self\", so without this a query covering the caller's own position would otherwise return the local player's own character(s) indistinguishably.",
      "tier": "core",
      "ret": "{ uGuid, ... }"
     },
     {
      "path": "Ess.Probe.nearest",
      "sig": "Ess.Probe.nearest(x, y, z, radius, kind, filter, includeSelf)",
-     "doc": "the single closest",
+     "doc": "The single closest match from nearby (same args, same player-excluded-by-default behavior). Returns nil if nothing matched in range.",
      "tier": "core",
      "ret": "uGuid, nDist | nil"
     }
@@ -2627,7 +2627,7 @@
     {
      "path": "Ess.RNG.new",
      "sig": "Ess.RNG.new(seed)",
-     "doc": "generator:next() -> [0,1)     generator:int(n) -> [1,n]     generator:chance(p) -> bool generator:pick(list, weightKey) -> element of list, weighted generator:shuffle(list) -> list (in-place)   generator:pickN(list, n) -> { n distinct elements }",
+     "doc": "Creates an independent RNG stream; omit seed for a time-seeded stream (via Sys.RealTime), or pass one for a reproducible sequence. Uses a ZX-Spectrum-style LCG (state = state*75 % 65537) to avoid the float-precision degeneration a Park-Miller LCG suffers on this engine's 32-bit Lua numbers.",
      "tier": "core",
      "ret": "generator"
     },
@@ -2709,19 +2709,19 @@
     {
      "path": "Ess.Raw.Impulse.apply",
      "sig": "Ess.Raw.Impulse.apply(uGuid, x, y, z, bLocal)",
-     "doc": "Object.ApplyImpulse.",
+     "doc": "pcall-wrapped Object.ApplyImpulse. Local space (bLocal true, the default) is (x=side, y=up, z=forward); world space (bLocal false) is world x/y/z. Same underlying call as Ess.Object.impulse.",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Impulse.applyAtPoint",
      "sig": "Ess.Raw.Impulse.applyAtPoint(uGuid, ix, iy, iz, px, py, pz, bLocal)",
-     "doc": "Object.ApplyPointImpulse: an impulse (ix,iy,iz) applied at an OFFSET point (px,py,pz) rather than the center -- an off-center push imparts SPIN (torque), which is how spyhunter.lua does its barrel-roll flip.",
+     "doc": "Wraps Object.ApplyPointImpulse: an impulse (ix,iy,iz) applied at an offset point (px,py,pz) rather than the center, which imparts spin/torque \u2014 how spyhunter.lua does its barrel-roll flip. Defaults to local space.",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Impulse.mass",
      "sig": "Ess.Raw.Impulse.mass(uGuid)",
-     "doc": "Object.GetMass, pcall'd (the scaling factor the boosts use).",
+     "doc": "pcall-wrapped Object.GetMass \u2014 the scaling factor the boost/impulse helpers use.",
      "tier": "raw"
     }
    ]
@@ -2740,20 +2740,20 @@
     {
      "path": "Ess.Raw.Mark.pda",
      "sig": "Ess.Raw.Mark.pda(uGuid, tex)",
-     "doc": "/ .removePda(sName)",
+     "doc": "Adds a PDA map blip via Pda.Map:AddBlip. tex defaults to \"icon_yellow_mc\"; sort order 2. Returns the blip's name (keyed by name, not a handle) or nil.",
      "tier": "raw",
      "ret": "sName|nil"
     },
     {
      "path": "Ess.Raw.Mark.pulse",
      "sig": "Ess.Raw.Mark.pulse(uGuid, rgb)",
-     "doc": "/ .haltPulse(uGuid) -- flashes/pulses the object's EXISTING marker in a color, a \"draw attention to this\" effect distinct from placing a new static marker.",
+     "doc": "Flashes/pulses an object's existing marker in a color via Marker.Pulse. Unlike every other function in this module, it takes the object's own uGuid directly rather than a marker handle.",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Mark.radar",
      "sig": "Ess.Raw.Mark.radar(uGuid, tex, rgb)",
-     "doc": "/ .removeRadar(sName)",
+     "doc": "Adds a round-radar objective blip via Hud.Radar:AddObjective. tex defaults to \"objective_action\" and rgb defaults to {255,200,0}; fixed icon size and sort order 5. Returns the blip's name (keyed by name, not a handle) or nil.",
      "tier": "raw",
      "ret": "sName|nil"
     },
@@ -2775,20 +2775,20 @@
     {
      "path": "Ess.Raw.Mark.showPlayerMarkers",
      "sig": "Ess.Raw.Mark.showPlayerMarkers(bOn)",
-     "doc": "Gui.EnablePlayerMarkers -- a GLOBAL toggle, not per-guid like everything else in this file",
+     "doc": "Global on/off toggle (Gui.EnablePlayerMarkers) for whether other players' HUD markers render at all \u2014 not per-guid like the rest of this module. Used e.g. to hide markers during a cutscene/briefing and restore them after.",
      "tier": "raw"
     },
     {
      "path": "Ess.Raw.Mark.world",
      "sig": "Ess.Raw.Mark.world(uGuid, tex, rgb, size, dist)",
-     "doc": "/ .removeWorld(handle)",
+     "doc": "Adds a floating in-world icon via Marker.AddBlip; returns a real handle (not a name), unlike the radar/PDA calls. tex defaults to \"HUD_objective_action\", size (on-screen) defaults to 32, dist (draw distance) defaults to 175 though real call sites vary it roughly 175-220.",
      "tier": "raw",
      "ret": "handle|nil"
     },
     {
      "path": "Ess.Raw.Mark.worldDisc",
      "sig": "Ess.Raw.Mark.worldDisc(uGuid, radius, rgb, alpha)",
-     "doc": "(a ground ring, not a floating icon) object uGuid directly, not a marker handle",
+     "doc": "Adds a ground ring via Marker.AddDisc \u2014 the \"go here\" zone marker, distinct from the floating icon. radius defaults to 15, alpha defaults to 0.15. Returns a handle or nil.",
      "tier": "raw",
      "ret": "handle|nil"
     }
@@ -2866,14 +2866,14 @@
     {
      "path": "Ess.Relations.apply",
      "sig": "Ess.Relations.apply(pairsList, label)",
-     "doc": "pairs = { {a,b,set}, ... } or { {a=,b=,set=}, ... }",
+     "doc": "Applies a list of faction-pair stances, setting both directions (a to b and b to a) to the same value and snapshotting both first. When one side is \"PMC\", also calls MrxFactionManager.SetAttitudeMutable on the other faction so its attitude can actually change. Returns an opaque handle; unresolvable faction names are logged and skipped rather than erroring.",
      "tier": "core",
      "ret": "handle"
     },
     {
      "path": "Ess.Relations.getFeeling",
      "sig": "Ess.Relations.getFeeling(uGuidA, uGuidB)",
-     "doc": "INDIVIDUAL-pair",
+     "doc": "Wraps Ai.GetFeeling for an individual-pair relationship value, distinct from the per-faction apply/restore. A freshly spawned character's feeling reads back as a stale 0 if queried in the same tick as the spawn, so wait at least one tick first.",
      "tier": "core",
      "ret": "n / .setFeeling(uGuidA, uGuidB, n)"
     },
@@ -2894,7 +2894,7 @@
     {
      "path": "Ess.Relations.restore",
      "sig": "Ess.Relations.restore(h)",
-     "doc": "undoes exactly the pairs applied under this handle, back to their pre-apply values (or logs+skips a direction whose original read failed, per the Known Bug #3 fix).",
+     "doc": "Restores relations from a handle returned by apply(); idempotent, so restoring an already-restored or nil handle is a safe no-op.",
      "tier": "core"
     },
     {
@@ -2918,7 +2918,7 @@
     {
      "path": "Ess.Safe.call",
      "sig": "Ess.Safe.call(fn, ...)",
-     "doc": "pcall + auto-log-on-failure (up to 6 return values)",
+     "doc": "Wraps an engine call (a function plus args, or a zero-arg closure for a multi-statement body) in pcall, returning ok plus up to 4 results. Logs once via Ess.Log on failure.",
      "tier": "core",
      "ret": "ok, a..f"
     },
@@ -2932,7 +2932,7 @@
     {
      "path": "Ess.Safe.quiet",
      "sig": "Ess.Safe.quiet(fn, ...)",
-     "doc": "same, but only logs when Ess.DEBUG is on",
+     "doc": "Same shape as Ess.Safe.call but never logs \u2014 for calls expected to fail sometimes as part of normal control flow (e.g. probing whether an object has a label), where logging every failure would just be noise.",
      "tier": "core",
      "ret": "ok, a..f"
     },
@@ -2959,7 +2959,7 @@
     {
      "path": "Ess.Safe.string",
      "sig": "Ess.Safe.string(ok, val, fallback)",
-     "doc": "only trust a native return as a string if it really is one",
+     "doc": "Only trusts a native return as a string if it really is one, since some calls return unexpected types (bare userdata) on edge cases. Pass Ess.Safe.call's own (ok, val) straight through; fallback defaults to \"?\".",
      "tier": "core",
      "ret": "s"
     },
@@ -2980,14 +2980,14 @@
     {
      "path": "Ess.Sandbox.begin",
      "sig": "Ess.Sandbox.begin(id, providerNames, opts)",
-     "doc": "false if id was already active, OR if every named provider was unknown/failed (nothing was isolated)",
+     "doc": "Gates saves for this sandbox id, then calls each named provider's apply(id, opts) in order; an erroring provider is logged and skipped. If every named provider was unknown or failed, releases the save-gate holder and returns false without marking the id active.",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Sandbox.finish",
      "sig": "Ess.Sandbox.finish(id)",
-     "doc": "restores every provider that successfully applied under this id, in order, then releases this sandbox's save-gate holder (saves resume only once the LAST holder anywhere -- any other sandbox OR Ess.Layers -- is also gone, handled by the shared Ess.Save gate).",
+     "doc": "Restores every provider that successfully applied, in order, then releases this sandbox's save-gate holder. Saves resume only once the last holder anywhere (any sandbox, or Ess.Layers) is also gone.",
      "tier": "core"
     },
     {
@@ -3006,7 +3006,7 @@
     {
      "path": "Ess.Save.gate",
      "sig": "Ess.Save.gate(sHolderKey)",
-     "doc": "add a holder -- saves are suppressed while >=1 holder is active",
+     "doc": "Adds a holder that suppresses savegames/autosaves while at least one holder is active; sHolderKey defaults to \"default\" if omitted. Idempotent per key \u2014 gating twice with the same key is one holder, needing only one matching ungate() to clear.",
      "tier": "core"
     },
     {
@@ -3019,14 +3019,14 @@
     {
      "path": "Ess.Save.isGated",
      "sig": "Ess.Save.isGated()",
-     "doc": "are saves currently suppressed?",
+     "doc": "Returns whether saves are currently suppressed by any active holder.",
      "tier": "core",
      "ret": "bool"
     },
     {
      "path": "Ess.Save.ungate",
      "sig": "Ess.Save.ungate(sHolderKey)",
-     "doc": "remove a holder -- saves resume once the LAST holder is gone",
+     "doc": "Removes a holder from the save gate; saves resume once the last active holder is gone.",
      "tier": "core"
     }
    ]
@@ -3094,13 +3094,13 @@
     {
      "path": "Ess.Sound.cue",
      "sig": "Ess.Sound.cue(uGuidOrNil, sCueName)",
-     "doc": "-- Sound.CueSound; nil/0 = UI/HUD-attached one-shot",
+     "doc": "Wraps Sound.CueSound \u2014 attaches a sound to an object guid, or pass nil/0 for a plain UI/HUD one-shot with no world position. Rejects a blank or non-string cue name and logs via Ess.Log if the underlying call fails.",
      "tier": "core"
     },
     {
      "path": "Ess.Sound.stop",
      "sig": "Ess.Sound.stop(uGuidOrNil, sCueName)",
-     "doc": "-- Sound.StopSound",
+     "doc": "Wraps Sound.StopSound \u2014 must be called with the same (uGuid, sCueName) pair a prior cue() call used.",
      "tier": "core"
     },
     {
@@ -3112,7 +3112,7 @@
     {
      "path": "Ess.Sound.volume",
      "sig": "Ess.Sound.volume(nLevel, nFadeTime)",
-     "doc": "-- Sound.SetMasterVolume",
+     "doc": "Wraps Sound.SetMasterVolume. nLevel is observed as 0/1 at every confirmed real call site (not necessarily a continuous 0..1 range); nFadeTime is in seconds and defaults to 0.",
      "tier": "core"
     }
    ]
@@ -3245,21 +3245,21 @@
     {
      "path": "Ess.Str.capitalize",
      "sig": "Ess.Str.capitalize(s)",
-     "doc": "first letter up, rest untouched",
+     "doc": "Upper-cases the first letter only; the rest of the string is untouched.",
      "tier": "core",
      "ret": "s"
     },
     {
      "path": "Ess.Str.contains",
      "sig": "Ess.Str.contains(s, needle)",
-     "doc": "literal substring test",
+     "doc": "Literal substring test (needle is matched plainly, not as a Lua pattern).",
      "tier": "core",
      "ret": "bool"
     },
     {
      "path": "Ess.Str.count",
      "sig": "Ess.Str.count(s, needle)",
-     "doc": "non-overlapping literal occurrences",
+     "doc": "Counts non-overlapping literal occurrences of needle; an empty needle counts as 0.",
      "tier": "core",
      "ret": "n"
     },
@@ -3272,21 +3272,21 @@
     {
      "path": "Ess.Str.join",
      "sig": "Ess.Str.join(list, sep)",
-     "doc": "the inverse (sep default \"\")",
+     "doc": "Inverse of split; sep defaults to \"\".",
      "tier": "core",
      "ret": "s"
     },
     {
      "path": "Ess.Str.lines",
      "sig": "Ess.Str.lines(s)",
-     "doc": "split on \\n (a \\r before it is dropped)",
+     "doc": "Splits on \\n (a trailing \\r on each line is dropped); a single trailing newline doesn't manufacture a spurious empty final entry.",
      "tier": "core",
      "ret": "{ line, ... }"
     },
     {
      "path": "Ess.Str.padLeft",
      "sig": "Ess.Str.padLeft(s, width, ch)",
-     "doc": "Ess.Str.padRight(s, width, ch) -> s   (ch default \" \")",
+     "doc": "Pads on the left to width with ch (default \" \", only its first character is used). No-op if s is already width or longer.",
      "tier": "core",
      "ret": "s"
     },
@@ -3299,7 +3299,7 @@
     {
      "path": "Ess.Str.split",
      "sig": "Ess.Str.split(s, sep)",
-     "doc": "split on a literal sep (default \",\"); \"\" sep -> per character",
+     "doc": "Splits on a literal sep (default \",\"). sep = \"\" splits into one entry per character; a sep that never matches returns { s }.",
      "tier": "core",
      "ret": "{ piece, ... }"
     },
@@ -3313,14 +3313,14 @@
     {
      "path": "Ess.Str.title",
      "sig": "Ess.Str.title(s)",
-     "doc": "Capitalize Each Word",
+     "doc": "Capitalizes each word (\"a b\" -> \"A B\").",
      "tier": "core",
      "ret": "s"
     },
     {
      "path": "Ess.Str.trim",
      "sig": "Ess.Str.trim(s)",
-     "doc": "strip leading/trailing whitespace",
+     "doc": "Strips leading/trailing whitespace.",
      "tier": "core",
      "ret": "s"
     },
@@ -3341,37 +3341,37 @@
     {
      "path": "Ess.Support.airstrike",
      "sig": "Ess.Support.airstrike(x, y, z, opts)",
-     "doc": "a gunship/jet streaks over. opts: vehicle, altitude(120), speed(55)",
+     "doc": "A single visual-only flyby pass via Airstrike.Flyby with no drop callback, so it spawns no ordnance itself. The flight path is fixed relative to the target (starts 50 units back on X, 300 out on +Z) regardless of player facing. Optional opts: vehicle (default \"Support Vehicle (Autogunship)\"), altitude (default 120), speed (default 55).",
      "tier": "core"
     },
     {
      "path": "Ess.Support.artillery",
      "sig": "Ess.Support.artillery(x, y, z, opts)",
-     "doc": "N shells rain onto the area. opts: count(5), radius(14), ammo, owner, stagger",
+     "doc": "Fires opts.count shells (default 5) via repeated shell() calls staggered opts.stagger seconds apart (default 0.35, shell 1 immediate). Each shell's x/z offset is drawn independently from a shared module-level RNG, uniform in [-radius, radius] (default 14) \u2014 despite the name this scatters shells across a square area, not a circle. ammo/owner opts pass through unchanged to every shell call.",
      "tier": "core"
     },
     {
      "path": "Ess.Support.bombingrun",
      "sig": "Ess.Support.bombingrun(x, y, z, opts)",
-     "doc": "a plane walks a stick of bombs across it. opts: vehicle, ammo, count(3), altitude, speed",
+     "doc": "Spawns a plane via Airstrike.Flyby with a drop callback that walks a stick of opts.count bombs (default 3) across the target, 0.14s apart. Each bomb re-reads the jet's live position at fire time (falling back to the original static target position if that read fails), so the bomb stick follows the plane's real flight path. Optional opts: vehicle (default \"Support Vehicle (A10)\"), ammo (default \"Bomb\"), altitude (default 150), speed (default 160), owner.",
      "tier": "core"
     },
     {
      "path": "Ess.Support.gunship",
      "sig": "Ess.Support.gunship(x, y, z, opts)",
-     "doc": "N helicopters pass over, fanned. opts: template(\"AH1Z\"), count(3), stagger, spread",
+     "doc": "Sends opts.count helicopters (default 3) on visual-only flyby passes (no drop callback), staggered opts.stagger seconds apart (default 1.6) and fanned out by opts.spread per helicopter (default 45) so later passes don't spawn into earlier ones. Optional opts: template (default \"AH1Z\"), altitude (default 55), speed (default 45). Corresponds to the \"heli\" effect in Ess.Contract's def.support vocabulary.",
      "tier": "core"
     },
     {
      "path": "Ess.Support.reinforce",
      "sig": "Ess.Support.reinforce(x, y, z, opts)",
-     "doc": "units arrive. opts: faction, units={templates}, deliver(\"copter\"|\"paradrop\"|direct)",
+     "doc": "Spawns opts.units on a 3-wide, 4-unit-spaced grid around (x,y,z). opts.deliver selects the mode: \"copter\" spawns every unit at once via MrxCopterDrop.Create (template guarded by Ess.Safe.template to prevent a blank-template hard crash past pcall); \"paradrop\" flies a transport flyby then spawns each unit 1.5+0.2*i seconds later via the same direct spawn as below (no literal parachute object); anything else/omitted spawns all units immediately via Ess.Object.spawn. opts.faction (default \"VZ\") maps to a 2-letter code used only by the copter path.",
      "tier": "core"
     },
     {
      "path": "Ess.Support.shell",
      "sig": "Ess.Support.shell(x, y, z, opts)",
-     "doc": "one falling shell (the primitive the rest build on). opts: ammo, dropHeight, owner",
+     "doc": "Spawns one falling shell via Airstrike.SpawnOrdnance, dropped from opts.dropHeight (default 220) above (x,y,z) with straight-down velocity, impact-fused. Optional opts: ammo (default \"Gunship Shell\"), owner (faction name for damage/kill attribution). This is the primitive artillery repeatedly calls; the other Support functions compose different natives directly instead.",
      "tier": "core"
     }
    ]
@@ -3384,7 +3384,7 @@
     {
      "path": "Ess.Table.compact",
      "sig": "Ess.Table.compact(t)",
-     "doc": "rebuild a numeric array densely (fixes nil-hole #/ipairs desync) .map/.filter/.find/.reduce, .slice/.reverse, .copy/.merge",
+     "doc": "Rebuilds a numeric array densely, mutating t in place (and returning it). Fixes the real bug where t[#t] = nil leaves a nil hole that desyncs #/ipairs/table.insert; non-numeric keys are left untouched.",
      "tier": "core",
      "ret": "t"
     },
@@ -3433,7 +3433,7 @@
     {
      "path": "Ess.Table.keys",
      "sig": "Ess.Table.keys(t)",
-     "doc": "---- collection helpers (pure Lua, the basics the stdlib omits).",
+     "doc": "Every key in t, array or not, order unspecified.",
      "tier": "core"
     },
     {
@@ -3507,28 +3507,28 @@
     {
      "path": "Ess.Time.clock",
      "sig": "Ess.Time.clock(maxDelta)",
-     "doc": "clock:delta() -> seconds since last :delta(), clamped (default 0.25s) -- an auto-advancing per-frame dt timer",
+     "doc": "Returns a clock object with a :delta() method, an auto-advancing per-frame timer. maxDelta defaults to 0.25 seconds.",
      "tier": "core",
      "ret": "clock"
     },
     {
      "path": "Ess.Time.cooldown",
      "sig": "Ess.Time.cooldown(seconds)",
-     "doc": "one-line \"has n seconds passed since last ready()==true\"",
+     "doc": "Returns a ready() function that is true (and re-marks) at most once per seconds window, false otherwise without re-marking so a retry doesn't push the window back. The first call is always ready.",
      "tier": "core",
      "ret": "ready() -> bool"
     },
     {
      "path": "Ess.Time.elapsed",
      "sig": "Ess.Time.elapsed(uStamp)",
-     "doc": "seconds since the stamp was marked",
+     "doc": "Returns seconds since the stamp was marked (Sys.TimeStampGetElapsed), or 0. since() is a plain alias for the same function.",
      "tier": "core",
      "ret": "n | 0"
     },
     {
      "path": "Ess.Time.format",
      "sig": "Ess.Time.format(nSeconds, bUseTenths)",
-     "doc": "Junk.FormatTime -- a display string for a HUD timer/countdown",
+     "doc": "Formats a raw seconds value (e.g. from elapsed()) into a HUD-ready display string via Junk.FormatTime.",
      "tier": "core",
      "ret": "s"
     },
@@ -3542,19 +3542,19 @@
     {
      "path": "Ess.Time.mark",
      "sig": "Ess.Time.mark(uStamp)",
-     "doc": "re-mark an existing stamp in place",
+     "doc": "Re-marks an existing stamp handle in place (Sys.TimeStampMark). Every confirmed call site re-marks a stamp previously produced by stamp()/mainStamp() rather than creating a new one each time.",
      "tier": "core"
     },
     {
      "path": "Ess.Time.restoreScale",
      "sig": "Ess.Time.restoreScale()",
-     "doc": "Ess.Time.scale(1)",
+     "doc": "Convenience for scale(1) \u2014 undoes slow-motion under a clearer name.",
      "tier": "core"
     },
     {
      "path": "Ess.Time.scale",
      "sig": "Ess.Time.scale(n)",
-     "doc": "Sys.SetTimeScale, e.g. Ess.Time.scale(0.2) for slow-mo",
+     "doc": "Sets the world time scale via Sys.SetTimeScale(n) \u2014 confirmed idiom for slow-motion, e.g. Ess.Time.scale(0.2) for a 5x slowdown.",
      "tier": "core"
     },
     {
@@ -3567,7 +3567,7 @@
     {
      "path": "Ess.Time.stamp",
      "sig": "Ess.Time.stamp()",
-     "doc": "real-world clock mark",
+     "doc": "Creates a real-world time stamp via Sys.RealTimeStamp (pcall-guarded). Keeps advancing through world-pause and slow-motion, unlike mainStamp().",
      "tier": "core",
      "ret": "uStamp"
     }
@@ -3630,7 +3630,7 @@
     {
      "path": "Ess.Track.new",
      "sig": "Ess.Track.new()",
-     "doc": "tracker:add(closeFn) / :event(handle) / :guid(uGuid) / :marker(handle) / :radar(sName) / :pda(sName) tracker:qualityRef(uGuid, nQuality) / :disposer(uGuid, sCategory) / :contextAction(uGuid, sLabel, ...) tracker:closeAll()",
+     "doc": "Creates a new tracker object; each :xxx() method on it both registers a teardown for that thing and returns the value you gave it, so you can wrap a spawn/creation call inline without an extra local variable.",
      "tier": "core",
      "ret": "tracker"
     },
@@ -3662,14 +3662,14 @@
     {
      "path": "Ess.Triggers.arm",
      "sig": "Ess.Triggers.arm(spec, onFire, tracker)",
-     "doc": "same as Ess.Raw.Triggers.arm (stateless)",
+     "doc": "Passthrough to Ess.Raw.Triggers.arm; stays a bare top-level call because it's stateless and never names or shares state.",
      "tier": "core",
      "ret": "cancel()"
     },
     {
      "path": "Ess.Triggers.scope",
      "sig": "Ess.Triggers.scope()",
-     "doc": "an ISOLATED named-trigger/gate namespace scope:arm(spec, onFire, tracker) -> cancel() scope:armNamed(id, spec, onFire, tracker) -> cancel()   register `id` so a gate can name it as input scope:gate(inputs, need, onFire, tracker) -> cancel()   fires once `need` of `inputs` have fired scope:declare(id)      register an id that fires by some OTHER mechanism (so a gate can reference it) scope:markFired(id)    mark such an id as fired (call before triggering its action, so a chained gate/reference sees it satisfied)",
+     "doc": "Returns an isolated named-trigger/gate namespace with its own private known/fired id tables, so two independent scopes can't collide even if they reuse the same ids. Ess.Contract gives each running contract instance its own scope.",
      "tier": "core",
      "ret": "scope"
     }
@@ -3729,7 +3729,7 @@
     {
      "path": "Ess.UI.Menu",
      "sig": "Ess.UI.Menu(opts)",
-     "doc": "Ess.UI.Menu{ title, id, key, x, y, onClose }  (or Ess.UI.Menu(\"TITLE\")) id  : distinct runtime-state key; defaults to title.",
+     "doc": "Declarative drill-down menu constructor (ForgeMenu-style). Options: title, id (defaults to title), key (toggle key, display only), x/y (default 40, 60), onClose.",
      "tier": "core"
     },
     {
@@ -3810,7 +3810,7 @@
     {
      "path": "Ess.Vec.dir",
      "sig": "Ess.Vec.dir(fx, fy, fz, tx, ty, tz)",
-     "doc": "unit direction from A to B",
+     "doc": "Unit direction from A to B (normalize(sub(B, A))).",
      "tier": "core",
      "ret": "nx,ny,nz"
     },
@@ -3829,14 +3829,14 @@
     {
      "path": "Ess.Vec.lerp",
      "sig": "Ess.Vec.lerp(x1, y1, z1, x2, y2, z2, t)",
-     "doc": "interpolate two positions",
+     "doc": "Interpolates between two positions. Powers Ess.Easy.Camera's follow-damping (via per-tick easing rather than snapping), confirmed working live in that consumer even though Ess.Vec itself is only offline-verified.",
      "tier": "core",
      "ret": "x,y,z"
     },
     {
      "path": "Ess.Vec.normalize",
      "sig": "Ess.Vec.normalize(x, y, z)",
-     "doc": "unit vector; a zero vector returns 0,0,0 (never NaN)",
+     "doc": "Unit vector of (x,y,z); a zero-length input returns 0,0,0 rather than NaN.",
      "tier": "core",
      "ret": "nx,ny,nz"
     },
@@ -3855,7 +3855,7 @@
     {
      "path": "Ess.Vec.toward",
      "sig": "Ess.Vec.toward(fx, fy, fz, tx, ty, tz, dist)",
-     "doc": "the point `dist` from A toward B",
+     "doc": "The point dist units from A toward B.",
      "tier": "core",
      "ret": "x,y,z"
     }
@@ -3875,7 +3875,7 @@
     {
      "path": "Ess.Vehicle.enterBestSeat",
      "sig": "Ess.Vehicle.enterBestSeat(uChar, uVeh)",
-     "doc": "-wrapped MrxUtil.EnterBestAvailableSeat -- confirmed d/g/p/c (driver/gunner/passenger/cargo) seat priority order.",
+     "doc": "pcall-wrapped MrxUtil.EnterBestAvailableSeat \u2014 confirmed driver/gunner/passenger/cargo seat priority order.",
      "tier": "core",
      "ret": "ok"
     },
@@ -3896,21 +3896,21 @@
     {
      "path": "Ess.Vehicle.exit",
      "sig": "Ess.Vehicle.exit(uVeh, uChar)",
-     "doc": "getting a character back OUT of a vehicle.",
+     "doc": "Confirmed signature+usage from DestroyerTool.lua: calls Vehicle.Exit(uVehicle, uCharacter, true).",
      "tier": "core",
      "ret": "ok"
     },
     {
      "path": "Ess.Vehicle.flyTo",
      "sig": "Ess.Vehicle.flyTo(uHeli, x, y, z, opts)",
-     "doc": "send an AI heli to a point (driver-wait + Ai.Deliver); opts.onReady(driver) fires when the order is issued",
+     "doc": "Sends an AI helicopter to a world point via Ai.Deliver(driver, x, y, z, dropHeight, careless) \u2014 not Ai.Goal \"MoveToPos\", which does not fly a heli. Since a freshly-spawned heli has no driver for a moment, this polls Ess.Vehicle.driver until one exists before issuing the order. opts.height (default 0.5), opts.careless, opts.onReady(driver) fire once the order is issued; returns cancel() to stop the driver-wait early.",
      "tier": "core",
      "ret": "cancel()"
     },
     {
      "path": "Ess.Vehicle.followGhost",
      "sig": "Ess.Vehicle.followGhost(template, x, y, z)",
-     "doc": "ghost.guid, ghost:update(x,y,z), ghost:remove()",
+     "doc": "Spawns a template and returns a ghost object (ghost.guid, ghost:update(nx,ny,nz), ghost:remove()). Object.SetPosition silently fails to move a spawned human, so update() tries SetPosition then re-reads the real position; if still off by more than ~3 units it despawns/respawns the template instead, updating ghost.guid so callers always read the current handle.",
      "tier": "core",
      "ret": "ghost | nil"
     },
@@ -3952,7 +3952,7 @@
     {
      "path": "Ess.Vehicle.seatOf",
      "sig": "Ess.Vehicle.seatOf(uChar)",
-     "doc": "which seat uChar currently occupies, if any.",
+     "doc": "Returns which seat a character currently occupies, if any. Together with driver/riders this collapses a 7-getter native overlap down to the 3 shapes actually needed day to day.",
      "tier": "core",
      "ret": "sSeat | nil"
     }

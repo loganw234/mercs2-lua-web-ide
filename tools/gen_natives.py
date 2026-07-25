@@ -72,6 +72,19 @@ OUT = ROOT / "src" / "data" / "natives.json"
 # than a special case in the consumers.
 BRIDGE_NS = {"Loader"}
 
+def norm(v):
+    """A curated entry is either a plain doc string (the original 496) or a rich object.
+
+    Allowing both means the existing entries needed no migration, and a new one can carry the fields
+    that actually help: `gotcha` above all. This engine's failure mode is silent wrong behaviour --
+    getters returning 1/0 rather than booleans, calls that are async, names that shadow a different
+    function -- and a warning attached to the call you are hovering is worth more than another
+    paragraph restating what the call does.
+    """
+    if isinstance(v, str):
+        return {"doc": v}
+    return dict(v or {})
+
 
 def main():
     if not SCRAPED.exists():
@@ -133,13 +146,14 @@ def main():
     # live-only functions could not receive a doc at all, no matter what anyone wrote for them. Loader
     # was the visible case (nothing in the base game calls it, so all nine arrived bare), but it applied
     # to every live-only entry. Merging after the merge means a curated doc reaches whatever it names.
-    docs, sigs, bridge_ns, consts = {}, {}, {}, set()
+    docs, sigs, bridge_ns, consts, globals_ = {}, {}, {}, set(), {}
     if CALL_DOCS.exists():
         try:
             cd = json.loads(CALL_DOCS.read_text(encoding="utf-8"))
             docs = cd.get("natives") or {}
             sigs = cd.get("sigs") or {}
             bridge_ns = cd.get("bridge_ns") or {}
+            globals_ = cd.get("globals") or {}
             consts = set(cd.get("consts") or [])
         except (OSError, ValueError) as e:
             print("[gen_natives] could not read %s (%s) -- continuing without curated docs"
@@ -163,16 +177,25 @@ def main():
         if path in consts:
             members[fn]["const"] = 1     # a value, not a callable: no argument placeholders
 
-    doc_hits = sig_hits = 0
+    doc_hits = sig_hits = got_hits = 0
     for ns, members in natives.items():
         for fn, entry in members.items():
             path = ns + "." + fn
-            if path in docs and not entry.get("doc"):
-                entry["doc"] = docs[path]
+            cur = norm(docs.get(path)) if path in docs else {}
+            if cur.get("doc") and not entry.get("doc"):
+                entry["doc"] = cur["doc"]
                 doc_hits += 1
-            if path in sigs:
-                entry["sig"] = sigs[path]
+            # A curated signature always wins: it names the arguments, where a mined example only
+            # shows one invocation.
+            sig = sigs.get(path) or cur.get("sig")
+            if sig:
+                entry["sig"] = sig
                 sig_hits += 1
+            if cur.get("gotcha"):
+                entry["gotcha"] = cur["gotcha"]
+                got_hits += 1
+            if cur.get("src"):
+                entry["src"] = cur["src"]
 
     # Per-namespace provenance, so a consumer can say where a function actually comes from instead of
     # calling everything in `natives` an engine function. Kept as a sibling map rather than folded into
@@ -195,6 +218,9 @@ def main():
         "nsDocs": ns_docs,
         "natives": {ns: natives[ns] for ns in sorted(natives)},
         "modules": {m: modules[m] for m in sorted(modules)},
+        # Bare globals: no namespace to hang them off, so they get their own key rather than a
+        # fake one. assert() is the bridge's polyfill over the engine's error().
+        "globals": {k: globals_[k] for k in sorted(globals_)},
     }
     OUT.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
 
@@ -205,12 +231,15 @@ def main():
     print("[gen_natives] %d resident modules recorded (%d functions) -- these need import(\"Name\") "
           "before use; 25_lint.js warns when one is missing"
           % (len(modules), sum(len(m["fns"]) for m in modules.values())))
-    print("[gen_natives] curated: %d docs and %d signatures merged from %s"
-          % (doc_hits, sig_hits, CALL_DOCS.name))
+    print("[gen_natives] curated: %d docs, %d signatures, %d gotchas merged from %s"
+          % (doc_hits, sig_hits, got_hits, CALL_DOCS.name))
     if added_bridge:
         print("[gen_natives] synthesized %d bridge-added entries in %s (%s marked partial -- the "
               "bridge only ADDS to those, so the linter must not call an unlisted member missing)"
               % (added_bridge, ", ".join(sorted(bridge_ns)), ", ".join(partial) or "none"))
+    if globals_:
+        print("[gen_natives] %d bare global(s) recorded: %s"
+              % (len(globals_), ", ".join(sorted(globals_))))
     bridge = sorted(ns for ns in natives if ns in BRIDGE_NS)
     if bridge:
         print("[gen_natives] reclassified as lua-bridge (Lua_Loader.asi), not engine: %s"

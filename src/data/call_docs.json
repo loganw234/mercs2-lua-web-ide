@@ -835,7 +835,12 @@
   "Weapon.GetMaxReserveAmmo": "Returns the maximum reserve ammo capacity for a carried weapon guid (uWeapon). Almost always paired with SetReserveAmmo in the idiom Weapon.SetReserveAmmo(uWeapon, Weapon.GetMaxReserveAmmo(uWeapon)) to refill a weapon to full.",
   "Weapon.GetReserveAmmo": "Returns the current reserve ammo count for a carried/equipped weapon guid (uWeapon). Always called with a player's hand-held weapon, never a vehicle weapon.",
   "Weapon.SetReserveAmmo": "Sets the reserve ammo of a carried weapon guid (uWeapon) to nAmount. Commonly used to refill a weapon to max via Weapon.SetReserveAmmo(uWeapon, Weapon.GetMaxReserveAmmo(uWeapon)), but is also seen setting a flat value like 1; it can also be registered directly as an Event.Create callback (e.g. for ObjectHibernation), so it may be invoked by the engine's event dispatcher rather than called directly.",
-  "Loader.Printf": "Appends a line to lua_loader_printf.log next to the .asi. The low-noise alternative to the engine's Debug.Printf, which stock game scripts fire thousands of times a frame. This is the logging call the wiki uses throughout, and what the IDE's Log & telemetry tab reads.",
+  "Loader.Printf": {
+   "doc": "Appends a line to lua_loader_printf.log next to the .asi. The low-noise alternative to the engine's Debug.Printf, which stock game scripts fire thousands of times a frame. This is the logging call the wiki uses throughout, and what the IDE's Log & telemetry tab reads.",
+   "sig": "Loader.Printf(sMsg)",
+   "gotcha": "Despite the name it does NOT do format substitution -- passing a format string and arguments prints a literal %s. Build the string yourself with string.format first.",
+   "src": "wiki/CLAUDE.md gotchas"
+  },
   "Loader.GetKeyboardState": "Returns a 256-byte string, one byte per virtual-key code, high bit set if that key is down right now. Read one key with string.byte(s, vk + 1) >= 128. Backed by GetAsyncKeyState (physical, system-wide) -- deliberately NOT the Win32 call of the same name, which reflects the calling thread's message queue and can return stale data.",
   "Loader.IsKeyDown": "Single-key predicate: wraps one GetAsyncKeyState and returns a plain boolean, for when you care about one key and would rather not index a 256-byte string yourself.",
   "Loader.PopKeyEvents": "Returns a string of raw VK-code bytes, one per up-to-down edge since the last call, in press order. Filled by a ~60Hz C-side sampler into a 128-slot ring, so polling once a frame never misses a keystroke to timing the way hand-rolled edge detection over IsKeyDown snapshots does. Empty string when nothing was pressed. Focus-gated: keystrokes are dropped while the game is not the foreground window, so a chat box built on this cannot capture typing meant for another application.",
@@ -913,5 +918,11 @@
  "consts": [
   "math.huge",
   "math.pi"
- ]
+ ],
+ "globals": {
+  "assert": {
+   "sig": "assert(v [, msg])",
+   "doc": "Raises an error when v is false or nil, otherwise returns everything it was given. Added by lua-bridge as a Lua polyfill over the engine's existing error() -- stock Lua 5.1 has it, this game's stripped runtime did not. Idempotent and re-applied on every pump batch, so a _G wipe across a level transition cannot strand it. Use it to fail loudly and early on a bad guid or a missing module rather than letting a nil propagate somewhere confusing."
+  }
+ }
 }

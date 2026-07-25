@@ -178,6 +178,46 @@ setTimeout(() => {
      w.MERCS_NATIVES.natives.math.pi.const === 1 &&
      IDE.api.lookup("math.pi") && !/\(/.test(IDE.api.tierOf("math.pi", true)[0]));
 
+
+  /* Bare globals have no namespace, so they cannot live in natives.{ns}.{fn}. assert() is the bridge's
+     polyfill over the engine's error() -- stock Lua 5.1 has it, this game's stripped runtime did not. */
+  ok("globals: the key exists and carries assert",
+     !!(w.MERCS_NATIVES.globals && w.MERCS_NATIVES.globals.assert));
+  ok("globals: assert has a signature and a real description",
+     /assert\(v \[, msg\]\)/.test(w.MERCS_NATIVES.globals.assert.sig) &&
+     w.MERCS_NATIVES.globals.assert.doc.length > 60);
+  ok("globals: the panel lists it without inventing a namespace prefix", (() => {
+     const hit = IDE.api.lookup("assert");
+     return hit && hit.c && hit.c.path === "assert" && hit.ns.name === "(globals)";
+  })());
+
+  /* The curated overlay accepts EITHER a plain doc string (the original entries) or a rich object
+     carrying gotcha/ret/src -- so the existing ones needed no migration. */
+  ok("enrichment: a rich curated entry merges through to the data", (() => {
+     const e = w.MERCS_NATIVES.natives.Loader.Printf;
+     return e && e.gotcha && e.src && e.sig;
+  })(), JSON.stringify(w.MERCS_NATIVES.natives.Loader.Printf));
+  ok("enrichment: plain-string curated entries still work",
+     Object.values(w.MERCS_NATIVES.natives).some(mem =>
+       Object.values(mem).some(e => e.doc && !e.gotcha)));
+  ok("enrichment: a gotcha carries its source, so a claim can be traced",
+     /CLAUDE\.md|wiki|\.lua|\.md/.test(w.MERCS_NATIVES.natives.Loader.Printf.src || ""));
+
+  /* A gotcha only earns its keep if it reaches the surfaces someone actually reads. */
+  ok("enrichment: the doc pane renders a gotcha", (() => {
+     const tree = w.document.getElementById("apiTree");
+     IDE.api.build("Loader.Printf");
+     const call = [...w.document.querySelectorAll("#apiTree .call")]
+       .find(el => /Printf/.test(el.textContent));
+     if (!call) return false;
+     call.click();
+     const html = w.document.getElementById("apiDoc").innerHTML;
+     IDE.api.build("");
+     return /class="gotcha"/.test(html) && /format substitution/.test(html);
+  })());
+  ok("enrichment: the gotcha is escaped, not injected as markup",
+     !/<script/i.test(w.document.getElementById("apiDoc").innerHTML));
+
   ok("data: examples loaded", w.ESS_EXAMPLES && w.ESS_EXAMPLES.categories.length === 8);
 
   // ---- store ----

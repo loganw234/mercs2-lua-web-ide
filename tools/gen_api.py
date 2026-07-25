@@ -50,6 +50,20 @@ def clean(cell):
     return re.sub(r"\s+", " ", cell).strip()
 
 
+def norm(v):
+    """A curated entry is either a plain doc string (the original ones) or a rich object.
+
+    Allowing both means the existing entries needed no migration, and a new one can carry the fields
+    that actually help: `gotcha` above all. This engine's failure mode is silent wrong behaviour --
+    getters returning 1/0 rather than booleans, calls that are async, names that shadow a different
+    function -- and a warning attached to the call you are hovering is worth more than another
+    paragraph restating what the call does.
+    """
+    if isinstance(v, str):
+        return {"doc": v}
+    return dict(v or {})
+
+
 def decorations():
     """From CAPABILITIES.md: {ns: group}, {ns: blurb}, {call_path: rich_sig}.
 
@@ -176,17 +190,26 @@ def main():
             shown = head + ":" + tail
         sig = rich_sigs.get(path) or (shown + "(" + ", ".join(params) + ")")
 
-        doc = (e.get("description") or "").strip() or call_docs.get(path, "")
+        cur = norm(call_docs.get(path)) if path in call_docs else {}
+        # A curated doc WINS over the generated one here, unlike natives: ess.json's descriptions come
+        # from source header comments, which are terse by design, and a curated entry only exists
+        # because someone judged the generated one insufficient.
+        doc = cur.get("doc") or (e.get("description") or "").strip()
         if doc:
             doc_hits += 1
         call = {"path": path, "sig": sig}
         if doc:
             call["doc"] = doc
+        if cur.get("gotcha"):
+            call["gotcha"] = cur["gotcha"]
+        if cur.get("src"):
+            call["src"] = cur["src"]
         # extra fields the current consumers ignore; the doc pane can surface them later
         if e.get("tier"):
             call["tier"] = e["tier"]
-        if (e.get("returns") or "").strip():
-            call["ret"] = e["returns"].strip()
+        ret = cur.get("ret") or (e.get("returns") or "").strip()
+        if ret:
+            call["ret"] = ret
         by_ns.setdefault(ns, []).append(call)
 
     out_ns, completions = [], set()

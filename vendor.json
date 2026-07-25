@@ -5,17 +5,44 @@
     "  python tools/sync_assets.py            fetch at the pinned tag and verify",
     "  python tools/sync_assets.py --update   repin to upstream's newest release tag",
     "  python tools/sync_assets.py --check    CI gate (see the script's header for the two severities)",
-    "The pin is also what stamps window.ESS_API.essVersion, so the API reference and the version it",
-    "claims to be can no longer disagree -- see tools/gen_api.py resolve_ess_version()."
+    "",
+    "Ess 0.4.x made its API surface machine-readable: api/ess.json is generated from src/*.lua and is",
+    "authoritative (a function exists because it is DEFINED, not because a doc mentions it). That replaced",
+    "parsing CAPABILITIES.md's markdown tables, which was a hand-maintained surface that could drift.",
+    "CAPABILITIES.md stays pinned, but only for the two things ess.json does not carry: the thematic",
+    "section headings the API panel groups by, and the per-namespace 'what it's for' blurb.",
+    "",
+    "ess.json and natives.json both come out of ONE release zip, so they are always from the same build",
+    "and cost one download between them (see sync_assets.py's _ZIP_CACHE)."
   ],
   "assets": [
+    {
+      "path": "src/data/ess.json",
+      "repo": "loganw234/mercs2-lua-essentials",
+      "source": "release-zip",
+      "release_asset": "Ess-{version}.zip",
+      "member": "api/ess.json",
+      "pin": "v0.4.1",
+      "why": "Ess's generated API manifest -- every public function with its namespace, tier, params and documented return. tools/gen_api.py turns it into src/data/ess-api.json, which powers the API panel, Ess.* autocomplete, hover docs, the linter's did-you-mean, the Ctrl+K palette and the agent's search_api. Gitignored upstream (derived from src/, must never be stale), so it is pinned via the release zip rather than a raw path.",
+      "sha256": "a203e66a895bebe3b75fa6c93f13d4f0cc6790bb5621776c869368570c6c71e7"
+    },
+    {
+      "path": "src/data/ess-natives.json",
+      "repo": "loganw234/mercs2-lua-essentials",
+      "source": "release-zip",
+      "release_asset": "Ess-{version}.zip",
+      "member": "api/natives.json",
+      "pin": "v0.4.1",
+      "why": "The engine surface as captured from a LIVE game (a pairs(_G) walk over the real runtime, via tools/dump_natives.py). Authoritative for what EXISTS. Merged additively into src/data/natives.json by tools/gen_natives.py -- it does not carry call sites or argument counts, so it never overwrites what scrape_natives.py mined from the decompiled scripts.",
+      "sha256": "f9f2b07f317f3fd83bf38d752674b3434310a86e00bf2aa03be9dd7fb8568b6b"
+    },
     {
       "path": "src/data/CAPABILITIES.md",
       "repo": "loganw234/mercs2-lua-essentials",
       "remote_path": "CAPABILITIES.md",
-      "pin": "v0.3.4",
-      "why": "Ess's own API reference. tools/gen_api.py turns it into src/data/ess-api.json, which powers the API panel, Ess.* autocomplete, hover docs and the linter's did-you-mean.",
-      "sha256": "3c832d78c686fae3533793feb58a2885554212a506dc11759c77f9fa306ab1cd"
+      "pin": "v0.4.1",
+      "why": "Human-facing Ess reference. No longer the source of the call list -- ess.json is. Still pinned for the two things it uniquely provides: the '## Section' headings the API panel groups namespaces by (80/80 namespaces), and the per-namespace 'what it's for' blurb (58/80).",
+      "sha256": "f53bf219ed5e4802ad711048a2070783d4b1782f0334a0e31e80c71d6652d0b7"
     }
   ]
 }

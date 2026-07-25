@@ -27,6 +27,7 @@ jobs:
       - name: Build the standalone
         run: |
           python tools/gen_api.py
+          python tools/gen_natives.py
           python build.py
           cp dist/index.html mercs2-lua-ide.html
       - name: Update the "latest" release

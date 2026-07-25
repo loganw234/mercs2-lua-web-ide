@@ -33,6 +33,7 @@ limit, and it works anywhere git can already reach the remote.
 """
 import argparse
 import hashlib
+import io
 import json
 import pathlib
 import re
@@ -40,11 +41,17 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "vendor.json"
 RAW = "https://raw.githubusercontent.com/{repo}/{pin}/{remote_path}"
-TIMEOUT = 30
+REL = "https://github.com/{repo}/releases/download/{pin}/{asset}"
+TIMEOUT = 60
+
+# One release zip can carry several vendored files. Cache the download per run so
+# pinning two members of the same zip costs one fetch, not two.
+_ZIP_CACHE = {}
 
 # vN.N.N -- the tag shape mercs2-lua-essentials' release workflow creates from Ess.VERSION.
 SEMVER_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
@@ -74,12 +81,43 @@ def sha256_bytes(b):
     return hashlib.sha256(b).hexdigest()
 
 
-def fetch(asset):
-    """Download one asset's bytes at its pinned tag. Returns bytes, or raises."""
-    url = RAW.format(repo=asset["repo"], pin=asset["pin"], remote_path=asset["remote_path"])
+def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "mercs2-sync-assets"})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
         return r.read()
+
+
+def fetch(asset):
+    """One asset's bytes at its pinned tag. Two shapes:
+
+    * default -- a file committed in the repo, read straight from raw.githubusercontent.
+    * source:"release-zip" -- a member of a release artifact. Ess's api/ess.json is
+      GENERATED from src/ and deliberately gitignored ("derived, so it must never be
+      stale"), so it does not exist at any tag and raw returns 404. It ships inside
+      Ess-<version>.zip instead. Pinning the zip is also the more honest target: the
+      zip is the artifact their release actually publishes and package.py guarantees
+      the manifests are in it -- a separate loose asset can silently go missing, which
+      is exactly what happened to v0.4.0.
+    """
+    if asset.get("source") == "release-zip":
+        name = asset["release_asset"].replace("{version}", asset["pin"].lstrip("v"))
+        url = REL.format(repo=asset["repo"], pin=asset["pin"], asset=name)
+        blob = _ZIP_CACHE.get(url)
+        if blob is None:
+            blob = get(url)
+            _ZIP_CACHE[url] = blob
+        try:
+            with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                return z.read(asset["member"])
+        except KeyError:
+            die("%s: %s has no member %s. Members: %s"
+                % (asset["path"], name, asset["member"],
+                   ", ".join(zipfile.ZipFile(io.BytesIO(blob)).namelist()[:12])))
+        except zipfile.BadZipFile:
+            die("%s: %s did not download as a zip (%d bytes) -- does that release exist?"
+                % (asset["path"], name, len(blob)))
+    url = RAW.format(repo=asset["repo"], pin=asset["pin"], remote_path=asset["remote_path"])
+    return get(url)
 
 
 def latest_tag(repo):
@@ -134,7 +172,7 @@ def cmd_sync(doc, update=False, offline=False):
             blob = fetch(asset)
         except urllib.error.HTTPError as e:
             die("%s: HTTP %s fetching %s at %s -- does that tag exist, and is the path right?"
-                % (label, e.code, asset["remote_path"], asset["pin"]))
+                % (label, e.code, asset.get("remote_path") or asset.get("member"), asset["pin"]))
         except Exception as e:
             die("%s: could not fetch (%s: %s)" % (label, type(e).__name__, e))
 

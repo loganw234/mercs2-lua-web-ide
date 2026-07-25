@@ -54,6 +54,23 @@ SCRAPED = ROOT / "src" / "data" / "natives-scraped.json"   # from tools/scrape_n
 LIVE = ROOT / "src" / "data" / "ess-natives.json"          # vendored from Ess's release
 OUT = ROOT / "src" / "data" / "natives.json"
 
+# NOT THE ENGINE, despite what the dump says.
+#
+# The dump is a pairs(_G) walk of a running game -- but that game is running WITH the lua-bridge mod
+# loaded, because the walk is performed over the bridge. So the globals Lua_Loader.asi injects are
+# sitting in _G alongside the real C++ natives and get classified `engine` with them. `Loader` is the
+# whole of that surface: exactly the 9 functions the wiki documents at lua-bridge-api/loader.md, and no
+# decompiled base-game script references Loader.* at all -- the mod postdates the game.
+#
+# Left alone, the API panel described the bridge's own API as "the engine's own Loader.* functions, as
+# the base game's scripts actually use them", which is wrong twice in one sentence, and the reference
+# the assistant is grounded against agreed with it.
+#
+# The proper fix belongs upstream in Ess's tools/dump_natives.py, which is the only thing that can know
+# what was resident before the bridge attached. Until then this is the correction, kept as data rather
+# than a special case in the consumers.
+BRIDGE_NS = {"Loader"}
+
 
 def main():
     if not SCRAPED.exists():
@@ -108,10 +125,16 @@ def main():
         print("[gen_natives] no %s -- writing the scrape alone. Run tools/sync_assets.py to vendor "
               "the live dump." % LIVE.name)
 
+    # Per-namespace provenance, so a consumer can say where a function actually comes from instead of
+    # calling everything in `natives` an engine function. Kept as a sibling map rather than folded into
+    # each entry: `natives` is {ns: {fn: {...}}} and everything downstream indexes it that way.
+    kinds = {ns: ("bridge" if ns in BRIDGE_NS else "engine") for ns in natives}
+
     out = {
         "source": scraped.get("source", ""),
         "files": scraped.get("files", 0),
         "live": live_meta,
+        "kinds": kinds,
         "natives": {ns: natives[ns] for ns in sorted(natives)},
         "modules": {m: modules[m] for m in sorted(modules)},
     }
@@ -124,6 +147,10 @@ def main():
     print("[gen_natives] %d resident modules recorded (%d functions) -- these need import(\"Name\") "
           "before use; 25_lint.js warns when one is missing"
           % (len(modules), sum(len(m["fns"]) for m in modules.values())))
+    bridge = sorted(ns for ns in natives if ns in BRIDGE_NS)
+    if bridge:
+        print("[gen_natives] reclassified as lua-bridge (Lua_Loader.asi), not engine: %s"
+              % ", ".join("%s (%d fns)" % (b, len(natives[b])) for b in bridge))
     return 0
 
 

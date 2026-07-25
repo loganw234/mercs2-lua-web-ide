@@ -74,6 +74,11 @@ IS_LOCAL = True
 MAX_CTX = None            # hosted provider's context window, from --max-ctx
 HOSTED_MAXTOK = 16384     # a hosted REASONER spends tokens thinking; leave room so the
                           # graded answer (content) isn't cut off mid-reasoning
+# Some providers PIN sampling and reject temperature/top_p/seed (e.g. Kimi K3 fixes
+# temperature=1.0/top_p=0.95 and wants them omitted, and uses max_completion_tokens).
+# --fixed-sampling sends none of them and switches the output-cap field accordingly.
+FIXED_SAMPLING = False
+REASONING_EFFORT = ""     # optional passthrough (e.g. Kimi K3 'low'/'high'/'max')
 OUT = Path(os.environ.get("BENCH_REASON_OUT", ROOT / "bench-reason-results.json"))
 REQ_TIMEOUT = 2400        # 40 min: a 27B on DRAM at 128k ctx is slow, not broken
 NUM_PREDICT = 3072        # output budget; must leave the pack room inside num_ctx
@@ -450,8 +455,8 @@ def load_pack(tier):
 def ask(model, pack, prompt, num_ctx, seed):
     t0 = time.time()
     msgs = [{"role": "system", "content": pack}, {"role": "user", "content": prompt}]
-    try:
-        if IS_LOCAL:
+    if IS_LOCAL:
+        try:
             body = json.dumps({
                 "model": model, "messages": msgs, "stream": False,
                 "options": dict(SAMPLING, num_ctx=num_ctx, num_predict=NUM_PREDICT, seed=seed),
@@ -464,26 +469,54 @@ def ask(model, pack, prompt, num_ctx, seed):
                     "secs": round(time.time() - t0, 1),
                     "prompt_tok": data.get("prompt_eval_count"),
                     "out_tok": data.get("eval_count"), "err": None}
-        # hosted: OpenAI /chat/completions. No num_ctx -- the provider manages context.
-        body = json.dumps({
-            "model": model, "messages": msgs, "stream": False,
-            "temperature": SAMPLING["temperature"], "top_p": SAMPLING["top_p"],
-            "max_tokens": HOSTED_MAXTOK, "seed": seed,
-        }).encode("utf-8")
-        headers = {"content-type": "application/json"}
-        if API_KEY:
-            headers["authorization"] = "Bearer " + API_KEY
-        req = urllib.request.Request(BASE_URL + "/chat/completions", data=body, headers=headers)
-        with urllib.request.urlopen(req, timeout=REQ_TIMEOUT) as r:
-            data = json.loads(r.read().decode("utf-8"))
-        msg = data["choices"][0]["message"]
-        usage = data.get("usage", {})
-        return {"text": msg.get("content", "") or "",
-                "secs": round(time.time() - t0, 1),
-                "prompt_tok": usage.get("prompt_tokens"),
-                "out_tok": usage.get("completion_tokens"), "err": None}
-    except Exception as e:  # noqa: BLE001
-        return {"text": "", "secs": round(time.time() - t0, 1), "err": str(e)[:160]}
+        except Exception as e:  # noqa: BLE001
+            return {"text": "", "secs": round(time.time() - t0, 1), "err": str(e)[:160]}
+
+    # hosted: OpenAI /chat/completions. No num_ctx -- the provider manages context.
+    hbody = {"model": model, "messages": msgs, "stream": False}
+    if FIXED_SAMPLING:
+        # provider fixes temp/top_p and rejects them + seed; uses max_completion_tokens
+        hbody["max_completion_tokens"] = HOSTED_MAXTOK
+    else:
+        hbody["temperature"] = SAMPLING["temperature"]
+        hbody["top_p"] = SAMPLING["top_p"]
+        hbody["seed"] = seed
+        hbody["max_tokens"] = HOSTED_MAXTOK
+    if REASONING_EFFORT:
+        hbody["reasoning_effort"] = REASONING_EFFORT
+    body = json.dumps(hbody).encode("utf-8")
+    headers = {"content-type": "application/json"}
+    if API_KEY:
+        headers["authorization"] = "Bearer " + API_KEY
+    # Retry with backoff: hosted providers RATE-LIMIT (HTTP 429) and drop connections
+    # under sustained parallel load (WinError 10054 / SSL). Honor Retry-After when present.
+    last_err = None
+    for attempt in range(6):
+        try:
+            req = urllib.request.Request(BASE_URL + "/chat/completions", data=body, headers=headers)
+            with urllib.request.urlopen(req, timeout=REQ_TIMEOUT) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            msg = data["choices"][0]["message"]
+            usage = data.get("usage", {})
+            return {"text": msg.get("content", "") or "",
+                    "secs": round(time.time() - t0, 1),
+                    "prompt_tok": usage.get("prompt_tokens"),
+                    "out_tok": usage.get("completion_tokens"), "err": None}
+        except urllib.error.HTTPError as e:  # noqa: BLE001
+            last_err = "HTTP Error %d: %s" % (e.code, e.reason)
+            if e.code == 429 and attempt < 5:
+                ra = e.headers.get("Retry-After") if e.headers else None
+                wait = float(ra) if (ra and ra.isdigit()) else min(60, 4 * 2 ** attempt)
+                time.sleep(wait)
+                continue
+            break
+        except Exception as e:  # noqa: BLE001 -- transient network (reset / SSL / timeout)
+            last_err = str(e)[:160]
+            if attempt < 5:
+                time.sleep(4 * (attempt + 1))
+                continue
+            break
+    return {"text": "", "secs": round(time.time() - t0, 1), "err": last_err}
 
 
 # ---------------------------------------------------------------------------
@@ -673,7 +706,7 @@ def summarize(out, models, budgets, tasks, trials):
 
 # ---------------------------------------------------------------------------
 def main():
-    global REQ_TIMEOUT, IS_LOCAL, BASE_URL, API_KEY, MAX_CTX
+    global REQ_TIMEOUT, IS_LOCAL, BASE_URL, API_KEY, MAX_CTX, FIXED_SAMPLING, REASONING_EFFORT
     ap = argparse.ArgumentParser(description="reasoning quality vs context budget")
     ap.add_argument("--models", default=",".join(DEFAULT_MODELS))
     ap.add_argument("--budgets", default=",".join(BUDGETS.keys()))
@@ -688,6 +721,11 @@ def main():
                     help="file holding the API key for --base-url (kept out of the repo)")
     ap.add_argument("--max-ctx", type=int, default=0,
                     help="hosted provider's context window; budgets whose pack won't fit skip")
+    ap.add_argument("--fixed-sampling", action="store_true",
+                    help="provider pins temp/top_p and rejects them + seed (e.g. Kimi K3); "
+                         "omit them and use max_completion_tokens")
+    ap.add_argument("--reasoning-effort", default="",
+                    help="pass a reasoning_effort to the hosted model (e.g. Kimi K3 low/high/max)")
     ap.add_argument("--no-resume", action="store_true")
     ap.add_argument("--list-tasks", action="store_true")
     ap.add_argument("--list-budgets", action="store_true")
@@ -710,6 +748,8 @@ def main():
         IS_LOCAL = False
         BASE_URL = args.base_url.rstrip("/")
         MAX_CTX = args.max_ctx or None
+        FIXED_SAMPLING = args.fixed_sampling
+        REASONING_EFFORT = args.reasoning_effort
         if args.key_file:
             API_KEY = Path(args.key_file).read_text(encoding="utf-8").strip()
     models = [m.strip() for m in args.models.split(",") if m.strip()]

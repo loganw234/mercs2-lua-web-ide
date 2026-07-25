@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 GEN_COLOR = {"DS": "#c65fb5", "CLOUD": "#12a5b8", "3.6": "#5b8def", "3": "#3aa675",
              "2.5": "#e0a030", "?": "#9aa0a6"}
 GEN_ORDER = {"DS": 0, "CLOUD": 1, "3.6": 2, "3": 3, "2.5": 4, "?": 5}
-GEN_LABEL = {"DS": "DeepSeek (flagship)", "CLOUD": "Cloud (semi-frontier)",
+GEN_LABEL = {"DS": "Frontier flagship", "CLOUD": "Cloud (semi-frontier)",
              "3.6": "Qwen 3.6", "3": "Qwen 3", "2.5": "Qwen 2.5"}
 
 
@@ -31,7 +31,7 @@ def gen_of(model):
     m = model.lower()
     if "cloud" in m:                  # Ollama-cloud (glm/kimi/minimax/qwen3.5:397b) -- must
         return "CLOUD"                # come before the qwen3 check (qwen3.5:397b-cloud)
-    if "deepseek" in m:
+    if "deepseek" in m or "kimi" in m:   # hosted frontier flagships (DeepSeek V4, Kimi K3)
         return "DS"
     if "qwen3.6" in m:
         return "3.6"
@@ -53,6 +53,7 @@ def display(model):
         "myaniu/qwen2.5-1m:14b-instruct-q6_K_M": "qwen2.5-1M:14b",
         "hf.co/unsloth/Qwen3-14B-128K-GGUF:UD-Q4_K_XL": "qwen3:14b-128K (YaRN)",
         "deepseek-v4-pro": "DeepSeek V4-pro",
+        "kimi-k3": "Kimi K3",
     }
     if model in special:
         return special[model]
@@ -489,9 +490,10 @@ def main():
     ap.add_argument("--ds-reason", default="", help="merged DeepSeek reasoning shards (ds-merged.json)")
     ap.add_argument("--ds-tools", default="", help="DeepSeek tool-use shard (ds-tools.json)")
     ap.add_argument("--cloud", default="", help="merged Ollama-cloud reasoning shards (cloud-merged.json)")
+    ap.add_argument("--kimi", default="", help="merged Kimi K3 reasoning shards (kimi-merged.json)")
     ap.add_argument("--out", default=str(ROOT / "bench-viz.html"))
     a = ap.parse_args()
-    build(load_reason(a.reason, a.ds_reason, a.cloud), load_tools(a.tools, a.ds_tools), a.out)
+    build(load_reason(a.reason, a.ds_reason, a.cloud, a.kimi), load_tools(a.tools, a.ds_tools), a.out)
 
 
 if __name__ == "__main__":

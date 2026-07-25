@@ -1,8 +1,12 @@
-/* 50_api.js -- the API panel: the Ess reference (window.ESS_API, off CAPABILITIES.md) plus a "the game's
-   own functions" section (window.MERCS_NATIVES, scraped from the decompiled base-game scripts, with real
-   call sites). Clicking a call opens the doc pane at the bottom -- signature, tier badge (Easy / Core /
-   Raw / Native), what the namespace is for, a real example for natives -- with an Insert button that drops
-   it in as a tab-through snippet. The completion list the editor consumes also lives here. */
+/* 50_api.js -- the API panel. Three provenances, and the panel says which:
+     * the Ess reference (window.ESS_API, generated from Ess's own api/ess.json -- see tools/gen_api.py)
+     * the engine's C++ natives (window.MERCS_NATIVES.natives, a live _G dump merged with a scrape of the
+       decompiled base-game scripts, so most carry a real call site and observed argument counts)
+     * the lua-bridge's OWN functions (Loader.*), which the dump reports as engine because the walk runs
+       over the bridge -- corrected in gen_natives.py and badged separately here
+   Clicking a call opens the doc pane -- signature, tier badge, what the namespace is for, a real example
+   for natives -- with an Insert button that drops it in as a tab-through snippet. The completion list the
+   editor consumes also lives here. */
 (function () {
   var IDE = window.IDE, data = window.ESS_API || { namespaces: [], completions: [] };
   var natives = (window.MERCS_NATIVES && window.MERCS_NATIVES.natives) || {};
@@ -12,11 +16,20 @@
   var MODEL = data.namespaces.map(function (ns) {
     return { name: ns.name, group: ns.group || "", doc: ns.doc || "", calls: ns.calls };
   });
+  /* Provenance, from gen_natives.py. The live dump is a pairs(_G) walk taken over the lua-bridge, so
+     the globals Lua_Loader.asi injects sit in _G next to the real C++ natives and arrive labelled
+     `engine`. `Loader` is that whole surface -- calling it "the engine's own functions, as the base
+     game's scripts actually use them" was wrong twice: it is the bridge's API, and no base-game script
+     references it at all. */
+  var KINDS = (window.MERCS_NATIVES && window.MERCS_NATIVES.kinds) || {};
   Object.keys(natives).sort().forEach(function (nsName) {
     var members = natives[nsName];
+    var bridge = KINDS[nsName] === "bridge";
     MODEL.push({
-      name: nsName, group: "game native", native: true,
-      doc: "The engine's own " + nsName + ".* functions, as the base game's scripts actually use them. Lower-level than Ess — check the example call sites.",
+      name: nsName, group: bridge ? "lua-bridge" : "game native", native: true, bridge: bridge,
+      doc: bridge
+        ? "Added by the lua-bridge mod (Lua_Loader.asi), not by the game — these exist only while the bridge is loaded, which is exactly when you are running scripts from this IDE."
+        : "The engine's own " + nsName + ".* functions, as the base game's scripts actually use them. Lower-level than Ess — check the example call sites.",
       calls: Object.keys(members).sort().map(function (fn) {
         var e = members[fn];
         return { path: nsName + "." + fn, sig: e.example || nsName + "." + fn + "(…)", native: e };
@@ -25,7 +38,12 @@
   });
 
   function tierOf(path, native) {
-    if (native) return ["native", "Native"];
+    /* A Loader.* call is not a native -- badging it "Native" repeats the same mislabel the
+       dump introduced (see KINDS above). */
+    if (native) {
+      return KINDS[String(path).split(".")[0]] === "bridge"
+        ? ["bridge", "lua-bridge"] : ["native", "Native"];
+    }
     if (path.indexOf("Ess.Easy") === 0) return ["easy", "Easy — guardrails on"];
     if (path.indexOf("Ess.Raw") === 0) return ["raw", "Raw — building blocks"];
     return ["core", "Core"];

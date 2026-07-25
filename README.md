@@ -100,6 +100,14 @@ exist. CAPABILITIES.md is still pinned, but only for what `ess.json` doesn't car
 API panel groups by, the per-namespace blurb, and richer hand-written signatures for calls documented with
 option-table keys.
 
+One correction the merge has to apply: the live dump is a `pairs(_G)` walk taken **over the lua-bridge**,
+so the globals `Lua_Loader.asi` injects are sitting in `_G` beside the real C++ natives and come back
+classified as engine. `Loader` is that whole surface — exactly the nine functions the wiki documents under
+lua-bridge-api, and no decompiled base-game script references `Loader.*` at all. `gen_natives.py` emits a
+`kinds` map so the panel badges them **lua-bridge** rather than describing a mod's API as "the engine's
+own functions, as the base game's scripts actually use them". The proper fix belongs upstream in Ess's
+`dump_natives.py`, which is the only thing that can know what was resident before the bridge attached.
+
 The same file also records the 18 **resident Lua modules** (`MrxUtil`, `MrxGuiBase`, …) under a
 separate `modules` key rather than folding them in with the natives — they are not engine functions
 and they are not unconditionally available, which is exactly what makes the import check possible.

@@ -77,6 +77,28 @@ setTimeout(() => {
             !paths.has("Ess.Squad.Tactics.on") &&
             paths.has("Ess.Squad.setFormation") && paths.has("Ess.Squad.on");
   })());
+
+  /* The live dump is a pairs(_G) walk taken OVER the lua-bridge, so the globals Lua_Loader.asi injects
+     are sitting in _G next to the real C++ natives and come back classified `engine`. Loader is that
+     whole surface -- exactly the 9 functions the wiki documents at lua-bridge-api/loader.md, and no
+     decompiled base-game script references Loader.* at all. gen_natives.py corrects it. */
+  ok("provenance: kinds map is emitted", !!(w.MERCS_NATIVES.kinds));
+  ok("provenance: Loader is lua-bridge, not engine",
+     w.MERCS_NATIVES.kinds.Loader === "bridge", w.MERCS_NATIVES.kinds.Loader);
+  ok("provenance: real engine namespaces stay engine",
+     w.MERCS_NATIVES.kinds.Pg === "engine" && w.MERCS_NATIVES.kinds.Ai === "engine");
+  ok("provenance: Loader still resolves for autocomplete and the linter",
+     !!w.MERCS_NATIVES.natives.Loader && Object.keys(w.MERCS_NATIVES.natives.Loader).length === 9,
+     Object.keys(w.MERCS_NATIVES.natives.Loader || {}).length + " fns");
+  ok("provenance: the panel badges Loader as lua-bridge, not Native",
+     IDE.api.tierOf("Loader.Printf", true)[0] === "bridge" &&
+     IDE.api.tierOf("Pg.Spawn", true)[0] === "native",
+     JSON.stringify([IDE.api.tierOf("Loader.Printf", true), IDE.api.tierOf("Pg.Spawn", true)]));
+  ok("provenance: the panel no longer calls the bridge's API the game's own", (() => {
+     const hit = IDE.api.lookup("Loader.Printf");
+     return hit && /lua-bridge mod/.test(hit.ns.doc) && !/engine's own/.test(hit.ns.doc);
+  })(), (IDE.api.lookup("Loader.Printf") || {}).ns && IDE.api.lookup("Loader.Printf").ns.doc.slice(0, 60));
+
   ok("data: examples loaded", w.ESS_EXAMPLES && w.ESS_EXAMPLES.categories.length === 8);
 
   // ---- store ----

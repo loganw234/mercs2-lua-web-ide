@@ -99,6 +99,37 @@ setTimeout(() => {
      return hit && /lua-bridge mod/.test(hit.ns.doc) && !/engine's own/.test(hit.ns.doc);
   })(), (IDE.api.lookup("Loader.Printf") || {}).ns && IDE.api.lookup("Loader.Printf").ns.doc.slice(0, 60));
 
+
+  /* Loader.* arrived bare: no base-game script calls the bridge, so the scrape had nothing, and the
+     live dump carries existence only. Worse, call_docs was merged inside scrape_natives.py, so a
+     curated doc could never reach ANY live-only function -- 543 of them, not just these nine.
+     gen_natives.py merges it after the merge instead. */
+  ok("loader: every Loader function has a real signature", (() => {
+     const L = w.MERCS_NATIVES.natives.Loader;
+     return Object.keys(L).length === 9 &&
+            Object.keys(L).every(fn => /\(/.test(L[fn].sig || ""));
+  })(), JSON.stringify(Object.keys(w.MERCS_NATIVES.natives.Loader).map(
+       fn => w.MERCS_NATIVES.natives.Loader[fn].sig)));
+  ok("loader: every Loader function has a description",
+     Object.values(w.MERCS_NATIVES.natives.Loader).every(e => (e.doc || "").length > 40));
+  ok("loader: signatures name their arguments",
+     /Loader\.SaveVar\(sKey, xValue\)/.test(w.MERCS_NATIVES.natives.Loader.SaveVar.sig) &&
+     /Loader\.IsKeyDown\(vk\)/.test(w.MERCS_NATIVES.natives.Loader.IsKeyDown.sig));
+  ok("loader: the panel shows the signature, not a bare Name(…)", (() => {
+     const hit = IDE.api.lookup("Loader.PopKeyEvents");
+     return hit && hit.c && /Loader\.PopKeyEvents\(\)/.test(hit.c.sig) && !/…/.test(hit.c.sig);
+  })(), (IDE.api.lookup("Loader.PopKeyEvents") || {}).c &&
+        IDE.api.lookup("Loader.PopKeyEvents").c.sig);
+  ok("loader: the doc pane has real text to show",
+     /lua_loader_printf\.log/.test((IDE.api.lookup("Loader.Printf").c.native || {}).doc || ""));
+  /* The curated merge must not clobber what the scrape mined for real natives. */
+  ok("curated docs do not overwrite a scraped native's own doc", (() => {
+     const nat = w.MERCS_NATIVES.natives;
+     const scraped = Object.keys(nat).filter(ns => ns !== "Loader")
+       .flatMap(ns => Object.values(nat[ns])).filter(e => e.example && e.doc);
+     return scraped.length > 100;
+  })());
+
   ok("data: examples loaded", w.ESS_EXAMPLES && w.ESS_EXAMPLES.categories.length === 8);
 
   // ---- store ----

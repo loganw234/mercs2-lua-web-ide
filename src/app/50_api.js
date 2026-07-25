@@ -32,7 +32,10 @@
         : "The engine's own " + nsName + ".* functions, as the base game's scripts actually use them. Lower-level than Ess — check the example call sites.",
       calls: Object.keys(members).sort().map(function (fn) {
         var e = members[fn];
-        return { path: nsName + "." + fn, sig: e.example || nsName + "." + fn + "(…)", native: e };
+        /* A curated signature wins over an example call: for Loader.* there IS no example (no
+           base-game script calls the bridge), and where both exist the signature names the
+           arguments while the example just shows one invocation. */
+        return { path: nsName + "." + fn, sig: e.sig || e.example || nsName + "." + fn + "(…)", native: e };
       })
     });
   });

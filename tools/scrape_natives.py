@@ -16,7 +16,10 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "src" / "data" / "natives.json"
+# Intermediate now, not the final artifact: tools/gen_natives.py merges this with the vendored
+# live dump (ess-natives.json) to produce src/data/natives.json. Keeping them separate means a
+# re-scrape never has to know about the merge, and the merge never has to re-derive call sites.
+OUT = ROOT / "src" / "data" / "natives-scraped.json"
 DEFAULT_SRC = r"C:\Users\logan\Desktop\Mercs2_Decompiled_Lua\docs\mercs2-luacd\src"
 CALL_DOCS = ROOT / "src" / "data" / "call_docs.json"   # {"ess": {...}, "natives": {path: doc}} -- wiki-sourced, merged in below
 

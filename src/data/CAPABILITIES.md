@@ -45,11 +45,63 @@ what's used above, see [wiki.mercs2.tools/reference.html](https://wiki.mercs2.to
 
 ---
 
+---
+
+## When nothing happens: `Ess.DEBUG`
+
+Ess fails **silently on purpose** — a wrapper's job is to return `nil` rather than propagate a problem, so a
+call with a stale guid or a nil argument gives you no log line, no error, and no effect. That is the single
+most common wall a new modder hits. One line opens it up:
+
+```lua
+Ess.DEBUG = true        -- from a script, or live over the bridge. Survives a level reload; set it back to
+                        -- false when you're done, or the log fills up.
+```
+
+With it on, everything Ess quietly gave up on reports itself, through **two channels** — and the second is
+the common one:
+
+| Channel | What it means | Recorded by |
+|---|---|---|
+| **Thrown** | an engine call raised a Lua error and a `pcall` swallowed it | `Ess.Safe.*` |
+| **Guard rejection** | Ess read your arguments, decided the call couldn't work, and returned early **without ever calling the engine** | `Ess.Safe.reject()` |
+
+Rejections are the useful ones, because Ess knows *why* it gave up, so the message is specific — `"no opts.at
+destination given -- the order is dropped and the units keep doing whatever they were doing"` rather than a
+generic engine error string. (Measured live: 14 deliberately-malformed native calls across
+`Object`/`Player`/`Vehicle`/`Human`/`Ai`/`Marker`/`Camera`/`Sys`/`Pg` threw **zero** Lua errors — engine calls
+mostly fail safe, so a diagnostic built only on caught errors would be quiet exactly when you need it.)
+
+| Call | Does |
+|---|---|
+| `Ess.lastError()` | the most recent give-up: `{ msg, label, count, rejected }`, or `nil` |
+| `Ess.Safe.stats()` | every give-up this session, worst offender first, plus the session total as a 2nd return |
+| `Ess.Safe.reset()` | clear it all — do this right before reproducing one specific thing |
+| `Ess.Safe.reject(label, reason)` | record a give-up **in your own code**. Always returns `nil`, so it fits a one-line early-out: `if not g then return Ess.Safe.reject("MyMod.heal", "no guid") end` |
+
+Worked example: [`samples/recipes/compose_debug_a_silence.lua`](samples/recipes/compose_debug_a_silence.lua).
+
+## One way to turn things off: `Ess.stop`
+
+Ess grew 27 teardown verbs across five structurally different disposal idioms, because each namespace picked
+the word that read best locally. They all still work and are all still the most precise thing to say — but
+when you're just holding a handle and want it gone:
+
+| Call | Does |
+|---|---|
+| `Ess.stop(x)` → `bool` | tear down **any** shape: a closure (`Ess.On.*`, `Ess.Triggers.arm`), a handle table (`Ess.Mark`, `Ess.Relations`), a caller-supplied id string (`Ess.Loop`, `Ess.Sandbox`), or an object with `:closeAll`/`:cancel`/`:stop` (`Ess.Track`, `Ess.Objective`, `Ess.Quest`). `nil` and junk are safe no-ops returning `false` — teardown never throws. |
+| `Ess.stopAll(t)` → `n` | `Ess.stop` every element, reverse order. ⚠ dense arrays only (`#t` is undefined on a holed one — `Ess.Table.compact` first) |
+| `Ess.Track:any(x)` → `x` | register any of those shapes with a tracker, torn down by `:closeAll()`. Returns `x`, so it chains inline. |
+
+Worked example: [`samples/recipes/compose_one_cleanup.lua`](samples/recipes/compose_one_cleanup.lua).
+
+---
+
 ## Core primitives
 
 | Namespace | What it's for | Key calls |
 |---|---|---|
-| `Ess.Safe` | The `pcall`-and-log idiom, once | `.call(fn, ...)`, `.quiet(fn, ...)`, `.string(ok, val, fallback)`, `.template(name)` (true only for a usable non-blank spawn-template string — gate every raw `Pg.Spawn` with it; a blank template hard-CTDs straight past `pcall`) |
+| `Ess.Safe` | The `pcall`-and-log idiom, once — and the mechanism `Ess.DEBUG` sees failures through, so prefer these over a bare `pcall` in new code | `.call(fn, ...)` (logs on failure), `.quiet(fn, ...)` (logs only under `Ess.DEBUG`), `.named(label, fn, ...)` (`.quiet` with an explicit label — the only way to attribute a **closure**, since one can't be name-resolved), `.reject(label, reason)`, `.string(ok, val, fallback)`, `.template(name)` (true only for a usable non-blank spawn-template string — gate every raw `Pg.Spawn` with it; a blank template hard-CTDs straight past `pcall`). All pass **6** return values through and return a bare `false` on failure (never `pcall`'s error string — read that via `Ess.lastError()`) |
 | `Ess.Table` | Dense-array repair + collection helpers | `.compact(t)` (rebuild after a nil hole); `.keys/.values/.count/.isEmpty/.contains/.indexOf`, `.map/.filter/.find/.reduce/.slice/.reverse` (array), `.copy/.merge` (shallow) |
 | `Ess.Str` | The string helpers Lua 5.1 omits (all LITERAL, not patterns) | `.split/.join/.trim`, `.startsWith/.endsWith/.contains/.count`, `.padLeft/.padRight`, `.capitalize/.title/.lines/.truncate` |
 | `Ess.Color` | RGB for the `rgb = {r,g,b}` params (Ess.Mark / Ess.UI) | `.hex(s)`, `.hsv(h,s,v)`, `.lerp(c1,c2,t)`, `.of(name)`, `.NAMES` (preset table) |
@@ -146,7 +198,7 @@ without a running contract.
 |---|---|---|
 | `Ess.AIOrders` | `.command(guids, behavior, opts, tracker)` — 11 behaviors (move/patrol/defend/attack/hold/face/follow/flee/enter/deploy/animate); `.setGroup/.group` | `Ess.Easy.AIOrders.attack(guids, target)`, `.patrol(guids, points)`, `.guard(guids, at)` |
 | `Ess.Followers` | `.recruit(guid, opts)`/`.dismiss(guid)`/`.dismissAll()`/`.list()`/`.count()`/`.isFollower(guid)`, `.order(behavior, opts)` (commands the whole roster, any `Ess.AIOrders` behavior — vehicle-aware auto-resume-Follow on natural completion), `.setMarkersEnabled(bool)`/`.markersEnabled()` (per-follower + order-destination world markers, ON by default), `.on(eventName, fn)` (`onRecruit`/`onDismiss`/`onFollowerDown`) | `Ess.Easy.Followers.recruit(guid)`, `.orderAttack(target)`, `.orderPatrol(points)`, `.orderGuard(at)`, `.orderEnter(vehicleGuid, role)`, `.showMarkers()`/`.hideMarkers()` |
-| `Ess.Squad` | a team/role layer over `Ess.Followers` — `.createTeam(name, guids)`/`.team(name)`/`.teamOf(guid)`/`.assignRole(guid, roleType)`/`.roleOf(guid)`, `.orderTeam(name, behavior, opts)` (any `Ess.AIOrders` behavior, scoped to one team without disturbing the rest of the roster), `.queue(targetGroup, steps, queueOpts)`/`.cancelQueue(targetGroup)` (async multi-step sequences with per-step timeouts), `Ess.Squad.Tactics.mountUp(vehGuid, targetGroup, opts)`/`.dismountAndSecure(targetGroup, atPos, radius)`, `.setFormation(targetGroup, formationType, opts)`/`.clearFormation(targetGroup)` (on-foot wedge/column/line/diamond, opt-in visual formations), `.on(eventName, fn)` (forwards to `Ess.Followers.on`; adds `onStepComplete`/`onQueueComplete`/`onVehicleMounted`) | `Ess.Easy.Squad.createTeam`/`.assignRole`, `.orderTeamAttack(name, target)`, `.orderTeamPatrol(name, points)`, `.orderTeamGuard(name, at)`, `.orderTeamFollow(name)`, `.queue(name, steps, onComplete)`/`.cancelQueue(name)`, `.mountUp(vehGuid, name)`/`.dismountAndSecure(name, atPos, radius)`, `.setFormation(name, formationType)`/`.clearFormation(name)` |
+| `Ess.Squad` | a team/role layer over `Ess.Followers` — `.createTeam(name, guids)`/`.team(name)`/`.teamOf(guid)`/`.teams()` (every currently-defined team name)/`.assignRole(guid, roleType)`/`.roleOf(guid)`, `.orderTeam(name, behavior, opts)` (any `Ess.AIOrders` behavior, scoped to one team without disturbing the rest of the roster), `.queue(targetGroup, steps, queueOpts)`/`.cancelQueue(targetGroup)` (async multi-step sequences with per-step timeouts), `Ess.Squad.Tactics.mountUp(vehGuid, targetGroup, opts)`/`.dismountAndSecure(targetGroup, atPos, radius)`, `.setFormation(targetGroup, formationType, opts)`/`.clearFormation(targetGroup)` (on-foot wedge/column/line/diamond, opt-in visual formations), `.on(eventName, fn)` (forwards to `Ess.Followers.on`; adds `onStepComplete`/`onQueueComplete`/`onVehicleMounted`) | `Ess.Easy.Squad.createTeam`/`.assignRole`, `.orderTeamAttack(name, target)`, `.orderTeamPatrol(name, points)`, `.orderTeamGuard(name, at)`, `.orderTeamFollow(name)`, `.queue(name, steps, onComplete)`/`.cancelQueue(name)`, `.mountUp(vehGuid, name)`/`.dismountAndSecure(name, atPos, radius)`, `.setFormation(name, formationType)`/`.clearFormation(name)` |
 | `Ess.Relations` | `.apply(pairs, label)` → **handle**, `.restore(handle)`, `.isActive(handle)`, `.getFeeling/.setFeeling` (per-individual), `.getPerceivability/.setPerceivability` (per-individual AI detectability — reversible; the stat behind Easy ghost) | `Ess.Easy.Relations.makeHostile(factions)`, `.makeAllies(factions)`, `.war(a, b)` (two factions fight each other), `.sideWith(friend, foe)` (you join `friend` against `foe`), `.restore()` |
 | `Ess.Triggers` | `.arm(spec, onFire, tracker)` (stateless); `.scope()` → an **isolated** `:arm/:armNamed/:gate/:declare/:markFired` namespace | `Ess.Easy.Triggers.onPlayerNear(x,y,z,r,fn)`, `.onDeath(guid,fn)`, `.after(seconds,fn)` |
 | `Ess.Sandbox` | `.begin(id, providerNames, opts)`, `.finish(id)`, `.isActive(id)` — providers: layers/economy/supports/relations, all save-gated | `Ess.Easy.Sandbox.arena(id, opts)` (all providers on), `.done(id)` |
@@ -179,6 +231,24 @@ Three weights, lightest first: a single tracked goal → a linear sequence → t
 | Namespace | What it's for | Key calls |
 |---|---|---|
 | `Ess.Override` | Change engine logic without the tail-call crash | `.wrap(target, name, newFn)` (makes the crash shape structurally impossible), `.mergeIntoLiveTable(t, key, data)` |
+| `Ess.stop` | One teardown verb for any handle shape | `Ess.stop(x)`, `Ess.stopAll(t)`, `Ess.Track:any(x)` — see "One way to turn things off" above |
+| `Ess.DEBUG` | Make silent failures speak | `Ess.DEBUG = true`, `Ess.lastError()`, `Ess.Safe.stats()` — see "When nothing happens" above |
+
+## Machine-readable manifests
+
+For tooling rather than reading. Both ship in the release zip under `api/`, and are generated rather than
+hand-maintained — which is the point: this framework's API surface was previously described in four
+hand-kept places at once.
+
+| File | What it is | Generated by |
+|---|---|---|
+| `api/ess.json` | every public `Ess.*` function — namespace, tier, params, returns, description, source file+line, and whether it's documented | `python build/manifest.py` (offline) |
+| `api/natives.json` | *(committed — CI has no game to regenerate it)* the whole raw engine surface — **engine native** (C++, no source) vs **resident game script** (Lua, with its corpus path), deduped by table identity, each namespace noting which of its functions Ess already reaches | `python tools/dump_natives.py` (needs the game running) |
+
+`python build/manifest.py --check` is the **drift gate**, and runs in CI: `ess.json` can't drift from `src/`
+because it's generated from it, but the hand-written surfaces can — the in-game console's registry,
+this file's tables, and every source header comment. The gate fails the build if any of them names a function
+that doesn't exist.
 
 ---
 

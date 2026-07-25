@@ -40,9 +40,10 @@ You can still write, save, and browse everything with no game attached — only 
 - **Examples gallery** — 45 categorized, smoke-tested examples generated straight from the Ess repo's
   `samples/recipes/` (the framework's living documentation), from "Am I connected?" to full missions.
   One click opens any of them as a new script to play with.
-- **Two-layer API reference** — the full Ess API (~80 namespaces / 480+ calls, tier-badged Easy / Core / Raw)
-  *plus* the engine's own native functions (40 namespaces / ~770 calls, scraped from the decompiled base-game
-  scripts, each with a **real call site from the game** and observed argument counts). Most calls carry a
+- **Two-layer API reference** — the full Ess API (79 namespaces / 548 calls, generated from Ess's own source, tier-badged Easy / Core / Raw)
+  *plus* the engine's own native functions (94 namespaces / 1,310 calls — a live `pairs(_G)` dump of the
+  running game for what exists, merged with a scrape of the decompiled base-game scripts for **a real call
+  site** and observed argument counts). Most calls carry a
   real, specific description mined from the wiki (not just "here's the namespace") — click any call for
   docs, insert it as a snippet with tab-through argument placeholders, or just **hover** the token in the
   editor for the same doc as a tooltip. The same data powers autocomplete (`Ess.Easy.*` floats to the top).
@@ -79,12 +80,29 @@ python build.py           # src/* -> dist/index.html (standalone)
 Regenerating the data (only when the upstream sources change):
 
 ```
-python tools/sync_assets.py     # fetch vendored files at their pinned tag (see below)
-python tools/gen_api.py         # src/data/CAPABILITIES.md            -> src/data/ess-api.json
-python tools/gen_examples.py    # <ess repo>/samples/recipes + README -> src/data/examples.json
-python tools/scrape_natives.py  # <decompiled game lua>/src           -> src/data/natives.json
+python tools/sync_assets.py     # fetch the vendored Ess manifests at their pinned tag (see below)
+python tools/gen_api.py         # src/data/ess.json (+CAPABILITIES.md) -> src/data/ess-api.json
+python tools/gen_natives.py     # natives-scraped.json + ess-natives.json -> src/data/natives.json
+python tools/gen_examples.py    # <ess repo>/samples/recipes + README  -> src/data/examples.json
 python tools/gen_templates.py   # <spawn menu scripts + wiki>          -> src/data/templates.json
+python tools/scrape_natives.py  # <decompiled game lua>/src            -> src/data/natives-scraped.json
 ```
+
+Ess 0.4 made its API surface machine-readable, and that changed where the truth lives. `api/ess.json` is
+generated from `src/*.lua`, so a function is in the reference because it is **defined**, not because a
+document mentions it. `gen_api.py` used to parse CAPABILITIES.md's markdown tables and resolve `.method`
+shorthand against whichever full path appeared earlier in the row — which silently attributed `Ess.Squad`'s
+`.setFormation`/`.clearFormation`/`.on` to `Ess.Squad.Tactics`, offering three plausible paths that don't
+exist. CAPABILITIES.md is still pinned, but only for what `ess.json` doesn't carry: the section headings the
+API panel groups by, the per-namespace blurb, and richer hand-written signatures for calls documented with
+option-table keys.
+
+`natives.json` is likewise a **merge** of two partial sources, neither sufficient alone: `scrape_natives.py`
+mines the decompiled corpus for how a native is really *called* (call site, observed argument counts), while
+Ess's live `pairs(_G)` dump is authoritative for what *exists*. The merge is strictly additive, so a
+live-only entry has no argument data and the linter's arg-count check (gated on `entry.n >= 5`) skips it
+rather than inventing a warning. It stopped the linter telling you a real engine function "isn't seen
+anywhere in the game's own scripts" just because no shipped script happens to call it.
 
 ### Vendored files (`vendor.json`)
 
@@ -143,7 +161,8 @@ node smoke.js                                      # headless boot + behavior te
 
 ## Keeping the data current
 
-- **Ess API**: `python tools/sync_assets.py --update`, then re-run `tools/gen_api.py`.
+- **Ess API + natives**: `python tools/sync_assets.py --update`, then re-run `tools/gen_api.py`
+  and `tools/gen_natives.py`. Both read the vendored Ess manifests, so this needs no local checkout.
 - **Examples**: re-run `tools/gen_examples.py` (reads the Ess repo's `samples/` directly).
 - **Natives**: re-run `tools/scrape_natives.py` against the decompiled game scripts.
 

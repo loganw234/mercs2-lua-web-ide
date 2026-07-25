@@ -51,7 +51,32 @@ setTimeout(() => {
   ok("page booted, IDE namespace exists", !!IDE);
   ok("no page errors during boot", errors.length === 0, errors.join(" | "));
   ok("data: ESS_API loaded", w.ESS_API && w.ESS_API.completions.length > 400, w.ESS_API && w.ESS_API.completions.length);
-  ok("data: natives loaded", w.MERCS_NATIVES && Object.keys(w.MERCS_NATIVES.natives).length === 40);
+  /* Was 40 -- the scrape of the decompiled corpus. Now merged with Ess's live pairs(_G) dump
+     (tools/gen_natives.py), so it covers engine namespaces no shipped script happens to call. */
+  ok("data: natives loaded (scrape + live dump)",
+     w.MERCS_NATIVES && Object.keys(w.MERCS_NATIVES.natives).length >= 90,
+     w.MERCS_NATIVES && Object.keys(w.MERCS_NATIVES.natives).length);
+  ok("data: live-only natives carry no argument data (so the linter cannot invent a warning)", (() => {
+     const nat = w.MERCS_NATIVES.natives;
+     const liveOnly = [];
+     for (const ns in nat) for (const fn in nat[ns]) {
+       const e = nat[ns][fn];
+       if (e.live && e.n == null) liveOnly.push(e);
+     }
+     return liveOnly.length > 0 && liveOnly.every(e => e.min == null && e.max == null);
+  })());
+  ok("data: ess-api generated from ess.json, not markdown",
+     w.ESS_API.completions.length > 600 && /^0\.4\./.test(w.ESS_API.essVersion || ""),
+     w.ESS_API.completions.length + " completions, Ess " + w.ESS_API.essVersion);
+  /* The old markdown parser resolved `.method` shorthand against the most recent full path in the
+     row, which attached Ess.Squad's .setFormation/.clearFormation/.on to Ess.Squad.Tactics -- real
+     methods on a namespace that does not have them. ess.json cannot produce that. */
+  ok("data: no phantom calls from shorthand mis-attribution", (() => {
+     const paths = new Set(w.ESS_API.completions);
+     return !paths.has("Ess.Squad.Tactics.setFormation") &&
+            !paths.has("Ess.Squad.Tactics.on") &&
+            paths.has("Ess.Squad.setFormation") && paths.has("Ess.Squad.on");
+  })());
   ok("data: examples loaded", w.ESS_EXAMPLES && w.ESS_EXAMPLES.categories.length === 8);
 
   // ---- store ----

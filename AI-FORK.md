@@ -641,8 +641,20 @@ despite being absent from the pack. Zero false alarms on the four that would
 otherwise have cried wolf.
 
 Agent mode reuses it as a **self-correction step**: catch the ungrounded name
-before the user sees it and give the model one chance, naming the specific
-identifiers (a vague "are you sure?" just invites a more confident restatement).
+and give the model one chance, naming the specific identifiers (a vague "are you
+sure?" just invites a more confident restatement).
+
+**The correction is appended, never a replacement.** It used to tell the model to
+"answer only from what it says", and the re-answer replaced the first one
+wholesale — so a reply that was ninety percent useful got thrown away over a
+single questionable name, which might only have been a placeholder. The user lost
+working code to fix one word, and saw nothing about what had changed. Now the
+answer stands and a **Correction note** is appended under it, naming the
+identifiers that tripped the check and carrying what the model found when it went
+and looked. The nudge asks for exactly that and nothing more: *"Do NOT rewrite
+your answer — the rest of it stands. Reply with ONLY a short correction about
+those names."* Being told "I made that name up" beneath an otherwise good answer
+is worth more than a second answer that quietly differs from the first.
 
 **Known limits.** It proves a name was not in the sources — never that a name is
 wrong, and never that a *grounded* answer is right. It only checks dotted names;

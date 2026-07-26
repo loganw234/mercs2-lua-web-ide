@@ -1948,7 +1948,7 @@
    "doc": "Appends a line to lua_loader_printf.log next to the .asi. The low-noise alternative to the engine's Debug.Printf, which stock game scripts fire thousands of times a frame. This is the logging call the wiki uses throughout, and what the IDE's Log & telemetry tab reads.",
    "sig": "Loader.Printf(sMsg)",
    "gotcha": "Despite the name it does NOT do format substitution -- passing a format string and arguments printed a literal %s when tested against a running game. Build the string yourself with string.format first.",
-   "src": "mercs2-lua-web-ide-ai/AI-FORK.md (verified live end-to-end)"
+   "src": "AI-ASSISTANT.md (verified live end-to-end)"
   },
   "Loader.GetKeyboardState": {
    "doc": "Returns a 256-byte string, one byte per virtual-key code, high bit set if that key is down right now. Read one key with string.byte(s, vk + 1) >= 128. Backed by GetAsyncKeyState (physical, system-wide) -- deliberately NOT the Win32 call of the same name, which reflects the calling thread's message queue and can return stale data.",

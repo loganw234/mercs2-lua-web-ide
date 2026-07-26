@@ -176,6 +176,10 @@
   }
 
   search.addEventListener("input", function () { build(search.value); });
-  IDE.api = { completions: function () { return data.completions; }, build: build, lookup: lookup, tierOf: tierOf };
+  /* `model` and `templateFor` are exported for the command palette (66_palette.js),
+     so palette insertion produces byte-identical snippets to the panel's own
+     Insert button rather than a second implementation that can drift. */
+  IDE.api = { completions: function () { return data.completions; }, build: build, lookup: lookup,
+              tierOf: tierOf, model: function () { return MODEL; }, templateFor: templateFor };
   build("");
 })();

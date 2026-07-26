@@ -146,23 +146,10 @@
   /* ---- the dropdown itself: one <select> instead of six buttons. A message (deploy/restore) "flashes"
      by swapping the placeholder option's own text, since a <select>'s visible label is whatever option is
      selected, not any textContent of its own. ---- */
-  var scActions = $("scActions"), placeholderOpt = scActions.querySelector('option[value=""]');
-  function flashActions(msg) {
-    var orig = placeholderOpt.textContent;
-    placeholderOpt.textContent = msg;
-    scActions.value = "";
-    setTimeout(function () { placeholderOpt.textContent = orig; }, 1400);
-  }
-  scActions.onchange = function () {
-    var v = this.value;
-    this.value = "";
-    if (v === "new") newScript();
-    else if (v === "import") importScripts();
-    else if (v === "export") exportScript();
-    else if (v === "backup") backupLibrary();
-    else if (v === "restore") restoreLibrary();
-    else if (v === "deploy") deployOnKey();
-  };
+  /* The Actions <select> moved to the File menu in the top bar (60_ui.js `menu`).
+     What stays here is the one command that is genuinely about THIS panel. */
+  $("scNew").onclick = newScript;
+  function flashActions(msg) { IDE.ui.flash($("scNew"), msg); }
 
   /* ---- keep everything in sync ---- */
   IDE.bus.on("scripts", render);
@@ -172,6 +159,22 @@
     IDE.editor.focus();
   });
 
-  IDE.scriptsPanel = { render: render };
+  /* The library commands are app-level, not panel-level: they are reachable from
+     the File menu in the top bar and from the command palette, neither of which
+     should care whether the Scripts panel happens to be open. Exported here so
+     all three call sites run the same function. */
+  IDE.scriptsPanel = {
+    render: render,
+    commands: [
+      { id: "new",     label: "New script",            run: newScript },
+      { id: "import",  label: "Import .lua files…",    run: importScripts },
+      { id: "export",  label: "Export current script", run: exportScript },
+      { sep: true },
+      { id: "backup",  label: "Backup library (.json)", run: backupLibrary },
+      { id: "restore", label: "Restore library…",       run: restoreLibrary },
+      { sep: true },
+      { id: "deploy",  label: "Deploy as OnKey",        run: deployOnKey }
+    ]
+  };
   render();
 })();

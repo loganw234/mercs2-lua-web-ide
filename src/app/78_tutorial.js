@@ -311,7 +311,13 @@
       state.radius = 150; state.drop = 30;
     }
     ensureTutorialScript();
-    document.querySelector('.stab[data-p="scripts"]').click();
+    /* Reveal the Scripts panel. This used to click `.stab[data-p="scripts"]`,
+       which the dock refactor deleted -- so starting the tutorial threw a
+       TypeError on a null querySelector and the whole thing was dead. The dock
+       owns panel visibility now; ask it. (Guarded because the tutorial must
+       degrade to "still works, just doesn't reveal the panel" rather than
+       throwing again if the dock is ever swapped out.) */
+    try { if (IDE.dock && IDE.dock.show) IDE.dock.show("scripts"); } catch (e) {}
     panel.classList.remove("hidden");
     showStep();
   }

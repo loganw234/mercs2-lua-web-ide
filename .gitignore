@@ -9,8 +9,8 @@ Thumbs.db
 #   .github/workflows/pages.yml   -> builds dist/ and deploys it to GitHub Pages
 #   .github/workflows/release.yml -> builds it and attaches mercs2-lua-ide.html to the "latest" release
 # so the hosted page and the in-app download link are always current without a committed copy. Committing
-# it cost a fresh ~1 MB blob in history on EVERY push: dist/index.html is one long line of inlined data,
-# so git can't delta-compress it and each rebuild stores in full.
+# it cost a fresh ~4.5 MB blob in history on EVERY push: dist/index.html is one long line of inlined data
+# (all six pack tiers included), so git can't delta-compress it and each rebuild stores in full.
 # Want a local copy? python build.py
 dist/
 
@@ -23,3 +23,18 @@ tools/vendor/package-lock.json
 # python bytecode from tools/
 __pycache__/
 *.pyc
+
+# per-endpoint benchmark splits (merged into bench-tools-results.json)
+bench-local.json
+bench-deepseek.json
+bench-openrouter.json
+
+# reasoning-bench working files (backups / shakeout / snapshots) -- the live result is
+# bench-reason-results.json; these are transient
+bench-reason-results.bak*.json
+bench-reason-shakeout.json
+bench-reason-snapshot.json
+
+# generated dashboards (regenerate with tools/bench_viz.py; may embed one-off hosted data)
+bench-viz.html
+bench-viz-test.html

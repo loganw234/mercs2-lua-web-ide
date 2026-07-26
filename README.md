@@ -48,7 +48,11 @@ You can still write, save, and browse everything with no game attached — only 
   never clobber anyone's work, and old uncompressed links still open fine.
 - **Examples gallery** — 45 categorized, smoke-tested examples generated straight from the Ess repo's
   `samples/recipes/` (the framework's living documentation), from "Am I connected?" to full missions.
-  One click opens any of them as a new script to play with.
+  Opens as a searchable modal (activity bar, or File ▸ Examples gallery); one click opens any of them
+  as a new script to play with.
+- **Command palette** (`Ctrl/Cmd+K`) — one search across every Ess call, engine native, spawnable
+  template, example and file command. Enter inserts at the caret (or runs the command) and closes.
+  Ess ranks above the engine natives, and `Ess.Easy.*` above the rest, same as autocomplete.
 - **Two-layer API reference** — the full Ess API (79 namespaces / 548 calls, generated from Ess's own source, tier-badged Easy / Core / Raw)
   *plus* the engine's own native functions (94 namespaces / 1,310 calls — a live `pairs(_G)` dump of the
   running game for what exists, merged with a scrape of the decompiled base-game scripts for **a real call
@@ -224,6 +228,8 @@ node smoke.js                                      # headless boot + behavior te
 - `src/lib/ess-bridge.js` — the vendored WebSocket client (kept in sync with the Ess repo's `tools/`;
   the IDE adds a table serializer to the result wrap — an upstream candidate).
 - `src/app/*.js` — the app, one concern per file (`00_state` → `99_main`), merged in order.
+  The AI layer is `79_render` (pure markdown/Lua rendering) → `80_provider` (transport, context
+  autodetection, derived budgets) → `82_assist` (the panel) → `85_ground` / `86_agent`.
 - `src/data/` — `CAPABILITIES.md` (**vendored** from the Ess repo at the tag `vendor.json` pins — managed
   by `tools/sync_assets.py`, not edited here), `call_docs.json` (hand-curated per-call docs, see above),
   and the four generated JSONs (`ess-api`/`natives`/`examples`/`templates`).

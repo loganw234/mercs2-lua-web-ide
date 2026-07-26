@@ -14,6 +14,12 @@ inlined), so it works three ways:
 - **Served by the bridge** — the WS-capable `lua-bridge` can serve this file at
   `http://127.0.0.1:27050/`, the bulletproof path that dodges every mixed-content / private-network quirk.
 
+![The IDE: script list on the left, Lua editor in the middle, results and live game log docked below](docs/screenshots/editor.png)
+
+The **API** tab is the full `Ess` and native-engine reference, searchable, with no game attached:
+
+![The API reference tab, listing Ess namespaces and their functions with signatures and descriptions](docs/screenshots/api-reference.png)
+
 ## What you need to actually run scripts
 
 1. The **WebSocket-capable `lua-bridge`** mod, with the game running.

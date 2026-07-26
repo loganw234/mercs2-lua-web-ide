@@ -46,7 +46,7 @@ function ok(name, cond, extra) {
   else { fail++; console.log("FAIL  " + name + (extra ? " -- " + extra : "")); }
 }
 
-setTimeout(() => {
+setTimeout(async () => {
   const IDE = w.IDE;
   ok("page booted, IDE namespace exists", !!IDE);
   ok("no page errors during boot", errors.length === 0, errors.join(" | "));
@@ -768,6 +768,63 @@ setTimeout(() => {
      return !t.compareDocumentPosition ||
             !(t.getAttribute("style") || "").includes("fixed");
   })());
+
+
+  /* ---- grounding self-correction APPENDS, it does not replace ---------------
+   * The check fires on one unsourced identifier, but the answer around it is usually fine -- and the
+   * flagged name may only have been a placeholder. The old nudge said "answer only from what it says"
+   * and the re-answer replaced the first wholesale, so a mostly-good reply with working code was
+   * thrown away over one word, with nothing shown about what changed.
+   *
+   * Driven through a mocked provider so the two-turn sequence is deterministic.
+   */
+  await (async () => {
+    const P = w.IDE.provider;
+    const realComplete = P.complete;
+    let turn = 0;
+    const ORIGINAL = "Use Ess.Player.pose(0) to read the pose, then call Ess.Made.Up(x) to finish.";
+    const FOLLOWUP = "Ess.Made.Up does not exist -- I invented it. Nothing in the wiki documents it.";
+    P.complete = function () {
+      turn++;
+      const content = turn === 1 ? ORIGINAL : FOLLOWUP;
+      return Promise.resolve({ content: content, toolCalls: [], reasoning: "",
+                               raw: { role: "assistant", content: content } });
+    };
+    try {
+      const r = await w.IDE.agent.run(
+        [{ role: "system", content: "Reference: Ess.Player.pose(i) returns the pose." },
+         { role: "user", content: "how do I read a pose?" }],
+        { onStep(){}, onResult(){}, confirm: () => Promise.resolve(false),
+          proposeEdit: () => Promise.resolve(false) },
+        { signal: new w.AbortController().signal });
+
+      ok("correction: the model was nudged (two turns)", turn === 2, "turns=" + turn);
+      ok("correction: the ORIGINAL answer is what survives as the answer",
+         r.content === ORIGINAL, JSON.stringify(r.content));
+      ok("correction: the good part of the answer is not lost",
+         /Ess\.Player\.pose\(0\)/.test(r.content));
+      ok("correction: the follow-up rides alongside, not instead",
+         !!r.correction && r.correction.text === FOLLOWUP, JSON.stringify(r.correction));
+      ok("correction: it names what triggered the check",
+         (r.correction.names || []).indexOf("Ess.Made.Up") !== -1,
+         JSON.stringify(r.correction.names));
+      ok("correction: a grounded answer produces no correction at all", await (async () => {
+         turn = 0;
+         const CLEAN = "Use Ess.Player.pose(0).";
+         P.complete = () => { turn++; return Promise.resolve({ content: CLEAN, toolCalls: [],
+                              reasoning: "", raw: { role: "assistant", content: CLEAN } }); };
+         const r2 = await w.IDE.agent.run(
+           [{ role: "system", content: "Reference: Ess.Player.pose(i) returns the pose." },
+            { role: "user", content: "q" }],
+           { onStep(){}, onResult(){}, confirm: () => Promise.resolve(false),
+             proposeEdit: () => Promise.resolve(false) },
+           { signal: new w.AbortController().signal });
+         return r2.content === CLEAN && !r2.correction && turn === 1;
+      })());
+    } finally {
+      P.complete = realComplete;
+    }
+  })();
 
   console.log(fail ? "\n" + fail + " FAILED, " + pass + " passed" : "\nall " + pass + " passed");
   process.exit(fail ? 1 : 0);

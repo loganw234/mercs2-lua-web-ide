@@ -781,6 +781,7 @@
     var convo = messages.slice();
     var steps = [];
     var nudged = false;
+    var correcting = null;   /* {names, original} once the grounding nudge has fired */
     var cfgSteps = IDE.provider.get().maxSteps;
     var MAX = (typeof cfgSteps === "number" && cfgSteps >= 1) ? cfgSteps : MAX_STEPS;  /* per-profile cap */
 
@@ -798,25 +799,50 @@
       return IDE.ground.check(text, [grounding]).ungrounded;
     }
 
+    /* The single exit point, so the correction is attached the same way whether the run ended
+       normally or ran out of tool budget. When a correction happened, `content` stays the ORIGINAL
+       answer and the follow-up rides along beside it -- the panel appends it as a note rather than
+       swapping one answer for another. */
+    function done(content, reasoning) {
+      if (!correcting) return { content: content, reasoning: reasoning, steps: steps };
+      return {
+        content: correcting.original,
+        reasoning: reasoning,
+        steps: steps,
+        correction: { names: correcting.names, text: (content || "").trim() }
+      };
+    }
+
     function step(n) {
       return IDE.provider.complete(compactConvo(convo), TOOLS, opts).then(function (res) {
         /* About to answer with API names it was never shown. Nudge once, and
            name them -- a vague "are you sure?" invites the model to restate the
-           same thing more confidently. If it still cannot ground them, its
-           answer stands and the tool list shows the user what was actually
-           consulted. */
+           same thing more confidently.
+         *
+         * The nudge asks for a CORRECTION, not a rewrite, and the original
+         * answer is kept. It used to say "answer only from what it says", and
+         * the re-answer replaced the first one wholesale -- so a reply that was
+         * ninety percent useful got thrown away over one questionable name,
+         * which might only have been a placeholder. The user lost working code
+         * to fix a single identifier. Now the answer stands and the correction
+         * is appended to it, with the names that triggered it, so they can see
+         * what changed and judge it themselves. */
         if (!res.toolCalls.length && !nudged) {
           var bad = ungrounded(res.content);
           if (bad.length) {
             nudged = true;
+            correcting = { names: bad, original: res.content };
             convo.push(res.raw);
             convo.push({ role: "user", content:
-              "Stop. These identifiers appear in your answer but in neither the " +
+              "These identifiers appear in your answer but in neither the " +
               "reference above nor anything a tool returned: " +
-              bad.join(", ") + ". You did not get them from a source -- do not " +
-              "present them as real. Use search_wiki to find the page that " +
-              "actually covers this, read it, and answer only from what it " +
-              "says. If nothing documents it, say the wiki does not cover it." });
+              bad.join(", ") + ". You did not get them from a source.\n\n" +
+              "Do NOT rewrite your answer -- the rest of it stands and the user " +
+              "can still see it. Reply with ONLY a short correction about those " +
+              "names: look them up first (search_api for calls, search_wiki for " +
+              "anything else), then say what is actually correct. If nothing " +
+              "documents them, say so plainly -- 'I made that name up' is a " +
+              "useful answer. Do not repeat the parts you got right." });
             return step(n);
           }
         }
@@ -829,10 +855,10 @@
               "Tool budget exhausted. Answer with what you have, and say which " +
               "lookup you did not get to rather than assuming its result." });
             return IDE.provider.complete(compactConvo(convo), null, opts).then(function (f) {
-              return { content: f.content, reasoning: f.reasoning, steps: steps };
+              return done(f.content, f.reasoning);
             });
           }
-          return { content: res.content, reasoning: res.reasoning, steps: steps };
+          return done(res.content, res.reasoning);
         }
 
         convo.push(res.raw);

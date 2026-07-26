@@ -462,6 +462,27 @@
     return d;
   }
 
+  /* A correction is APPENDED, never a replacement. The grounding check fires on one unsourced
+     identifier, and the answer around it is usually fine -- often the flagged name was a deliberate
+     placeholder. Throwing the whole reply away to fix one word cost the user working code and gave
+     them no way to see what had changed. So: the answer stands, and this says which names triggered
+     the check and what the model found when it went and looked. */
+  function correctionEl(c) {
+    var d = document.createElement("div");
+    d.className = "ai-correction";
+    var head = document.createElement("div");
+    head.className = "ai-correction-head";
+    head.textContent = "Correction — " + (c.names || []).join(", ") +
+      ((c.names || []).length === 1 ? " was not in any source it had been shown"
+                                    : " were not in any source it had been shown");
+    d.appendChild(head);
+    var body = document.createElement("div");
+    body.className = "ai-correction-body";
+    body.innerHTML = render(c.text || "(the model had nothing to add)");
+    d.appendChild(body);
+    return d;
+  }
+
   function warnEl(w) {
     var d = document.createElement("div");
     d.className = "ai-ungrounded";
@@ -515,6 +536,7 @@
         m.tools.forEach(function (t) { box.appendChild(toolChip(t)); });
       }
       el.querySelector(".ai-body").innerHTML = render(m.content || "");
+      if (m.correction) el.querySelector(".ai-body").appendChild(correctionEl(m.correction));
       if (m.warn) el.querySelector(".ai-body").appendChild(warnEl(m.warn));
     }
     return el;
@@ -749,7 +771,7 @@
     stick = true;
     scrollBottom(true);
 
-    var reasoning = "", answer = "", toolText = "", toolSteps = [];
+    var reasoning = "", answer = "", toolText = "", toolSteps = [], correction = null;
     abortCtl = new AbortController();
     setBusy(true);
 
@@ -864,9 +886,12 @@
           onReasoning: function (t) { sawToken(); reasoning += t; paint(); },
           onDelta: function (t) { sawToken(); answer += t; paint(); }
         }).then(function (r) {
-          /* Settle to the clean final answer (the last step's content), which
-             the onStep reset already isolated from earlier narration. */
+          /* Settle to the clean final answer. When the grounding nudge fired, r.content is the
+             ORIGINAL answer and r.correction carries the follow-up -- the streamed text at this
+             point is the correction, so it has to be replaced rather than kept, or the user would
+             see the correction where the answer should be. */
           if (r.content) answer = r.content;
+          correction = r.correction || null;
           return null;
         });
       }
@@ -907,7 +932,8 @@
           role: "assistant",
           content: st.rest || "(no answer)",
           think: all || undefined,
-          tools: toolSteps.length ? toolSteps : undefined
+          tools: toolSteps.length ? toolSteps : undefined,
+          correction: correction || undefined
         };
         /* Append to the chat that ASKED -- the user may have switched since. */
         IDE.chats.appendTo(sessId, m);

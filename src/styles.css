@@ -917,3 +917,15 @@ a.btn{text-decoration:none;display:inline-block}
 .hovertip .htret b{color:var(--go)}
 .hovertip .htgotcha{margin-top:6px;padding:6px 8px;border-left:3px solid var(--warn);
   border-radius:0 5px 5px 0;background:rgba(230,180,85,.10);font-size:11px;line-height:1.45}
+
+/* ---- correction note ---------------------------------------------------
+   Appended under an answer the grounding check flagged, never replacing it. Styled as an amendment
+   rather than an error: the answer above it is usually right, and one unsourced name -- which may
+   well have been a deliberate placeholder -- is not grounds for deleting working code. */
+.ai-correction { margin: 10px 0 0; border: 1px solid var(--edge2); border-left: 3px solid var(--warn);
+  border-radius: 0 8px 8px 0; background: rgba(230,180,85,.07); overflow: hidden; }
+.ai-correction-head { padding: 7px 10px; font: 600 11px/1.4 var(--efont); color: var(--warn);
+  background: rgba(230,180,85,.10); border-bottom: 1px solid var(--edge); }
+.ai-correction-body { padding: 8px 10px; font-size: 12.5px; line-height: 1.55; }
+.ai-correction-body > p:first-child { margin-top: 0; }
+.ai-correction-body > p:last-child { margin-bottom: 0; }

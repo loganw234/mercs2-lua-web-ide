@@ -101,8 +101,17 @@ llama.cpp and Custom. Three shapes need separate code — OpenAI-compatible,
 Anthropic, and Ollama's native `/api/chat` (see below for why Ollama is not just
 a base-URL change) — everything else is a base-URL/model change.
 
-**Only DeepSeek is marked tested** — the others are labelled `(untested)` in the
-dropdown deliberately. Removing that label should mean someone actually ran it.
+**All of them have now been run against their live endpoints**, so the
+`(untested)` label the dropdown used to carry is gone along with the `tested`
+flag behind it. That label was an evidence claim rather than decoration — the
+rule was that removing it should mean someone actually ran the thing — and it
+came off only once that was true. If a preset is ever added without being
+exercised, say so in its `note` rather than shipping it as if it were known to
+work.
+
+CORS remains the usual first failure, and it is provider-specific: where a
+provider needs something switched on before it will answer a browser at all
+(LM Studio's server setting, llama.cpp's `--host`), the preset's `note` says so.
 
 ## Provider profiles
 

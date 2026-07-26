@@ -1190,7 +1190,7 @@
       IDE.provider.presets().forEach(function (p) {
         var o = document.createElement("option");
         o.value = p.id;
-        o.textContent = p.label + (p.tested ? "" : " (untested)");
+        o.textContent = p.label;
         sel.appendChild(o);
       });
     }

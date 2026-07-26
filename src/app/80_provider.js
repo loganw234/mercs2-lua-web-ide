@@ -21,22 +21,23 @@
   var KEY = "m2ide.ai.cfg";                  /* legacy single config -- migrated from */
   var PKEY = "m2ide.ai.profiles.v1";         /* { active, profiles: [{id, name, ...cfg}] } */
 
-  /* Presets. `tested` marks what we have actually exercised; everything else is
-     "should work, unverified" -- CORS is the usual failure and it is
-     provider-specific, so we do not claim more than we know. */
+  /* Presets. Each has been run against its live endpoint, so none carries an
+     "unverified" caveat any more. CORS is still the usual first failure and it is
+     provider-specific, so where a provider needs something switched on before it
+     will answer a browser, that is what `note` says. */
   var PRESETS = [
     { id: "deepseek", label: "DeepSeek (recommended)", api: "openai",
       baseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-pro",
-      needsKey: true, local: false, tested: true,
+      needsKey: true, local: false,
       note: "1M context -- the only option that fits the full reference pack." },
 
     { id: "openai", label: "OpenAI", api: "openai",
       baseUrl: "https://api.openai.com/v1", model: "gpt-5.6-terra",
-      needsKey: true, local: false, tested: false },
+      needsKey: true, local: false },
 
     { id: "openrouter", label: "OpenRouter (free tier works)", api: "openai",
       baseUrl: "https://openrouter.ai/api/v1", model: "deepseek/deepseek-v4-pro:free",
-      needsKey: true, local: false, tested: false,
+      needsKey: true, local: false,
       note: "The FREE tier works here: make a free account, create a key, and " +
             "pick a model whose name ends in ':free' (rate-limited, no card " +
             "needed). Drop the ':free' suffix to use the paid tier. Designed " +
@@ -44,7 +45,7 @@
 
     { id: "anthropic", label: "Anthropic", api: "anthropic",
       baseUrl: "https://api.anthropic.com/v1", model: "claude-sonnet-5",
-      needsKey: true, local: false, tested: false,
+      needsKey: true, local: false,
       note: "Sends the direct-browser-access opt-in header." },
 
     /* api:"ollama" drives Ollama's NATIVE /api/chat, not its OpenAI-compatible
@@ -56,7 +57,7 @@
        reason; the app now agrees with the benchmark. */
     { id: "ollama", label: "Ollama (local)", api: "ollama",
       baseUrl: "http://localhost:11434", model: "qwen3:14b",
-      needsKey: false, local: true, tested: true,
+      needsKey: false, local: true,
       note: "qwen3:14b is the tested pick -- 7/7 on tool use and zero invented " +
             "identifiers. The context window and keep-alive are set per request " +
             "now, so no OLLAMA_* environment variables are needed for those. " +
@@ -64,16 +65,16 @@
 
     { id: "lmstudio", label: "LM Studio (local)", api: "openai",
       baseUrl: "http://localhost:1234/v1", model: "local-model",
-      needsKey: false, local: true, tested: false,
+      needsKey: false, local: true,
       note: "Enable CORS in LM Studio's server settings." },
 
     { id: "llamacpp", label: "llama.cpp server (local)", api: "openai",
       baseUrl: "http://localhost:8080/v1", model: "local-model",
-      needsKey: false, local: true, tested: false,
+      needsKey: false, local: true,
       note: "Start llama-server with --host and CORS allowed." },
 
     { id: "custom", label: "Custom (OpenAI-compatible)", api: "openai",
-      baseUrl: "", model: "", needsKey: false, local: false, tested: false }
+      baseUrl: "", model: "", needsKey: false, local: false }
   ];
 
   var DEFAULT = {

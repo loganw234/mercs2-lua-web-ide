@@ -922,6 +922,31 @@ setTimeout(async () => {
             v.absent.length + v.unverified.length === 1;
   })());
 
+
+  /* ---- provider presets carry no unverified caveat -------------------------
+   * The "(untested)" label was an evidence claim, not decoration: the rule was
+   * that taking it off should mean someone had actually run the provider. It
+   * came off once that was true for all eight. These guard against it drifting
+   * back in silently -- a preset that ships as if it were known to work when it
+   * is not is exactly the kind of quiet overclaim the label existed to prevent.
+   */
+  D.getElementById("aiGear").click();
+  ok("providers: the settings dropdown lists every preset",
+     D.getElementById("aiPreset").options.length === w.IDE.provider.presets().length &&
+     D.getElementById("aiPreset").options.length >= 8,
+     String(D.getElementById("aiPreset").options.length));
+  ok("providers: no preset label carries an '(untested)' caveat",
+     ![...D.getElementById("aiPreset").options].some(o => /untested/i.test(o.textContent)),
+     [...D.getElementById("aiPreset").options].map(o => o.textContent).join(" | "));
+  ok("providers: the `tested` flag is gone from the preset shape",
+     w.IDE.provider.presets().every(p => !("tested" in p)));
+  /* The notes are the surviving caveats and they are the useful kind -- what to
+     switch on before the provider will answer a browser at all. */
+  ok("providers: CORS-sensitive presets still say what to enable",
+     /CORS/i.test(w.IDE.provider.preset("lmstudio").note) &&
+     /CORS/i.test(w.IDE.provider.preset("llamacpp").note));
+  D.getElementById("aiSettingsCancel").click();
+
   console.log(fail ? "\n" + fail + " FAILED, " + pass + " passed" : "\nall " + pass + " passed");
   process.exit(fail ? 1 : 0);
 }, 400);

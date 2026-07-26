@@ -216,6 +216,54 @@
      re-find the one that worked. ---- */
   var filterText = "";
   function matches(line) { return !filterText || line.toLowerCase().indexOf(filterText) >= 0; }
+
+  /* ---- raw websocket traffic, off by default ----
+     {type:"ws"} pushes are plumbing rather than output: a mod streaming telemetry
+     through Loader.WsSend, and (before the bridge learned to drop them) other IDE
+     tabs' result lines. Anything pushing on a timer buries the actual game log
+     under it. Hidden by default, one click to see them, remembered per browser. */
+  var WSKEY = "m2ide.log.showws";
+  var showWs = false;
+  try { showWs = localStorage.getItem(WSKEY) === "1"; } catch (e) {}
+  function isWs(el) { return el.classList.contains("ws"); }
+  function lineVisible(el, text) { return (showWs || !isWs(el)) && matches(text); }
+  function applyLogFilter() {
+    Array.prototype.forEach.call(log.children, function (el) {
+      el.classList.toggle("hidden", !lineVisible(el, el.textContent.slice(8)));   // slice off the HH:MM:SS stamp
+    });
+  }
+  var wsBtn = IDE.$("wsToggle");
+  function reflectWs() {
+    wsBtn.classList.toggle("on", showWs);
+    wsBtn.setAttribute("aria-pressed", showWs ? "true" : "false");
+    wsBtn.title = showWs ? "Hide raw websocket telemetry"
+                         : "Show raw websocket telemetry (mod pushes via Loader.WsSend)";
+  }
+  wsBtn.onclick = function () {
+    showWs = !showWs;
+    try { localStorage.setItem(WSKEY, showWs ? "1" : "0"); } catch (e) {}
+    reflectWs();
+    applyLogFilter();
+    auto(log);
+  };
+  reflectWs();
+
+  /* Separate caps per kind. On one shared 600-line ring a chatty mod evicted every
+     real log line while its own sat hidden -- a log that looks empty because of
+     traffic you asked not to see. Over cap, drop the oldest line OF THAT KIND
+     (children are in insertion order, so the first match from the front). */
+  var CAP = { log: 600, ws: 300 };
+  var counts = { log: 0, ws: 0 };
+  function trimLog(kind) {
+    if (counts[kind] <= CAP[kind]) return;
+    for (var i = 0; i < log.children.length; i++) {
+      var el = log.children[i];
+      if ((isWs(el) ? "ws" : "log") !== kind) continue;
+      log.removeChild(el);
+      counts[kind]--;
+      return;
+    }
+  }
   function rowMatches(row) {
     if (!filterText) return true;
     var resEl = row.querySelector(".res");
@@ -224,21 +272,21 @@
   }
   function applyFilterTo(row) { row.classList.toggle("hidden", !rowMatches(row)); }
   IDE.bus.on("log", function (d) {
-    var el = document.createElement("div"); el.className = "logline" + (d.kind === "ws" ? " ws" : "");
+    var kind = d.kind === "ws" ? "ws" : "log";
+    var el = document.createElement("div"); el.className = "logline" + (kind === "ws" ? " ws" : "");
     var ts = document.createElement("span"); ts.className = "lt";
     ts.textContent = new Date().toTimeString().slice(0, 8);
     el.appendChild(ts); el.appendChild(document.createTextNode(d.line));
     highlightLine(el, d.line);
-    if (!matches(d.line)) el.classList.add("hidden");
+    if (!lineVisible(el, d.line)) el.classList.add("hidden");
     log.appendChild(el);
-    while (log.childElementCount > 600) log.removeChild(log.firstChild);
+    counts[kind]++;
+    trimLog(kind);
     auto(log);
   });
   IDE.$("logFilter").addEventListener("input", function () {
     filterText = this.value.trim().toLowerCase();
-    Array.prototype.forEach.call(log.children, function (el) {
-      el.classList.toggle("hidden", !matches(el.textContent.slice(8)));   // slice off the HH:MM:SS stamp
-    });
+    applyLogFilter();
     Array.prototype.forEach.call(results.children, applyFilterTo);
   });
 
@@ -247,6 +295,7 @@
     clear: function (which) {
       feedOf(which).innerHTML = "";
       if (which === "results") { hist = []; persistHist(); }
+      if (which === "log") { counts.log = 0; counts.ws = 0; }
     }
   };
 })();

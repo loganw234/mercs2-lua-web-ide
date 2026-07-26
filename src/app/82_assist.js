@@ -472,9 +472,9 @@
     d.className = "ai-correction";
     var head = document.createElement("div");
     head.className = "ai-correction-head";
-    head.textContent = "Correction — " + (c.names || []).join(", ") +
-      ((c.names || []).length === 1 ? " was not in any source it had been shown"
-                                    : " were not in any source it had been shown");
+    /* Same sentence the plain-chat warning uses (85_ground.js owns the wording),
+       so the two surfaces are visibly reporting one finding rather than two. */
+    head.textContent = "Correction — " + IDE.ground.phrase(c.verdict || "absent", c.names || []);
     d.appendChild(head);
     var body = document.createElement("div");
     body.className = "ai-correction-body";
@@ -483,23 +483,22 @@
     return d;
   }
 
+  /* The plain-chat half of the same report. Wording lives in 85_ground.js so this
+     and correctionEl above cannot drift apart again. */
   function warnEl(w) {
     var d = document.createElement("div");
     d.className = "ai-ungrounded";
-    if (w.unverified) {
-      d.innerHTML = "<strong>Unverified:</strong> " + esc(w.unverified.join(", ")) +
-        " — not in the reference pack, and the wiki index could not be reached " +
-        "to check further.";
-    } else {
-      d.innerHTML = "<strong>Not documented:</strong> " + esc((w.absent || []).join(", ")) +
-        " — " + ((w.absent || []).length === 1 ? "this name does" : "these names do") +
-        " not appear anywhere in the wiki. Treat as invented until you confirm " +
-        "it yourself." +
-        (w.elsewhere && w.elsewhere.length
-          ? "<br><span class=\"ai-ok\">" + esc(w.elsewhere.join(", ")) +
-            " checked out — documented, just not in the loaded pack.</span>"
-          : "");
+    function line(kind, list) {
+      return "<strong>" + IDE.ground.label(kind) + ":</strong> " +
+             esc(IDE.ground.phrase(kind, list));
     }
+    var html = [];
+    if (w.unverified && w.unverified.length) html.push(line("unverified", w.unverified));
+    if (w.absent && w.absent.length) html.push(line("absent", w.absent));
+    if (w.elsewhere && w.elsewhere.length) {
+      html.push("<span class=\"ai-ok\">" + esc(IDE.ground.phrase("elsewhere", w.elsewhere)) + "</span>");
+    }
+    d.innerHTML = html.join("<br>");
     return d;
   }
 
@@ -981,20 +980,17 @@
        would fire on roughly a third of correct answers, and a warning that
        cries wolf gets ignored, which is worse than no warning. The index
        covers every page, so a name missing from it is a claim worth making. */
-    IDE.ground.verify(g.ungrounded).then(function (v) {
-      if (!v.absent.length) {
+    /* classify() is the same resolution agent mode runs before it decides whether
+       to interrupt, and it folds in the offline case (index unreachable -> the
+       weaker `unverified` claim rather than dropping the warning). */
+    IDE.ground.classify(g.ungrounded).then(function (v) {
+      if (!v.absent.length && !v.unverified.length) {
         /* All real, just outside the pack. Say nothing -- a warning here
            would be pure noise. */
         w.remove();
         return;
       }
-      m.warn = { absent: v.absent, elsewhere: v.elsewhere };
-      IDE.chats.save();
-      w.replaceWith(warnEl(m.warn));
-    }).catch(function () {
-      /* Offline or the index would not load: fall back to the weaker claim
-         rather than dropping the warning entirely. */
-      m.warn = { unverified: g.ungrounded };
+      m.warn = { absent: v.absent, elsewhere: v.elsewhere, unverified: v.unverified };
       IDE.chats.save();
       w.replaceWith(warnEl(m.warn));
     });

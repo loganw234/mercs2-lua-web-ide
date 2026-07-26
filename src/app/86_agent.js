@@ -809,7 +809,8 @@
         content: correcting.original,
         reasoning: reasoning,
         steps: steps,
-        correction: { names: correcting.names, text: (content || "").trim() }
+        correction: { names: correcting.names, verdict: correcting.verdict,
+                      text: (content || "").trim() }
       };
     }
 
@@ -830,20 +831,33 @@
         if (!res.toolCalls.length && !nudged) {
           var bad = ungrounded(res.content);
           if (bad.length) {
-            nudged = true;
-            correcting = { names: bad, original: res.content };
-            convo.push(res.raw);
-            convo.push({ role: "user", content:
-              "These identifiers appear in your answer but in neither the " +
-              "reference above nor anything a tool returned: " +
-              bad.join(", ") + ". You did not get them from a source.\n\n" +
-              "Do NOT rewrite your answer -- the rest of it stands and the user " +
-              "can still see it. Reply with ONLY a short correction about those " +
-              "names: look them up first (search_api for calls, search_wiki for " +
-              "anything else), then say what is actually correct. If nothing " +
-              "documents them, say so plainly -- 'I made that name up' is a " +
-              "useful answer. Do not repeat the parts you got right." });
-            return step(n);
+            /* Second opinion before interrupting, the same one plain chat gets.
+               The pack is a slice of the wiki, so on the small tiers most of what
+               check() flags is a real function that simply was not loaded --
+               `elsewhere`. Nudging about those spends a round trip to tell the
+               user their correct answer was correct, and teaches them to ignore
+               the box. Only a name absent from the whole index, or one we could
+               not check at all, is worth stopping for. */
+            return IDE.ground.classify(bad).then(function (v) {
+              var worry = v.absent.concat(v.unverified);
+              if (!worry.length) return done(res.content, res.reasoning);
+              nudged = true;
+              correcting = { names: worry, original: res.content,
+                             verdict: v.absent.length ? "absent" : "unverified" };
+              convo.push(res.raw);
+              convo.push({ role: "user", content:
+                "These identifiers appear in your answer but in neither the " +
+                "reference above nor anything a tool returned, and nothing in the " +
+                "wiki index documents them either: " + worry.join(", ") +
+                ". You did not get them from a source.\n\n" +
+                "Do NOT rewrite your answer -- the rest of it stands and the user " +
+                "can still see it. Reply with ONLY a short correction about those " +
+                "names: look them up first (search_api for calls, search_wiki for " +
+                "anything else), then say what is actually correct. If nothing " +
+                "documents them, say so plainly -- 'I made that name up' is a " +
+                "useful answer. Do not repeat the parts you got right." });
+              return step(n);
+            });
           }
         }
 

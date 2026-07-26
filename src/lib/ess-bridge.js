@@ -38,6 +38,9 @@
   var _seq = 0;
   function nextId() { return "q" + (++_seq).toString(36) + Date.now().toString(36); }
 
+  // Shape of a wrapped chunk's result line, for ANY client (see wrap() below).
+  var RESULT_TAG = /<<<WSR:[^>]*>>>/;
+
   // Wrap user code so it emits a single, nonce-tagged result line on the HIDDEN channel (Loader.WsSend --
   // WS-only, never logged), so result plumbing doesn't pollute lua_loader_printf.log. pcall the body so the
   // line ALWAYS fires (success OR error).
@@ -165,6 +168,12 @@
           return;
         }
       }
+      // Tagged, but not against anything WE have pending: the bridge broadcasts every Loader.WsSend to
+      // all connected clients, so this is another client's result plumbing. It is not mod telemetry and
+      // must not be surfaced as such -- with two IDE tabs open, each one's log fills with the other's
+      // results, and anything polling on a timer (the map) turns that into a flood. Confirmed live:
+      // two established connections to :27050, every tagged line delivered to both.
+      if (RESULT_TAG.test(wline)) return;
       try { this.onData(wline); } catch (x) {}   // un-tagged -> a mod streaming telemetry
       return;
     }

@@ -82,6 +82,7 @@
       $("logFilter").classList.toggle("hidden", which !== "log" && which !== "results");
       $("logFilter").placeholder = which === "results" ? "filter results…" : "filter the log…";
       $("hlRules").classList.toggle("hidden", which !== "log");
+      $("wsToggle").classList.toggle("hidden", which !== "log");
       /* Watch moved to its own dock panel; the Output panel is just
          Results/Log now, so no watch toggle here. */
       if (which !== "log") $("hlPanel").classList.add("hidden");

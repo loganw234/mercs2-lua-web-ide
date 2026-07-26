@@ -334,7 +334,13 @@ select.btn{padding:6px 8px}
 #logFilter.hidden{display:none}
 .tab{font:12px/1 var(--efont);color:var(--dim);background:transparent;border:0;border-radius:6px;padding:5px 10px;cursor:pointer}
 .tab.on{color:var(--ink);background:var(--hov)}
-.clr{color:var(--dim);font:11px/1 var(--efont);cursor:pointer;border:1px solid var(--edge2);border-radius:5px;padding:3px 8px}
+/* Worn by a <span> (clear) and by <button>s (ws, rules) side by side in the same
+   toolbar. Without an explicit background the buttons kept the UA button face --
+   light grey blobs on the dark panel, measurably rgb(240,240,240) on rgb(11,16,23)
+   -- while the span beside them was transparent. State them both. */
+.clr{color:var(--dim);font:11px/1 var(--efont);cursor:pointer;background:transparent;border:1px solid var(--edge2);border-radius:5px;padding:3px 8px}
+.clr:hover{color:var(--ink);border-color:var(--dim)}
+.clr.on{color:var(--ink);background:var(--hov);border-color:var(--dim)}
 .feed{flex:1;overflow-y:auto;padding:7px 11px}
 .feed.mono{font:12px/1.55 var(--efont)}
 .hidden{display:none}

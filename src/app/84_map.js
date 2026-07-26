@@ -21,6 +21,13 @@
   var IDE = window.IDE, $ = IDE.$;
   var BKEY = "m2ide.map.backdrop";
 
+  /* Teleport drops you this far above the sampled ground. The height grid is
+     coarse -- one sample per 32 world units (cell 16 x coarseStep 2) -- so on a
+     slope the real ground under the exact spot you clicked can sit several units
+     above the sample, and the old 1.5 put you inside the hillside. Overshooting
+     costs a short fall; undershooting costs a stuck character. */
+  var TELEPORT_CLEARANCE = 5;
+
   var meta = null, heights = null;
   var backdrops = {};        /* key -> {img, edges, ready} */
   var active = "white";      /* current backdrop key */
@@ -79,7 +86,11 @@
     if (!cv || !img()) return;
     var w = cv.clientWidth, h = cv.clientHeight;
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    /* No 2D context to draw into -- a canvas-less environment (the jsdom smoke
+       harness) or a browser refusing one. Nothing to do, and nothing worth
+       throwing over, since every caller here is a UI event. */
     var g = cv.getContext("2d");
+    if (!g) return;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.fillStyle = active === "white" ? "#e9edf0" : "#101014";
     g.fillRect(0, 0, w, h);
@@ -103,11 +114,18 @@
       g.strokeStyle = "#ffcc44"; g.lineWidth = 1 / view.scale; g.stroke();
     }
     if (player) {
+      /* A 2px dot in a single colour was a speck at fit zoom and vanished
+         outright into the colour relief's blue water. A filled disc with a
+         contrasting outline reads on either backdrop at any scale, and the
+         outline is what makes it findable rather than the fill. */
       var pl = worldToImg(player.x, player.z);
-      ring(pl, "#49b4ff", 5);
       g.beginPath();
-      g.arc(pl.x, pl.y, 2 / view.scale, 0, 6.2832);
-      g.fillStyle = "#49b4ff"; g.fill();
+      g.arc(pl.x, pl.y, 5 / view.scale, 0, 6.2832);
+      g.fillStyle = "#49b4ff";
+      g.fill();
+      g.lineWidth = 2 / view.scale;
+      g.strokeStyle = active === "white" ? "#0b2c46" : "#ffffff";
+      g.stroke();
     }
   }
 
@@ -155,12 +173,34 @@
     "local x, y, z = Object.GetPosition(u) " +
     "return tostring(x)..','..tostring(y)..','..tostring(z)";
 
+  /* Only worth a round trip when someone can actually see the result. The map is
+     a helper panel, not a telemetry feed: an interval this slow is invisible to
+     a user watching their own marker and keeps the bridge quiet the rest of the
+     time. */
+  var POLL_MS = 4000;
+
+  function visible() {
+    if (document.hidden) return false;
+    if (IDE.dock && IDE.dock.activeSomewhere) return IDE.dock.activeSomewhere("map");
+    var cv = $("mapCanvas");
+    return !!cv && cv.clientWidth > 0;
+  }
+
   function pollPlayer() {
     if (!IDE.bridge || !IDE.bridge.connected()) { player = null; draw(); return; }
+    if (!visible()) return;
     IDE.bridge.run(POS_LUA).then(function (r) {
-      if (!r || !r.ok || !r.value || r.value === "nil") return;
-      var p = String(r.value).split(",").map(parseFloat);
-      if (p.length < 3 || !isFinite(p[0])) return;
+      if (!r || !r.ok || r.value == null) return;
+      /* The bridge %q-quotes STRING returns (the serializer in ess-bridge.js), so
+         "x,y,z" arrives with literal quote characters around it. Without stripping
+         them parseFloat sees `"2701.08` and yields NaN, the guard below bails, and
+         `player` stays null forever -- the marker silently never drew even though
+         every poll was succeeding. Same helper the inspector uses on grabbed
+         values; the "nil" compare needs it for the same reason. */
+      var raw = IDE.lua.unquote(r.value);
+      if (!raw || raw === "nil") return;
+      var p = raw.split(",").map(parseFloat);
+      if (p.length < 3 || !isFinite(p[0]) || !isFinite(p[2])) return;
       player = { x: p[0], y: p[1], z: p[2] };
       if (follow) centreOn(player.x, player.z); else draw();
     }).catch(function () {});
@@ -168,7 +208,7 @@
 
   function setPolling(on) {
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    if (on) { pollPlayer(); pollTimer = setInterval(pollPlayer, 1500); }
+    if (on) { pollPlayer(); pollTimer = setInterval(pollPlayer, POLL_MS); }
   }
 
   /* ---- init --------------------------------------------------------------- */
@@ -274,7 +314,7 @@
       var y = heightAt(pin.x, pin.z);
       var lua = "local u = Player.GetLocalCharacter() " +
         "if u then Object.SetPosition(u, " + fmt(pin.x) + ", " +
-        ((y === null ? 0 : y) + 1.5) + ", " + fmt(pin.z) + ") end";
+        ((y === null ? 0 : y) + TELEPORT_CLEARANCE) + ", " + fmt(pin.z) + ") end";
       IDE.runCode ? IDE.runCode(lua) : IDE.bridge.run(lua);
     };
 
@@ -289,6 +329,17 @@
 
     IDE.bus.on("status", function (s) { setPolling(s === "open"); });
     if (IDE.bridge && IDE.bridge.connected()) setPolling(true);
+
+    /* Ticks are skipped while the panel is hidden, so revealing it would
+       otherwise show a stale marker until the next one. Poll on the way in. */
+    if (IDE.dock && IDE.dock.on) {
+      var wasVisible = false;
+      IDE.dock.on("change", function () {
+        var now = visible();
+        if (now && !wasVisible) pollPlayer();
+        wasVisible = now;
+      });
+    }
 
     /* The dock renders the panel into a sized container and fires a window
        resize; the map has no size until then, so fit the first time real

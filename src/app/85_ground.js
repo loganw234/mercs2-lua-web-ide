@@ -123,5 +123,60 @@
     });
   }
 
-  IDE.ground = { check: check, names: names, verify: verify };
+  /* ---- one vocabulary, both surfaces --------------------------------------
+   *
+   * The same finding is reported in two places: agent mode appends a correction
+   * to the answer, plain chat appends a warning under it. They used to describe
+   * it differently, and not just in wording -- agent mode said a name "was not
+   * in any source it had been shown", which is only the weak pack-level claim,
+   * while plain chat had already checked the full wiki index before deciding
+   * what to call it. Two vocabularies for one check read as two different
+   * findings, and the weaker one was the more alarming-sounding of the pair.
+   *
+   * Three verdicts, one sentence each, and both surfaces resolve a name to a
+   * verdict the same way:
+   *
+   *   absent      nothing in the entire wiki index documents it
+   *   elsewhere   real, merely outside the loaded pack -- not a problem
+   *   unverified  not in the pack, and the index could not be reached
+   */
+  var VERDICT = {
+    absent: {
+      label: "Not documented",
+      one: "does not appear anywhere in the wiki. Treat it as invented until you confirm it yourself.",
+      many: "do not appear anywhere in the wiki. Treat them as invented until you confirm them yourself."
+    },
+    elsewhere: {
+      label: "Documented elsewhere",
+      one: "checked out — documented, just not in the loaded pack.",
+      many: "checked out — documented, just not in the loaded pack."
+    },
+    unverified: {
+      label: "Unverified",
+      one: "is not in the loaded reference pack, and the wiki index could not be reached to check further.",
+      many: "are not in the loaded reference pack, and the wiki index could not be reached to check further."
+    }
+  };
+
+  function label(kind) { return (VERDICT[kind] || VERDICT.unverified).label; }
+
+  function phrase(kind, list) {
+    var v = VERDICT[kind] || VERDICT.unverified;
+    list = list || [];
+    return list.join(", ") + " " + (list.length === 1 ? v.one : v.many);
+  }
+
+  /* check()'s candidates, resolved into the three buckets above. Folds the
+     unreachable-index case in so every caller gets the same shape and nobody has
+     to remember that verify() rejects. */
+  function classify(candidates) {
+    return verify(candidates).then(function (v) {
+      return { absent: v.absent, elsewhere: v.elsewhere, unverified: [] };
+    }, function () {
+      return { absent: [], elsewhere: [], unverified: (candidates || []).slice() };
+    });
+  }
+
+  IDE.ground = { check: check, names: names, verify: verify,
+                 classify: classify, phrase: phrase, label: label };
 })();

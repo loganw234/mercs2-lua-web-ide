@@ -808,6 +808,15 @@ setTimeout(async () => {
       ok("correction: it names what triggered the check",
          (r.correction.names || []).indexOf("Ess.Made.Up") !== -1,
          JSON.stringify(r.correction.names));
+      /* The verdict rides along so the panel renders the SAME sentence the
+         plain-chat warning shows for the same finding, rather than keeping a
+         second vocabulary for one check. */
+      ok("correction: it carries a verdict from the shared vocabulary",
+         !!r.correction.verdict && !!w.IDE.ground.label(r.correction.verdict),
+         String(r.correction.verdict));
+      ok("correction: that verdict renders the sentence chat would have shown",
+         w.IDE.ground.phrase(r.correction.verdict, r.correction.names)
+           .indexOf("Ess.Made.Up") === 0);
       ok("correction: a grounded answer produces no correction at all", await (async () => {
          turn = 0;
          const CLEAN = "Use Ess.Player.pose(0).";
@@ -825,6 +834,93 @@ setTimeout(async () => {
       P.complete = realComplete;
     }
   })();
+
+
+  /* ---- map marker, log noise, one shared correction vocabulary --------------
+   *
+   * The player marker never drew, and the reason was not the drawing code: every
+   * poll was SUCCEEDING. The bridge %q-quotes STRING returns, so a "x,y,z" reply
+   * arrives with literal quote characters, parseFloat sees `"2701.08` and yields
+   * NaN, the isFinite guard bails, and `player` stays null forever. Silent, and
+   * indistinguishable from "not connected" at the UI. Confirmed against the live
+   * game before changing anything: ok:true, 39-63ms, zero blue pixels on canvas.
+   */
+  ok("map: without unquoting, the first coordinate is NaN (the actual bug)",
+     isNaN(parseFloat('"2701.0871582031')));
+  ok("map: a %q-quoted position parses once unquoted", (() => {
+    const raw = '"2701.0871582031,-13.905901908875,-713.27514648438"';
+    const p = w.IDE.lua.unquote(raw).split(",").map(parseFloat);
+    return p.length === 3 && p.every(isFinite) && Math.round(p[0]) === 2701;
+  })());
+  /* `return 'nil'` is a STRING return, so it comes back quoted too -- the old
+     `r.value === "nil"` compare could never have matched either. */
+  ok("map: a quoted 'nil' reply is recognised as nil", w.IDE.lua.unquote('"nil"') === "nil");
+
+  /* The bridge broadcasts every Loader.WsSend to ALL connected clients, so with
+     two IDE tabs open each one's log filled with the other's result plumbing --
+     and anything polling on a timer turned that into a flood. Verified live: two
+     established connections to :27050, every tagged line delivered to both. */
+  ok("bridge: another client's tagged result is not reported as mod telemetry", (() => {
+    const B = new w.EssBridge("ws://127.0.0.1:1", { WebSocketImpl: function () {} });
+    const seen = [];
+    B.onData = (l) => seen.push(l);
+    B._onMessage(JSON.stringify({ type: "ws", line: '<<<WSR:qzz9zz>>>OK\t"1,2,3"' }));
+    B._onMessage(JSON.stringify({ type: "ws", line: "my mod says hello" }));
+    return seen.length === 1 && seen[0] === "my mod says hello";
+  })());
+
+  /* ws traffic is plumbing rather than output: hidden until asked for. */
+  w.IDE.console.clear("log");
+  w.IDE.bus.emit("log", { kind: "ws",  line: "telemetry-xyz" });
+  w.IDE.bus.emit("log", { kind: "log", line: "game-log-xyz" });
+  const logRow = (re) => [...D.querySelectorAll("#log .logline")].find(r => re.test(r.textContent));
+  ok("log: ws lines are hidden by default, real log lines are not",
+     logRow(/telemetry-xyz/).classList.contains("hidden") &&
+     !logRow(/game-log-xyz/).classList.contains("hidden"));
+  D.getElementById("wsToggle").click();
+  ok("log: the ws toggle reveals them and reports its state",
+     !logRow(/telemetry-xyz/).classList.contains("hidden") &&
+     D.getElementById("wsToggle").getAttribute("aria-pressed") === "true");
+  D.getElementById("wsToggle").click();
+  ok("log: toggling back hides them again",
+     logRow(/telemetry-xyz/).classList.contains("hidden") &&
+     D.getElementById("wsToggle").getAttribute("aria-pressed") === "false");
+  /* Hiding alone would have been cosmetic: on one shared 600-line ring a chatty
+     mod still evicted every real log line while its own sat hidden -- a log that
+     looks empty because of traffic you asked not to see. */
+  ok("log: a ws flood cannot evict real log lines", (() => {
+    w.IDE.console.clear("log");
+    w.IDE.bus.emit("log", { kind: "log", line: "keep-me-please" });
+    for (let i = 0; i < 900; i++) w.IDE.bus.emit("log", { kind: "ws", line: "flood " + i });
+    return !!logRow(/keep-me-please/);
+  })());
+  /* The toolbar wears one class across a <span> and two <button>s; without an
+     explicit background the buttons kept the UA button face (measured
+     rgb(240,240,240) on an rgb(11,16,23) panel). */
+  ok("log: the toolbar buttons are not UA-chrome coloured",
+     /background:transparent/.test([...D.querySelectorAll("style")]
+       .map(s => s.textContent).join("").match(/\.clr\{[^}]*\}/)[0]));
+
+  /* One vocabulary for one check. The two surfaces used to word the same finding
+     differently -- and agent mode used the more alarming phrasing for the WEAKER
+     claim, having never consulted the wiki index at all. */
+  ok("ground: the absent phrase agrees in number",
+     /^A\.b does not appear anywhere in the wiki/.test(w.IDE.ground.phrase("absent", ["A.b"])) &&
+     /^A\.b, C\.d do not appear anywhere in the wiki/.test(w.IDE.ground.phrase("absent", ["A.b", "C.d"])));
+  ok("ground: 'elsewhere' reads as fine, not as an accusation",
+     /checked out/.test(w.IDE.ground.phrase("elsewhere", ["A.b"])) &&
+     !/invented/.test(w.IDE.ground.phrase("elsewhere", ["A.b"])));
+  ok("ground: every verdict has a label",
+     w.IDE.ground.label("absent") === "Not documented" &&
+     w.IDE.ground.label("elsewhere") === "Documented elsewhere" &&
+     w.IDE.ground.label("unverified") === "Unverified");
+  /* classify() folds the unreachable-index case in, so both surfaces get the same
+     three buckets and neither has to remember that verify() rejects. */
+  ok("ground: classify degrades to 'unverified' rather than throwing", await (async () => {
+     const v = await w.IDE.ground.classify(["Totally.Invented"]);
+     return Array.isArray(v.absent) && Array.isArray(v.elsewhere) && Array.isArray(v.unverified) &&
+            v.absent.length + v.unverified.length === 1;
+  })());
 
   console.log(fail ? "\n" + fail + " FAILED, " + pass + " passed" : "\nall " + pass + " passed");
   process.exit(fail ? 1 : 0);

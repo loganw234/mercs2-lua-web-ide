@@ -3648,6 +3648,10 @@
   "TCP": {
    "partial": false,
    "doc": "A tiny outbound TCP helper added by lua-bridge. Loopback destinations only, by design."
+  },
+  "Loader": {
+   "partial": false,
+   "doc": "The lua-bridge mod's own API -- printing to its log, reading the keyboard, persisting a variable across a level load, and pushing a line to a connected WebSocket. Not part of the game: these exist only because the .asi is loaded, which is why nothing in the decompiled base-game scripts calls them."
   }
  },
  "consts": [

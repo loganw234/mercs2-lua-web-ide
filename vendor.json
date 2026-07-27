@@ -22,9 +22,9 @@
       "source": "release-zip",
       "release_asset": "Ess-{version}.zip",
       "member": "api/ess.json",
-      "pin": "v0.4.2",
+      "pin": "v0.5.1",
       "why": "Ess's generated API manifest -- every public function with its namespace, tier, params and documented return. tools/gen_api.py turns it into src/data/ess-api.json, which powers the API panel, Ess.* autocomplete, hover docs, the linter's did-you-mean, the Ctrl+K palette and the agent's search_api. Gitignored upstream (derived from src/, must never be stale), so it is pinned via the release zip rather than a raw path.",
-      "sha256": "2d01edec7f532c5606af50834fe52c236a56b72eeaea3aeb599b3af3b62cc1b5"
+      "sha256": "15d9170211e7d1cc867672638292ff58d8ba3ffb39a474f2c6d314d0d2288ebe"
     },
     {
       "path": "src/data/ess-natives.json",
@@ -32,17 +32,17 @@
       "source": "release-zip",
       "release_asset": "Ess-{version}.zip",
       "member": "api/natives.json",
-      "pin": "v0.4.2",
+      "pin": "v0.5.1",
       "why": "The engine surface as captured from a LIVE game (a pairs(_G) walk over the real runtime, via tools/dump_natives.py). Authoritative for what EXISTS. Merged additively into src/data/natives.json by tools/gen_natives.py -- it does not carry call sites or argument counts, so it never overwrites what scrape_natives.py mined from the decompiled scripts.",
-      "sha256": "f9f2b07f317f3fd83bf38d752674b3434310a86e00bf2aa03be9dd7fb8568b6b"
+      "sha256": "2534f89f0ae139687219b41fd05cda707d9e6c4b4abc4063d5a8971b5763c3c9"
     },
     {
       "path": "src/data/CAPABILITIES.md",
       "repo": "loganw234/mercs2-lua-essentials",
       "remote_path": "CAPABILITIES.md",
-      "pin": "v0.4.2",
+      "pin": "v0.5.1",
       "why": "Human-facing Ess reference. No longer the source of the call list -- ess.json is. Still pinned for the two things it uniquely provides: the '## Section' headings the API panel groups namespaces by (80/80 namespaces), and the per-namespace 'what it's for' blurb (58/80).",
-      "sha256": "f53bf219ed5e4802ad711048a2070783d4b1782f0334a0e31e80c71d6652d0b7"
+      "sha256": "5e7c588dd50e6b0f5073935a9a6903f6f86954407f91ec531e788ff98dd10534"
     }
   ]
 }

@@ -97,6 +97,7 @@ def main():
     added_ns = added_fn = confirmed = 0
     live_meta = {}
     modules = {}
+    published_globals = []
     if LIVE.exists():
         live = json.loads(LIVE.read_text(encoding="utf-8"))
         for ns, info in (live.get("namespaces") or {}).items():
@@ -104,6 +105,16 @@ def main():
             # a dotted entry is reached through its parent, so the parent's import is what matters.
             if info.get("kind") == "game_script":
                 if "." in ns:
+                    continue
+                # PUBLISHED GLOBALS ARE NOT MODULES. Ess 0.5.1 added this flag for exactly this call:
+                # Hud, Pda, Cheat and the widget classes are resident Lua assigned straight into _G, so
+                # they exist from load with nothing to import and no module answers to their name.
+                # Recording them here made the linter advise `import("Cheat")` -- confidently wrong
+                # advice about a global that has always simply been there. They are dropped rather than
+                # given a module entry, because every consumer of `modules` treats it as "things you
+                # must import first".
+                if info.get("published_global"):
+                    published_globals.append(ns)
                     continue
                 modules[ns] = {
                     "source": info.get("source", ""),
@@ -257,6 +268,9 @@ def main():
     if mod_doc_hits:
         print("[gen_natives] modules: %d functions documented across %d modules"
               % (mod_doc_hits, sum(1 for m in modules.values() if m.get("fnDocs"))))
+    if published_globals:
+        print("[gen_natives] not modules -- published straight into _G, nothing to import: %s"
+              % ", ".join(sorted(published_globals)))
     if globals_:
         print("[gen_natives] %d bare global(s) recorded: %s"
               % (len(globals_), ", ".join(sorted(globals_))))
